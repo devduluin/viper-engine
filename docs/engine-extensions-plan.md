@@ -38,7 +38,7 @@ write 1,25× untuk TTL 5 menit).
 | --- | --- | --- |
 | X01 | **DONE** (Claude) | Detail di bawah |
 | X04 | **DONE** (Claude) | Detail di bawah |
-| X02 | **Implementasi DONE, default off** (Claude) | Baseline 40 case diukur: [QA](qa/README.md). Default on menunggu review QA |
+| X02 | **DONE, default ON** (Claude, 18 November 2026) | Baseline 40 case: [QA](qa/README.md). Env `VIPER_MODEL_PROMPT_CACHE=true\|false` (default true), `VIPER_MODEL_PROMPT_CACHE_TTL=5m\|1h` |
 | X03, X05, X06 | Belum mulai | — |
 
 **X02**

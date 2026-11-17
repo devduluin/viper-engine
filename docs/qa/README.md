@@ -32,15 +32,16 @@ prompt cache off vs on (5m). Run berikutnya dibandingkan dengan baseline ini.
    mengubah `bootstrap/worker/schema-guard.ts` di antaranya; jalur model, adapter, dan cache tidak berubah.
    Tanda "belum di-commit" pada service_attendance hanya berasal dari file log yang ikut ter-track git.
 
-Rekomendasi X02: aktifkan `VIPER_MODEL_PROMPT_CACHE=5m` sebagai default, setelah reviewer menyetujui jawaban di
-report ini. Keputusannya dicatat di [engine extensions plan](../engine-extensions-plan.md).
+Keputusan X02 (18 November 2026, user): prompt cache **ON by default**, diatur dengan `VIPER_MODEL_PROMPT_CACHE=true|false`
+dan `VIPER_MODEL_PROMPT_CACHE_TTL=5m|1h`. Model uji diganti ke `claude-sonnet-4-6` untuk menekan biaya; baseline Sonnet dibuat
+terpisah. Lihat [engine extensions plan](../engine-extensions-plan.md).
 
 ## Membuat QA run berikutnya
 
 ```text
 # 1. reset data dummy (dari folder service_attendance), lihat docs/integration/workin-mcp-testing.md
 # 2. jalankan eval live (satu atau beberapa varian)
-WORKIN_TOKEN_FILE=<token> VIPER_MODEL_PROMPT_CACHE=5m node --env-file=.env --import tsx docs/integration/workin-live-eval.mts
+WORKIN_TOKEN_FILE=<token> VIPER_MODEL_PROMPT_CACHE=true node --env-file=.env --import tsx docs/integration/workin-live-eval.mts
 # 3. buat report QA ke folder baru
 node --import tsx docs/integration/workin-live-qa.mts --out docs/qa/workin-live/<tanggal>-<nama> \
   --title "<judul>" <label>=artifacts/evals/<run>/report.json [<label>=...]

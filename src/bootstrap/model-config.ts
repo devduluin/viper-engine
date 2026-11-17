@@ -11,8 +11,8 @@ export interface AnthropicModelConfig {
   readonly effort: ModelEffort;
   readonly fallbacks: boolean;
   readonly maxRetries: number;
-  /** VIPER_MODEL_PROMPT_CACHE: off (default), 5m or 1h. */
-  readonly promptCache: 'off' | '5m' | '1h';
+  /** VIPER_MODEL_PROMPT_CACHE (true/false, default true) with VIPER_MODEL_PROMPT_CACHE_TTL (5m default, or 1h). */
+  readonly promptCache: { readonly enabled: boolean; readonly ttl: '5m' | '1h' };
 }
 
 function effortOf(raw: string | undefined): ModelEffort {
@@ -29,10 +29,12 @@ function booleanOf(raw: string | undefined, key: string, fallback: boolean): boo
   return value === 'true';
 }
 
-function promptCacheOf(raw: string | undefined): AnthropicModelConfig['promptCache'] {
-  const value = raw?.trim().toLowerCase() || 'off';
-  if (value !== 'off' && value !== '5m' && value !== '1h') throw new Error('VIPER_MODEL_PROMPT_CACHE must be off, 5m or 1h');
-  return value;
+/** On by default: the 17 Nov 2026 Workin baseline showed -82% effective input with no quality loss (docs/qa). */
+function promptCacheOf(env: Environment): AnthropicModelConfig['promptCache'] {
+  const enabled = booleanOf(env['VIPER_MODEL_PROMPT_CACHE'], 'VIPER_MODEL_PROMPT_CACHE', true);
+  const ttl = env['VIPER_MODEL_PROMPT_CACHE_TTL']?.trim().toLowerCase() || '5m';
+  if (ttl !== '5m' && ttl !== '1h') throw new Error('VIPER_MODEL_PROMPT_CACHE_TTL must be 5m or 1h');
+  return Object.freeze({ enabled, ttl });
 }
 
 function text(env: Environment, key: string, fallback?: string): string {
@@ -44,7 +46,7 @@ function text(env: Environment, key: string, fallback?: string): string {
 /**
  * VIPER_MODEL_PROVIDER (anthropic), ANTHROPIC_API_KEY, VIPER_MODEL (default claude-opus-5-5),
  * VIPER_MODEL_EFFORT (default medium), VIPER_MODEL_FALLBACKS (default true), VIPER_MODEL_MAX_RETRIES,
- * VIPER_MODEL_PROMPT_CACHE (off | 5m | 1h, default off).
+ * VIPER_MODEL_PROMPT_CACHE (true | false, default true), VIPER_MODEL_PROMPT_CACHE_TTL (5m | 1h, default 5m).
  */
 export function parseModelConfig(env: Environment): AnthropicModelConfig {
   const provider = text(env, 'VIPER_MODEL_PROVIDER', 'anthropic');
@@ -56,6 +58,6 @@ export function parseModelConfig(env: Environment): AnthropicModelConfig {
   return Object.freeze({
     provider: 'anthropic', apiKey: text(env, 'ANTHROPIC_API_KEY'), model, effort: effortOf(env['VIPER_MODEL_EFFORT']),
     fallbacks: booleanOf(env['VIPER_MODEL_FALLBACKS'], 'VIPER_MODEL_FALLBACKS', true), maxRetries: Number(retries),
-    promptCache: promptCacheOf(env['VIPER_MODEL_PROMPT_CACHE']),
+    promptCache: promptCacheOf(env),
   });
 }

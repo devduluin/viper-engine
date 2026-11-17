@@ -11,6 +11,6 @@ export function createModelGateway(config: AnthropicModelConfig, clock: Clock = 
   return new AnthropicModelGateway({
     api: client.beta.messages, clock,
     settings: { effort: config.effort, fallbacks: config.fallbacks,
-      ...(config.promptCache === 'off' ? {} : { promptCache: { ttl: config.promptCache } }) },
+      ...(config.promptCache.enabled ? { promptCache: { ttl: config.promptCache.ttl } } : {}) },
   });
 }
