@@ -10,6 +10,7 @@ export function createModelGateway(config: AnthropicModelConfig, clock: Clock = 
   const client = new Anthropic({ apiKey: config.apiKey, maxRetries: config.maxRetries });
   return new AnthropicModelGateway({
     api: client.beta.messages, clock,
-    settings: { effort: config.effort, fallbacks: config.fallbacks },
+    settings: { effort: config.effort, fallbacks: config.fallbacks,
+      ...(config.promptCache === 'off' ? {} : { promptCache: { ttl: config.promptCache } }) },
   });
 }

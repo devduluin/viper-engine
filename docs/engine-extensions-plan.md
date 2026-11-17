@@ -38,7 +38,26 @@ write 1,25× untuk TTL 5 menit).
 | --- | --- | --- |
 | X01 | **DONE** (Claude) | Detail di bawah |
 | X04 | **DONE** (Claude) | Detail di bawah |
-| X02, X03, X05, X06 | Belum mulai | X02 adalah langkah berikutnya |
+| X02 | **Implementasi DONE, default off** (Claude) | Pengukuran paired penuh menunggu persetujuan biaya |
+| X03, X05, X06 | Belum mulai | — |
+
+**X02**
+
+- `prompt-cache.ts` (adapter Anthropic) dan `AnthropicRequestSettings.promptCache`.
+- Env `VIPER_MODEL_PROMPT_CACHE=off|5m|1h`, default `off`.
+- Breakpoint eksplisit di blok system terakhir (atau tool terakhir bila tanpa system), plus `cache_control`
+  otomatis tingkat atas dengan TTL yang sama.
+- Saat off, request byte-identik dengan sebelumnya.
+- Contract test `prompt-cache.test.ts`: off tanpa marker, posisi marker, TTL 1h, dan prefix antar call identik
+  (history hanya ditambah, tidak ditulis ulang).
+
+Smoke live (`artifacts/evals/workin-live-2026-11-17T16-13-09-942Z/report.json`, 3 case, `5m`):
+
+- 3/3 lulus.
+- Cache read 35 248 / write 20 532 dari total input 55 798. **Effective input 27 445.**
+- Prefix tools + system juga terbaca **lintas run** (WL-012/022 membaca sekitar 14k).
+- Untuk WL-001 + WL-022, effective input turun dari 34 755 (tanpa cache, report `16-05-46`) menjadi sekitar 18 000
+  (**−48%**). Sampel kecil; keputusan default menunggu pengukuran 40 case.
 
 **X01**
 

@@ -7,6 +7,8 @@ import type { AssistantMessage, Message, ToolResultMessage } from '../../../cont
 import type { ModelRequest, ModelToolDefinition } from '../../../contracts/models/gateway.js';
 import type { AssistantReplayCache } from './replay-cache.js';
 import { assistantKey } from './replay-cache.js';
+import { cachedPrefix } from './prompt-cache.js';
+import type { PromptCacheSettings } from './prompt-cache.js';
 
 export type AnthropicEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
@@ -14,6 +16,8 @@ export interface AnthropicRequestSettings {
   readonly effort: AnthropicEffort;
   /** Server-side refusal fallback (`fallbacks: "default"`), on by default. */
   readonly fallbacks: boolean;
+  /** X02 prompt caching; absent = off (default until the paired live evaluation passes). */
+  readonly promptCache?: PromptCacheSettings;
 }
 
 const BINDING_BETA = 'thinking-binding-controls-2026-08-01';
@@ -117,8 +121,7 @@ export function toAnthropicParams(
   const { system, messages } = toMessages(request, cache);
   return {
     model: request.model, max_tokens: request.maxOutputTokens, messages,
-    ...(system.length === 0 ? {} : { system: system.join('\n\n') }),
-    ...(request.tools.length === 0 ? {} : { tools: request.tools.map(tool) }),
+    ...cachedPrefix(system, request.tools.map(tool), settings.promptCache),
     thinking: { type: 'adaptive', block_binding: { prefix_mismatch_behavior: 'drop_block' } },
     output_config: {
       effort: settings.effort,
