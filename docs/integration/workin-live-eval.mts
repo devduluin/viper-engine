@@ -5,6 +5,8 @@
 // Workin DB; docs/integration/workin-dummy-seed.cjs --cleanup removes it). A case may have several user
 // "turns" in one conversation. TRIALS=n repeats every case n times (default 1). The report pins a manifest
 // (engine/dataset/runner hashes, model, tool catalog, service commits): workin-live-manifest.mts.
+// VARIANTS=baseline,checklist runs every case with and without the generic P07-04 checklist
+// (workin-live-plan.mts), alternating order per trial; one report per variant.
 // Report: artifacts/evals/workin-live-<time>/report.json; compare two with workin-live-compare.mts.
 //
 //   cd D:/Development/App/viper-engine
@@ -25,6 +27,8 @@ const { parseConfiguredModelConfig, createConfiguredModelBinding } = await load(
 const { parseMessage } = await load('src/contracts/messages/parse-message.ts');
 const { buildManifest } = await load('docs/integration/workin-live-manifest.mts');
 const { grade } = await load('docs/integration/workin-live-grade.mts');
+const { createPlanEvidence } = await load('src/bootstrap/planning.ts');
+const { CHECKLIST_SHA256, WORKIN_CHECKLIST, parseVariants, switchableChecklist, variantOrder } = await load('docs/integration/workin-live-plan.mts');
 
 type Row = Record<string, unknown>;
 interface Case { id: string; family: string; question?: string; turns?: string[]; approvalDecision?: 'accept' | 'reject'; expect: Expect }
@@ -35,6 +39,8 @@ const only = (process.env.CASES ?? '').split(',').filter(Boolean);
 const cases = dataset.cases.filter((c) => only.length === 0 || only.includes(c.id));
 const trials = Number(process.env.TRIALS ?? 1);
 if (!Number.isSafeInteger(trials) || trials < 1 || trials > 10) throw new RangeError('TRIALS must be an integer 1..10');
+const variants = parseVariants(process.env.VARIANTS) as ('baseline' | 'checklist')[];
+let checklistActive = false;
 const token = readFileSync(String(process.env.WORKIN_TOKEN_FILE), 'utf8').trim();
 const gatewayUrl = process.env.WORKIN_GATEWAY_URL ?? 'http://127.0.0.1:9996/api/v2/mcp';
 const clock = { now: () => Date.now() };
@@ -63,6 +69,7 @@ const host = worker(db.pool, createConfiguredModelBinding(modelConfig, clock), {
     (tool.definition.annotations?.readOnlyHint === false ? 'requires_approval' : 'execute') },
   requestTimeoutMs: 60000, discoveryTimeoutMs: 30000, leaseMs: 60000, heartbeatMs: 5000, limits: { maxDurationMs: 240000 },
   instructions,
+  ...(variants.includes('checklist') ? { contextEvidence: switchableChecklist(createPlanEvidence, () => checklistActive) } : {}),
 });
 const baseUrl = await app.listen({ host: '127.0.0.1', port: 0 });
 const client = createEngineClient({ baseUrl, getToken: async () => 'owner', requestTimeoutMs: 60000 });
@@ -125,7 +132,8 @@ const modelInfo = { provider: modelConfig.provider ?? process.env.VIPER_MODEL_PR
 const manifest = await buildManifest({ root: ROOT, gatewayUrl, token, hostInstruction: HOST_INSTRUCTION, model: modelInfo, trials, caseIds: cases.map((c) => c.id) });
 const results: Row[] = [];
 try {
-  for (let trial = 1; trial <= trials; trial += 1) for (const item of cases) {
+  for (let trial = 1; trial <= trials; trial += 1) for (const item of cases) for (const variant of variantOrder(variants, trial)) {
+    checklistActive = variant === 'checklist';
     const started = Date.now();
     const approvals: string[] = [];
     const events: string[] = [];
@@ -133,9 +141,10 @@ try {
     try { observed = await runCase(item, started, approvals, events); } catch (caught) { error = caught instanceof Error ? caught.message : String(caught); }
     const failures = error ? [`run error: ${error}`] : grade(item.expect, { ...observed, approvals });
     const usage = observed.usage;
-    const result = { id: item.id, trial, family: item.family, turns: turnsOf(item), pass: failures.length === 0, failures, ...observed, approvals, events, seconds: (Date.now() - started) / 1000 };
+    const result = { id: item.id, trial, variant, family: item.family, turns: turnsOf(item), pass: failures.length === 0, failures, ...observed, approvals, events, seconds: (Date.now() - started) / 1000 };
     results.push(result);
-    console.log(`${result.pass ? 'PASS' : 'FAIL'} ${item.id}${trials > 1 ? ` #${trial}` : ''} (${result.seconds}s, ${usage.calls ?? 0} calls, ${usage.input ?? 0}/${usage.output ?? 0} tok) ${turnsOf(item).join(' / ')}`);
+    const tag = `${trials > 1 ? ` #${trial}` : ''}${variants.length > 1 ? ` [${variant}]` : ''}`;
+    console.log(`${result.pass ? 'PASS' : 'FAIL'} ${item.id}${tag} (${result.seconds}s, ${usage.calls ?? 0} calls, ${usage.input ?? 0}/${usage.output ?? 0} tok) ${turnsOf(item).join(' / ')}`);
     for (const failure of failures) console.log(`     - ${failure}`);
     if (!result.pass) console.log(`     events: ${events.join(' > ')}`);
   }
@@ -143,25 +152,39 @@ try {
   await host.stop(); await app.close(); await db.drop();
 }
 
-const totals = results.reduce((acc: Row, r) => {
-  const u = r.usage as Row;
-  return { pass: Number(acc.pass) + (r.pass ? 1 : 0), calls: Number(acc.calls) + Number(u.calls ?? 0),
-    input: Number(acc.input) + Number(u.input ?? 0), output: Number(acc.output) + Number(u.output ?? 0), seconds: Number(acc.seconds) + Number(r.seconds) };
-}, { pass: 0, calls: 0, input: 0, output: 0, seconds: 0 });
 const reportId = `workin-live-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const dir = path.join('artifacts', 'evals', reportId);
 mkdirSync(dir, { recursive: true });
+
+function totalsOf(rows: Row[]) {
+  return rows.reduce((acc: Row, r) => {
+    const u = r.usage as Row;
+    return { pass: Number(acc.pass) + (r.pass ? 1 : 0), calls: Number(acc.calls) + Number(u.calls ?? 0),
+      input: Number(acc.input) + Number(u.input ?? 0), output: Number(acc.output) + Number(u.output ?? 0), seconds: Number(acc.seconds) + Number(r.seconds) };
+  }, { pass: 0, calls: 0, input: 0, output: 0, seconds: 0 });
+}
+
 // Per case over all trials; `allTrials` is pass^k (every trial passed), the stricter reliability number.
-const byCase = cases.map((item) => {
-  const runs = results.filter((r) => r.id === item.id);
-  const passes = runs.filter((r) => r.pass).length;
-  return { id: item.id, family: item.family, trials: runs.length, passes, passRate: runs.length ? passes / runs.length : 0, allTrials: passes === runs.length };
-});
-writeFileSync(path.join(dir, 'report.json'), JSON.stringify({
-  reportId, kind: 'workin-live (pinned manifest; reference evidence, not the P08-01 regression gate)', manifest,
-  hostInstruction: HOST_INSTRUCTION, model: modelInfo, gatewayUrl,
-  totals: { cases: cases.length, trials, runs: results.length, ...totals, casesAllTrials: byCase.filter((c) => c.allTrials).length }, byCase, results,
-}, null, 2));
-if (trials > 1) console.log(`\nall ${trials} trials passed: ${byCase.filter((c) => c.allTrials).length}/${cases.length} cases`);
-console.log(`\n${totals.pass}/${results.length} runs passed | model calls ${totals.calls} | tokens in ${totals.input} / out ${totals.output} | ${Number(totals.seconds).toFixed(1)}s`);
-console.log(`report: ${path.join(dir, 'report.json')}`);
+function byCaseOf(rows: Row[]) {
+  return cases.map((item) => {
+    const runs = rows.filter((r) => r.id === item.id);
+    const passes = runs.filter((r) => r.pass).length;
+    return { id: item.id, family: item.family, trials: runs.length, passes, passRate: runs.length ? passes / runs.length : 0, allTrials: passes === runs.length };
+  });
+}
+
+for (const variant of variants) {
+  const rows = results.filter((r) => r.variant === variant);
+  const totals = totalsOf(rows); const byCase = byCaseOf(rows);
+  const plan = variant === 'checklist' ? { variant, checklist: WORKIN_CHECKLIST, checklistSha256: CHECKLIST_SHA256 } : { variant };
+  const file = path.join(dir, variants.length > 1 ? `report-${variant}.json` : 'report.json');
+  writeFileSync(file, JSON.stringify({
+    reportId: variants.length > 1 ? `${reportId}-${variant}` : reportId, kind: 'workin-live (pinned manifest; reference evidence, not the P08-01 regression gate)',
+    manifest: { ...manifest, plan, pairedWith: variants.length > 1 ? variants : undefined },
+    hostInstruction: HOST_INSTRUCTION, model: modelInfo, gatewayUrl,
+    totals: { cases: cases.length, trials, runs: rows.length, ...totals, casesAllTrials: byCase.filter((c) => c.allTrials).length }, byCase, results: rows,
+  }, null, 2));
+  console.log(`\n[${variant}] ${totals.pass}/${rows.length} runs passed${trials > 1 ? ` (all trials: ${byCase.filter((c) => c.allTrials).length}/${cases.length} cases)` : ''}`
+    + ` | model calls ${totals.calls} | tokens in ${totals.input} / out ${totals.output} | ${Number(totals.seconds).toFixed(1)}s`);
+  console.log(`report: ${file}`);
+}

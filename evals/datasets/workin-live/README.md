@@ -21,6 +21,10 @@ did: run status, MCP tools called, facts in the final answer, and approval behav
   - `CASES=WL-001,WL-018` selects cases.
   - `TRIALS=3` repeats every case.
   - The report holds `byCase`: pass rate per case, and `allTrials` (pass^k).
+  - `VARIANTS=baseline,checklist` runs every case with and without the generic P07-04 advisory
+    checklist (`docs/integration/workin-live-plan.mts`, through `createPlanEvidence`), alternating
+    order per trial. It writes `report-baseline.json` and `report-checklist.json`; compare them.
+    First run: `docs/reports/P07-04-ablation.md` (live section).
   - Setup and services: `docs/integration/workin-mcp-testing.md`.
 - Every report pins a `manifest` (`docs/integration/workin-live-manifest.mts`):
   - hashes of engine `src/`, dataset, runner and dummy seed;
