@@ -4,6 +4,7 @@ import { SignedApiCursors } from '../adapters/http/cursors.js';
 import { EngineApi } from '../application/api/service.js';
 import type { ApiOptions } from '../application/api/options.js';
 import { createHttpServer } from '../entrypoints/http/server.js';
+import { assertSchemaReady } from './database.js';
 import type { HttpOptions } from '../entrypoints/http/server.js';
 import { parseId } from '../contracts/identity/ids.js';
 import { apiDatabase } from './api-database.js';
@@ -22,6 +23,8 @@ export interface EngineHttpOptions extends Pick<ApiOptions, 'authorizeServer' | 
   readonly requestBytes?: number; readonly eventBytes?: number;
   readonly idempotencyRetentionSeconds?: number; readonly eventRetentionSeconds?: number;
   readonly stream?: EventStreamOptions | false;
+  /** Check on `ready()`/`listen()` that the database is migrated for this build (default true). */
+  readonly schemaCheck?: boolean;
 }
 
 export function createEngineHttpServer(pool: SqlPool, options: EngineHttpOptions) {
@@ -40,10 +43,15 @@ export function createEngineHttpServer(pool: SqlPool, options: EngineHttpOptions
     ...(options.prepareContext === undefined ? {} : { prepareContext: options.prepareContext }),
     ...(options.authorizeMedia === undefined ? {} : { authorizeMedia: options.authorizeMedia }),
   });
-  return createHttpServer(api, { requestBytes,
+  const app = createHttpServer(api, { requestBytes,
     ...(options.stream === false ? {} : { replay: eventReplay(pool, cursors, clock, eventBytes, eventRetentionSeconds, options.stream) }),
     authenticate: token => withDeadline(() => options.authenticate(token),
     { operationName: 'HTTP authentication', timeoutMs: 10000 }) });
+  // listen()/ready() reject with SchemaNotReadyError instead of serving 500s from an unmigrated database.
+  app.addHook('onReady', async () => {
+    if (options.schemaCheck !== false) await assertSchemaReady(pool);
+  });
+  return app;
 }
 
 /** Pass as ViperEngineOptions.instructions when pairing this HTTP surface with a worker. */

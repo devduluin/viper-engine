@@ -12,12 +12,16 @@ import { createWorkerHost } from '../../application/worker/host.js';
 import { workerFailureCode } from './failures.js';
 import { workerInstructions } from './instructions.js';
 import { deadLetter, parseMaxDeliveryFailures } from './dead-letter.js';
+import { guardWorkerSchema } from './schema-guard.js';
+import { assertSchemaReady } from '../database.js';
 export type { WorkerEvent, WorkerHandle, WorkerStatus } from '../../application/worker/types.js';
 
 export interface EngineWorkerOptions extends Omit<WorkerOptions, 'workerId'> {
   readonly workerId?: string; readonly retry?: Partial<WorkerRetryPolicy>;
   /** Consecutive failed deliveries before the run ends as `failed` (default 20). */
   readonly maxDeliveryFailures?: number;
+  /** Check on start that the database is migrated for this build (default true); fails fast with SchemaNotReadyError. */
+  readonly schemaCheck?: boolean;
   readonly onEvent?: (event: WorkerEvent) => void | Promise<void>;
 }
 
@@ -37,7 +41,8 @@ export function createEngineWorker(pool: SqlPool, engineOptions: Omit<ViperEngin
       if (deferred.ok && deferred.value.failures >= maxFailures) await deadLetter(runs, claim, clock, ids);
     },
   });
-  return createWorkerHost({ engine, clock, maintain: limit => control.maintain(limit), classify: workerFailureCode,
+  const host = createWorkerHost({ engine, clock, maintain: limit => control.maintain(limit), classify: workerFailureCode,
     ...(options.onEvent === undefined ? {} : { onEvent: options.onEvent }) },
   { ...options, workerId: options.workerId ?? `worker-${randomUUID()}` });
+  return options.schemaCheck === false ? host : guardWorkerSchema(host, () => assertSchemaReady(pool));
 }

@@ -70,6 +70,36 @@ function pendingMigrations(migrations: readonly Migration[], applied: ReadonlyMa
   return migrations.filter(migration => !applied.has(migration.version));
 }
 
+export interface SchemaStatus {
+  readonly ready: boolean;
+  /** Highest applied version (0 when the database was never migrated). */
+  readonly current: number;
+  /** Latest version this build knows; undefined when its migration files are not available. */
+  readonly expected?: number;
+  readonly problem?: 'not_migrated' | 'pending' | 'mismatch';
+  readonly detail?: string;
+}
+
+/**
+ * Read-only startup check; never creates or changes anything. Without `migrations` (e.g. a build
+ * that does not ship the .sql files) only "was this database migrated at all" is checked.
+ */
+export async function schemaStatus(pool: SqlQueryable, migrations?: readonly Migration[]): Promise<SchemaStatus> {
+  const expected = migrations?.at(-1)?.version;
+  const known = expected === undefined ? {} : { expected };
+  const state = await pool.query(`SELECT to_regclass('viper_engine.schema_migrations') IS NOT NULL AS has_ledger`);
+  if (Reflect.get(Object(state.rows[0]), 'has_ledger') !== true) return { ready: false, current: 0, ...known, problem: 'not_migrated' };
+  const applied = await appliedChecksums(pool);
+  const current = Math.max(0, ...applied.keys());
+  if (migrations === undefined) return { ready: current > 0, current, ...(current > 0 ? {} : { problem: 'not_migrated' as const }) };
+  try {
+    const pending = pendingMigrations(migrations, applied);
+    return pending.length === 0 ? { ready: true, current, ...known } : { ready: false, current, ...known, problem: 'pending' };
+  } catch (error) {
+    return { ready: false, current, ...known, problem: 'mismatch', detail: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 /**
  * Applies pending migrations in one transaction under an advisory lock, so concurrent starters
  * serialize. It touches only the `viper_engine` schema of the database the pool points at.

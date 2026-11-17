@@ -37,3 +37,27 @@ hanya mencatat temuan dan tidak mengubah kode engine, progress, atau checklist.
 
 Catatan: yang sudah baik dan tidak perlu diulang di P08-03 adalah migrasi yang idempotent, examples tanpa key, DB uji
 yang terisolasi dan di-drop setelah selesai, serta gate offline yang hijau dari salinan bersih.
+
+## Status tindak lanjut (Claude, 17 November 2026)
+
+- **F3 FIXED.**
+  - `schemaStatus` (read-only) ada di `migrate.ts`. `assertSchemaReady` dan `SchemaNotReadyError` ada di
+    `src/bootstrap/database.ts`. Contoh pesan: "Viper database is not migrated (this build needs version 12);
+    run `npm run db:migrate`".
+  - `createEngineWorker`: pada DB yang belum siap, worker berhenti, `status().phase` menjadi `failed`, dan
+    `done`/`stop()` ditolak dengan `SchemaNotReadyError`. Error schema diutamakan di atas
+    "Worker shutdown failed".
+  - `createEngineHttpServer`: `ready()`/`listen()` ditolak lewat hook `onReady`.
+  - Keduanya bisa dimatikan dengan `schemaCheck: false`.
+  - Build yang tidak membawa file `.sql` hanya mewajibkan bahwa DB pernah dimigrasi.
+  - Test `tests/integration/postgres/schema-guard.test.ts` mencakup DB kosong, DB yang kurang satu migrasi,
+    checksum drift, worker, HTTP, dan opt-out. Lulus 5× berturut-turut.
+  - Export root (`src/index.ts`) tidak diubah; itu wilayah koordinasi integration owner.
+- **F4 FIXED (lokal).**
+  - Database `viper_engine_test` dibuat dan dimigrasi ke versi 12.
+  - `.env` lokal `VIPER_TEST_DB_*` diisi: server loopback yang sama dengan dev, dengan `viper_engine_test` sebagai
+    database maintenance untuk `viper_it_*`.
+  - `npm run test:integration` sekarang jalan tanpa env manual: 174/174. Satu test timing
+    (`headless-recovery` write timeout) sempat flaky di satu run penuh, lalu lulus 3/3 sendiri dan 174/174 di run berikutnya.
+- **F1, F2, F5** tetap untuk P08-03 (proses standalone, health/readiness, runbook). `assertSchemaReady` siap dipakai
+  sebagai dasar `/readyz`.
