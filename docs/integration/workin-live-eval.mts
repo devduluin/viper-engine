@@ -131,7 +131,8 @@ async function runCase(item: Case, started: number, approvals: string[], events:
   return { status, tools, answer, usage };
 }
 
-const modelInfo = { provider: modelConfig.provider ?? process.env.VIPER_MODEL_PROVIDER, model: process.env.VIPER_MODEL, effort: process.env.VIPER_MODEL_EFFORT };
+const modelInfo = { provider: modelConfig.provider ?? process.env.VIPER_MODEL_PROVIDER, model: process.env.VIPER_MODEL, effort: process.env.VIPER_MODEL_EFFORT,
+  promptCache: process.env.VIPER_MODEL_PROMPT_CACHE?.trim() || 'off' };
 const manifest = await buildManifest({ root: ROOT, gatewayUrl, token, hostInstruction: HOST_INSTRUCTION, model: modelInfo, trials, caseIds: cases.map((c) => c.id) });
 const results: Row[] = [];
 try {

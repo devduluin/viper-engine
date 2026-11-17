@@ -38,7 +38,7 @@ write 1,25× untuk TTL 5 menit).
 | --- | --- | --- |
 | X01 | **DONE** (Claude) | Detail di bawah |
 | X04 | **DONE** (Claude) | Detail di bawah |
-| X02 | **Implementasi DONE, default off** (Claude) | Pengukuran paired penuh menunggu persetujuan biaya |
+| X02 | **Implementasi DONE, default off** (Claude) | Baseline 40 case diukur: [QA](qa/README.md). Default on menunggu review QA |
 | X03, X05, X06 | Belum mulai | — |
 
 **X02**

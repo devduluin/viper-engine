@@ -1,0 +1,1571 @@
+{
+  "reportId": "workin-live-2026-11-17T16-39-22-857Z",
+  "kind": "workin-live (pinned manifest; reference evidence, not the P08-01 regression gate)",
+  "manifest": {
+    "createdAt": "2026-11-17T16:35:04.378Z",
+    "engine": {
+      "version": "0.1.0",
+      "src": {
+        "files": 280,
+        "sha256": "d4eaebc56cb9a6a708fddc19d762a2a64f477c720a60d3d7f0b1435176b47c3e"
+      },
+      "node": "v22.16.0",
+      "mcpSdk": "1.32.2",
+      "anthropicSdk": "1.3.0"
+    },
+    "model": {
+      "provider": "anthropic",
+      "model": "claude-opus-5-5",
+      "effort": "medium",
+      "promptCache": "off"
+    },
+    "hostInstruction": {
+      "text": "Kamu adalah asisten HR untuk aplikasi Workin. Hari ini 2026-11-17 (zona waktu Asia/Jakarta). Gunakan tool Workin untuk data karyawan dan kehadiran; jangan menebak data yang tidak ada di hasil tool. Jawab dalam Bahasa Indonesia secara ringkas.",
+      "sha256": "e8135dca9a456d4fa64d42dcfad583e1e8fef30c03a51369e8a1dd57f824b84c"
+    },
+    "dataset": {
+      "file": "evals/datasets/workin-live/cases.json",
+      "sha256": "de18118e9676f400da4ba4d97af41a7395c54aedc470a2ddc620b40a6f4774c8",
+      "cases": [
+        "WL-001",
+        "WL-002",
+        "WL-003",
+        "WL-004",
+        "WL-005",
+        "WL-006",
+        "WL-007",
+        "WL-008",
+        "WL-009",
+        "WL-010",
+        "WL-011",
+        "WL-012",
+        "WL-013",
+        "WL-014",
+        "WL-015",
+        "WL-016",
+        "WL-017",
+        "WL-018",
+        "WL-019",
+        "WL-020",
+        "WL-021",
+        "WL-022",
+        "WL-023",
+        "WL-024",
+        "WL-025",
+        "WL-026",
+        "WL-027",
+        "WL-028",
+        "WL-029",
+        "WL-030",
+        "WL-031",
+        "WL-032",
+        "WL-033",
+        "WL-034",
+        "WL-035",
+        "WL-036",
+        "WL-037",
+        "WL-038",
+        "WL-039",
+        "WL-040"
+      ],
+      "trials": 1
+    },
+    "runner": {
+      "sha256": "bb4f92eccdea97e93a50da1ef0a61a004808ba04a57b15bb7c6ef819c34182ae"
+    },
+    "data": {
+      "dummyManifestSha256": "2e37ec8710e44523bbc95f48167f3f3563be2f15b57bc57c39aa6f1378f9560a"
+    },
+    "services": {
+      "gateway_v3": {
+        "commit": "8b5867bd732e58f337d184f863b3a7f59afb9310",
+        "branch": "staging",
+        "dirty": []
+      },
+      "service_attendance": {
+        "commit": "1c6b22ea17e6b8f17a536c7fb550d98d1edf9f44",
+        "branch": "staging",
+        "dirty": [
+          "logs/activity/activity.log",
+          "logs/error/error.log"
+        ]
+      },
+      "service_employees": {
+        "commit": "7ba8d24ce40a2be0be4aaf1b5565caa2a1285594",
+        "branch": "staging",
+        "dirty": []
+      }
+    },
+    "gateway": {
+      "url": "http://127.0.0.1:9996/api/v2/mcp",
+      "catalog": {
+        "count": 13,
+        "schemaBytes": 14059,
+        "sha256": "717496a15b78a6b0595bf2ac72d5c9b73ba57c1381955e52752794ebb98fe637",
+        "tools": [
+          {
+            "name": "hris_attendance_create_schedule",
+            "readOnly": false,
+            "bytes": 1700,
+            "sha256": "16e187e8a13c8b1451432fc87d6645bbe5579f94e69b4606df942f52cfe3f4ac"
+          },
+          {
+            "name": "hris_attendance_get_period_summary",
+            "readOnly": true,
+            "bytes": 1633,
+            "sha256": "994c89a714259bd3dd58cfebc0ee655211cfe32105c6ebdde61a371291bfc592"
+          },
+          {
+            "name": "hris_attendance_get_schedule",
+            "readOnly": true,
+            "bytes": 838,
+            "sha256": "d9185d8801224d9a9c588bb4cb38a86c495c411f7d434117d2305c7aeb235451"
+          },
+          {
+            "name": "hris_attendance_get_today_summary",
+            "readOnly": true,
+            "bytes": 583,
+            "sha256": "84dc5b38f127c0f9ff6ebbdd7cb6c7df1c07f974fa1f060388b3699a31258492"
+          },
+          {
+            "name": "hris_attendance_list_shift_types",
+            "readOnly": true,
+            "bytes": 727,
+            "sha256": "162a655a65cdf5f92f55bb6909add3236dc4e603030738a1a2da7c035f45e9d9"
+          },
+          {
+            "name": "hris_attendance_ping",
+            "readOnly": true,
+            "bytes": 302,
+            "sha256": "48c2ec291e4c0c6d0d7b1decd3070cf53ed90d49e2276333384ed914c2c79d58"
+          },
+          {
+            "name": "hris_attendance_search_daily",
+            "readOnly": true,
+            "bytes": 2053,
+            "sha256": "44360d3473a801d35912011a59cf5a5b946ca1ac83d897438698ead48a73d96b"
+          },
+          {
+            "name": "hris_attendance_search_requests",
+            "readOnly": true,
+            "bytes": 1530,
+            "sha256": "ccd16f5f38f0ff58f19ae67b658014a48a360811129cff831ec1a7aaaa424558"
+          },
+          {
+            "name": "hris_attendance_search_schedule",
+            "readOnly": true,
+            "bytes": 1844,
+            "sha256": "cfdfe165d1df5977b820deca8ef15cdd0eafed6a9988e5d26d9597a0eb84a54a"
+          },
+          {
+            "name": "hris_employees_get_headcount",
+            "readOnly": true,
+            "bytes": 359,
+            "sha256": "8104d3e97089f26b5c1d9a3ba2466a2c83c702962e9eb9579a683029470311f1"
+          },
+          {
+            "name": "hris_employees_get_profile",
+            "readOnly": true,
+            "bytes": 691,
+            "sha256": "8d3d8cab53e1fbace5a3a9404b56bbb66bdf86003f8d5a816bf10ead1970f00d"
+          },
+          {
+            "name": "hris_employees_list_birthdays",
+            "readOnly": true,
+            "bytes": 754,
+            "sha256": "22f3e06df1ec97dfa084bc9aa4ec4e69c6fd7ee1558df94612010df93555f288"
+          },
+          {
+            "name": "hris_employees_search",
+            "readOnly": true,
+            "bytes": 1045,
+            "sha256": "99e99af897a7ded2702f656758e8a5b5f30333eae2a9ecd9662936e60a181d3d"
+          }
+        ],
+        "tokens": {
+          "status": "measured",
+          "model": "claude-opus-5-5",
+          "catalogTokens": 6926
+        }
+      }
+    },
+    "plan": {
+      "variant": "baseline"
+    }
+  },
+  "hostInstruction": "Kamu adalah asisten HR untuk aplikasi Workin. Hari ini 2026-11-17 (zona waktu Asia/Jakarta). Gunakan tool Workin untuk data karyawan dan kehadiran; jangan menebak data yang tidak ada di hasil tool. Jawab dalam Bahasa Indonesia secara ringkas.",
+  "model": {
+    "provider": "anthropic",
+    "model": "claude-opus-5-5",
+    "effort": "medium",
+    "promptCache": "off"
+  },
+  "gatewayUrl": "http://127.0.0.1:9996/api/v2/mcp",
+  "cacheFactors": {
+    "read": 0.05,
+    "write5m": 1.25
+  },
+  "totals": {
+    "cases": 40,
+    "trials": 1,
+    "runs": 40,
+    "pass": 39,
+    "calls": 89,
+    "input": 732645,
+    "output": 18168,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "effectiveInput": 732645,
+    "seconds": 256.158,
+    "casesAllTrials": 39
+  },
+  "byCase": [
+    {
+      "id": "WL-001",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-002",
+      "family": "clarification",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-003",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-004",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-005",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-006",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-007",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-008",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-009",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-010",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-011",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-012",
+      "family": "multi_step",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-013",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-014",
+      "family": "approval",
+      "trials": 1,
+      "passes": 0,
+      "passRate": 0,
+      "allTrials": false
+    },
+    {
+      "id": "WL-015",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-016",
+      "family": "multi_step",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-017",
+      "family": "error",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-018",
+      "family": "multi_turn",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-019",
+      "family": "multi_turn",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-020",
+      "family": "multi_turn",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-021",
+      "family": "multi_step",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-022",
+      "family": "multi_step",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-023",
+      "family": "multi_step",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-024",
+      "family": "out_of_scope",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-025",
+      "family": "out_of_scope",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-026",
+      "family": "approval",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-027",
+      "family": "approval",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-028",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-029",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-030",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-031",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-032",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-033",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-034",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-035",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-036",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-037",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-038",
+      "family": "tools",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-039",
+      "family": "robustness",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    },
+    {
+      "id": "WL-040",
+      "family": "robustness",
+      "trials": 1,
+      "passes": 1,
+      "passRate": 1,
+      "allTrials": true
+    }
+  ],
+  "results": [
+    {
+      "id": "WL-001",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Ardi Mahendra lahir tanggal berapa?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_employees_get_profile"
+      ],
+      "answer": "Ardi Mahendra (D-0005) lahir pada **25 Januari 1991** di Sinar Seputih. Usianya sekarang 35 tahun.",
+      "usage": {
+        "calls": 2,
+        "input": 14937,
+        "output": 123,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 3.768
+    },
+    {
+      "id": "WL-002",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "clarification",
+      "turns": [
+        "Kapan ulang tahun Ardi?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_employees_get_profile"
+      ],
+      "answer": "Ada lebih dari 10 karyawan yang namanya mengandung \"Ardi\", jadi saya perlu tahu yang mana. Yang namanya persis \"Ardi\" hanya ini:\n\n- **Ardi Mahendra (D-0005)**\n\nPilihan lain yang namanya mirip:\n- Ardik Susilo (2024010201191302102)\n- Ardinas Bagus Prasetyo (20240103119130107)\n- Dicky Ardianto Pratama (20250303010215207)\n- Fandi Ardiansyah (20250303010215224)\n- …dan beberapa lainnya\n\nApakah yang Anda maksud Ardi Mahendra? Jika bukan, sebutkan nama lengkap atau kodenya.",
+      "usage": {
+        "calls": 2,
+        "input": 15997,
+        "output": 398,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 5.696
+    },
+    {
+      "id": "WL-003",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Berapa jumlah karyawan aktif di perusahaan kita?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_employees_get_headcount"
+      ],
+      "answer": "Saat ini perusahaan punya **280 karyawan aktif**, terdiri dari 263 laki-laki dan 17 perempuan.\n\nTotal karyawan yang tercatat ada 292 orang. Selain yang aktif, 10 orang berstatus nonaktif dan 2 orang sudah keluar.",
+      "usage": {
+        "calls": 2,
+        "input": 14596,
+        "output": 145,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 3.425
+    },
+    {
+      "id": "WL-004",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Berapa karyawan perempuan yang masih aktif?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_employees_get_headcount"
+      ],
+      "answer": "Ada **17 karyawan perempuan** yang masih aktif, dari total 280 karyawan aktif. Sisanya, 263 orang, adalah karyawan laki-laki.",
+      "usage": {
+        "calls": 2,
+        "input": 14588,
+        "output": 101,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 2.688
+    },
+    {
+      "id": "WL-005",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Siapa saja yang terlambat masuk kerja pada 12 November 2026?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_daily"
+      ],
+      "answer": "Pada **12 November 2026**, ada **2 karyawan yang terlambat**. Keduanya masuk Shift Pagi (mulai 08.00, batas toleransi 15 menit):\n\n| Nama | Kode | Check-in | Terlambat | Check-out |\n|---|---|---|---|---|\n| Abraham Gamaliel Figrana | D-0006 | 08.36 | 36 menit | 17.05 |\n| Ardi Mahendra | D-0005 | 08.25 | 25 menit | 17.05 |\n\nDari 8 karyawan yang dijadwalkan masuk, semuanya hadir. Tidak ada yang cuti/izin atau tidak masuk.",
+      "usage": {
+        "calls": 2,
+        "input": 15618,
+        "output": 368,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 5.504
+    },
+    {
+      "id": "WL-006",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Berapa karyawan yang hadir pada 17 November 2026?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_get_today_summary"
+      ],
+      "answer": "Pada **17 November 2026**, ada **6 karyawan yang hadir** dari total 8 karyawan yang terjadwal.\n\n- **Hadir:** 6 orang, termasuk 2 yang datang terlambat\n- **Belum check-in:** 2 orang, dan keduanya sudah lewat batas toleransi keterlambatan\n- **Cuti/izin:** 0\n- **Tidak hadir:** 0\n\nData ini bisa berubah karena hari ini masih berjalan.",
+      "usage": {
+        "calls": 2,
+        "input": 14802,
+        "output": 284,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 4.718
+    },
+    {
+      "id": "WL-007",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Siapa yang cuti pada 13 November 2026?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_daily"
+      ],
+      "answer": "Pada **13 November 2026** hanya **1 karyawan** yang tercatat cuti/izin:\n\n- **ACHMAD FATHONI** (B-0360), dijadwalkan Shift Pagi pukul 08.00\n\nData hari itu tidak membedakan cuti dan izin. Dari 8 karyawan yang dijadwalkan, 7 hadir (1 terlambat) dan tidak ada yang absen.",
+      "usage": {
+        "calls": 2,
+        "input": 15234,
+        "output": 275,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 5.137
+    },
+    {
+      "id": "WL-008",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Siapa yang tidak hadir tanggal 11 November 2026?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_daily"
+      ],
+      "answer": "Pada **11 November 2026**, hanya **1 karyawan** yang tidak hadir:\n\n- **ACHMAD GHOFUR** (B-0348). Ia dijadwalkan masuk Shift Pagi pukul 08.00, tetapi tidak tercatat check-in maupun check-out.\n\nDari 8 karyawan yang dijadwalkan masuk hari itu, 7 orang hadir (1 di antaranya terlambat). Tidak ada yang cuti atau izin.",
+      "usage": {
+        "calls": 2,
+        "input": 15334,
+        "output": 337,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 4.736
+    },
+    {
+      "id": "WL-009",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Bagaimana jadwal kerja Ardi Mahendra dari 17 sampai 21 November 2026?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_get_schedule"
+      ],
+      "answer": "Ardi Mahendra (D-0005) dijadwalkan bekerja **setiap hari dari 17 sampai 21 November 2026**. Tidak ada hari libur dan semua tanggal sudah punya jadwal.\n\n| Tanggal | Hari | Shift | Jam kerja |\n|---|---|---|---|\n| 17 Nov | Selasa | Shift Pagi | 08:00–17:00 |\n| 18 Nov | Rabu | Shift Pagi | 08:00–17:00 |\n| 19 Nov | Kamis | Shift Pagi | 08:00–17:00 |\n| 20 Nov | Jumat | Shift Pagi | 08:00–17:00 |\n| 21 Nov | Sabtu | Shift Pagi | 08:00–17:00 |\n\nAturannya sama setiap hari: check-in mulai pukul 07:00 dan batas terlambat 15 menit.\n\n**Perlu dicek:**\n- Nama shift di sistem tertulis \"Shift Pagi (dummy MCP)\", jadi kemungkinan ini data uji.\n- Ardi juga dijadwalkan masuk hari Sabtu, 21 November. Pastikan memang begitu kalau Sabtu biasanya hari libur.",
+      "usage": {
+        "calls": 2,
+        "input": 15851,
+        "output": 649,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 7.867
+    },
+    {
+      "id": "WL-010",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Pengajuan kehadiran apa saja yang masih menunggu persetujuan di bulan November 2026?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_requests"
+      ],
+      "answer": "Ada **2 pengajuan kehadiran** di bulan November 2026 yang masih menunggu persetujuan. Keduanya diajukan pada 17 Nov 2026 pukul 16.34.\n\n| Karyawan | Jenis | Tanggal | Keterangan |\n|---|---|---|---|\n| Agus Setiawan (D-0013) | Lembur | 18 Nov 2026 | Lembur closing bulanan |\n| Ahmad Qayyim (B-0432) | Tukar shift | 19 Nov 2026 | Tukar shift dengan rekan |\n\nLembur Agus jatuh **besok**, jadi sebaiknya diproses lebih dulu.\n\nDi keterangan kedua pengajuan ada tulisan \"(dummy MCP)\". Sebaiknya cek dulu apakah ini pengajuan asli atau hanya data uji coba.",
+      "usage": {
+        "calls": 2,
+        "input": 15429,
+        "output": 470,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 6.163
+    },
+    {
+      "id": "WL-011",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Siapa yang bekerja dari rumah (WFH) tanggal 12 November 2026?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_requests"
+      ],
+      "answer": "Hanya **1 karyawan** yang tercatat WFH pada **12 November 2026**:\n\n| Nama | Kode | Status | Alasan |\n|---|---|---|---|\n| adas silalahi | TESTING | Disetujui | WFH karena renovasi rumah |\n\nHal yang perlu diperhatikan:\n- **Ini mungkin data uji coba.** Kodenya \"TESTING\" dan alasannya bertanda \"(dummy MCP)\".\n- **Diajukan setelah tanggalnya.** Pengajuan ini dibuat pada 17 November 2026 untuk tanggal 12 November.\n- **Sumber datanya hanya pengajuan WFH di sistem.** Karyawan yang WFH tanpa membuat pengajuan tidak akan muncul di sini.",
+      "usage": {
+        "calls": 2,
+        "input": 15049,
+        "output": 464,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 5.992
+    },
+    {
+      "id": "WL-012",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "multi_step",
+      "turns": [
+        "Buatkan rekap ketidakhadiran dan cuti karyawan untuk periode 10 sampai 14 November 2026."
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_get_period_summary"
+      ],
+      "answer": "## Rekap Ketidakhadiran & Cuti, 10–14 November 2026\n\nAda 8 karyawan yang terjadwal, dengan total 40 hari kerja terjadwal:\n\n| Kategori | Jumlah hari |\n|---|---|\n| Hadir | 37 |\n| Tidak hadir (tercatat absen) | 1 |\n| Cuti/izin | 2 |\n| Hari kerja tanpa data kehadiran | 0 |\n\n**Karyawan yang tidak hadir atau cuti:**\n\n| Karyawan | Kode | Tanggal | Status | Alasan |\n|---|---|---|---|---|\n| ACHMAD GHOFUR | B-0348 | 11 Nov | Tidak hadir | Tidak dicatat |\n| ACHMAD FATHONI | B-0360 | 13 & 14 Nov | Cuti | Cuti tahunan |\n\n**Hadir penuh 5 hari (6 orang):** AHMAD QAYYIM (B-0432), Ardi Mahendra (D-0005), AGUNG SETYO (B-0358), Abraham Gamaliel Figrana (D-0006), Agus Setiawan (D-0013), dan adas silalahi (TESTING).\n\nKetidakhadiran ACHMAD GHOFUR tanggal 11 November tidak punya alasan di sistem. Sebaiknya tanyakan langsung ke yang bersangkutan.",
+      "usage": {
+        "calls": 2,
+        "input": 21066,
+        "output": 825,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 12.31
+    },
+    {
+      "id": "WL-013",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Tipe shift apa saja yang tersedia dan jam berapa Shift Pagi dimulai?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_list_shift_types"
+      ],
+      "answer": "Ada **12 tipe shift** di Workin:\n\n| Shift | Jam | Toleransi telat |\n|---|---|---|\n| aaaa (kode: a) | 09:06–21:06 | 0 menit |\n| Early Morning Shift | 03:02–07:02 | 15 menit |\n| Evening Shift | 17:00–22:07 | 30 menit |\n| Half Day | 09:00–12:01 | 15 menit |\n| Morning Shift | 09:00–17:00 | 120 menit |\n| Night Shift | 17:30–23:58 | 15 menit |\n| Saturday Shift | 09:00–14:00 | 30 menit |\n| Shift Malam | 20:00–03:00 (lewat tengah malam) | 60 menit |\n| Shift Pagi (dummy MCP) (kode: DMCP) | 08:00–17:00 | 15 menit |\n| ss (kode: s) | 09:05–09:05 | 0 menit |\n| Test | 16:28–22:34 | 0 menit |\n| Test shift | 12:13–19:14 | 15 menit |\n\n**Jam mulai Shift Pagi:** Tidak ada shift yang namanya persis \"Shift Pagi\". Ada dua yang paling mirip:\n- **Shift Pagi (dummy MCP)** mulai **pukul 08:00**. Check-in dibuka pukul 07:00. Dari namanya, shift ini kemungkinan dibuat untuk percobaan.\n- **Morning Shift** mulai **pukul 09:00**.\n\nShift mana yang Anda maksud?",
+      "usage": {
+        "calls": 2,
+        "input": 16992,
+        "output": 668,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 8.287
+    },
+    {
+      "id": "WL-014",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "approval",
+      "turns": [
+        "Tolong buatkan jadwal Shift Pagi (dummy MCP) untuk Agus Setiawan tanggal 24 November 2026."
+      ],
+      "pass": false,
+      "failures": [
+        "answer lacks ditolak|tidak disetujui|menolak|tidak menyetujui|dibatalkan"
+      ],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_create_schedule"
+      ],
+      "answer": "Jadwal Shift Pagi (dummy MCP) untuk Agus Setiawan pada 24 November 2026 belum dibuat karena permintaannya Anda tolak saat konfirmasi. Belum ada data jadwal yang berubah.\n\nKalau ingin melanjutkan atau mengubah tanggal atau tipe shift, beri tahu saya.",
+      "usage": {
+        "calls": 2,
+        "input": 14454,
+        "output": 304,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [
+        "hris_attendance_create_schedule"
+      ],
+      "seconds": 4.976
+    },
+    {
+      "id": "WL-015",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Berapa karyawan aktif yang berulang tahun di bulan Mei?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_employees_list_birthdays"
+      ],
+      "answer": "Ada **20 karyawan aktif** yang berulang tahun di bulan Mei.\n\n| Tgl | Nama | Kode | Usia yang dicapai |\n|---|---|---|---|\n| 1 | Unang Sodikin | D-0012 | 33 |\n| 7 | perski mak | ID-19239 | 1 ⚠️ |\n| 9 | Muhammad Rafi Irfansyah | D-0040 | 26 |\n| 11 | ACHMAD FATHONI | B-0360 | 28 |\n| 11 | M HAIKAL FAKHREZI | B-0356 | 22 |\n| 16 | SUWARDI SUWARDI | B-0371 | 40 |\n| 17 | Fania Isfandiari Arifah | D-0016 | 33 |\n| 20 | Irfan Choiruddin Anwar | D-0036 | 25 |\n| 21 | AGUNG SETYO | B-0358 | 25 |\n| 28 | Mia Ratu Perwitasari | D-0008 | 32 |\n| 21–31 | 10 karyawan \"Irfan Ke 3 … Ke 13 Choiruddin Anwar\" (D-151, D-103 s.d. D-111) | — | ⚠️ |\n\n**Ada data yang perlu dicek:**\n- **10 karyawan \"Irfan Ke 3 … Ke 13\"**: tahun lahirnya tercatat **2055**, jadi usianya terhitung negatif (-29). Nama dan polanya juga terlihat seperti data uji atau duplikat.\n- **perski mak**: tanggal lahirnya (7 Mei 2025) sama dengan tanggal bergabung, jadi usianya baru 1 tahun.\n\nKalau 11 data itu tidak dihitung, jumlah karyawan yang datanya terlihat wajar ada **9 orang**. Sebaiknya data tersebut diperiksa atau diperbaiki.",
+      "usage": {
+        "calls": 2,
+        "input": 21292,
+        "output": 872,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 10.579
+    },
+    {
+      "id": "WL-016",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "multi_step",
+      "turns": [
+        "Sudah berapa lama Ardi Mahendra bekerja di perusahaan, dan apakah dia terlambat pada 12 November 2026?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_employees_get_profile",
+        "hris_attendance_search_daily"
+      ],
+      "answer": "**Masa kerja:** Ardi Mahendra (D-0005) sudah bekerja sekitar **3 tahun**. Dia mulai bergabung pada 8 November 2023.\n\n**Kehadiran 12 November 2026:** Ya, Ardi **terlambat**.\n- Shift: Shift Pagi, mulai pukul 08.00, dengan toleransi 15 menit\n- Masuk pukul **08.25**, jadi terlambat **25 menit** dari jam mulai. Itu 10 menit melewati batas toleransi.\n- Pulang pukul 17.05",
+      "usage": {
+        "calls": 2,
+        "input": 16164,
+        "output": 510,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 6.722
+    },
+    {
+      "id": "WL-017",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "error",
+      "turns": [
+        "Kapan tanggal lahir karyawan bernama Zulkarnain Xyz?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "partial",
+      "tools": [
+        "hris_employees_get_profile",
+        "hris_employees_search"
+      ],
+      "answer": "Tanggal lahirnya tidak bisa saya temukan karena tidak ada karyawan bernama **Zulkarnain Xyz** di Workin. Pencarian dengan nama \"Zulkarnain\" saja juga tidak menemukan hasil, termasuk untuk karyawan nonaktif dan yang sudah keluar.\n\nMungkin ada beda ejaan, misalnya \"Zulkarnaen\" atau \"Dzulkarnain\". Kalau Anda punya ejaan lain, kode, NIK, atau ID karyawannya, kirimkan saja dan saya cari lagi.",
+      "usage": {
+        "calls": 3,
+        "input": 22160,
+        "output": 370,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 6.77
+    },
+    {
+      "id": "WL-018",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "multi_turn",
+      "turns": [
+        "Kapan ulang tahun Ardi?",
+        "Maksud saya Ardik Susilo."
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_employees_get_profile",
+        "hris_employees_get_profile"
+      ],
+      "answer": "Di sistem, **ulang tahun Ardik Susilo** (2024010201191302102) tercatat **1 Januari**, dengan tanggal lahir 1 Januari 1970.\n\nTapi data ini kemungkinan belum diisi dengan benar. Tanggal bergabungnya juga 1 Januari 1970. 1 Januari 1970 sering muncul sebagai nilai bawaan saat data kosong. Sebaiknya tanggal lahir Ardik dicek ulang lalu diperbarui di profilnya.",
+      "usage": {
+        "calls": 4,
+        "input": 35196,
+        "output": 708,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 14.591
+    },
+    {
+      "id": "WL-019",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "multi_turn",
+      "turns": [
+        "Siapa yang terlambat masuk kerja pada 12 November 2026?",
+        "Berapa menit keterlambatan masing-masing?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_daily"
+      ],
+      "answer": "Pada 12 November 2026:\n\n- **Abraham Gamaliel Figrana** terlambat **36 menit** (check-in 08:36)\n- **Ardi Mahendra** terlambat **25 menit** (check-in 08:25)\n\nKeterlambatan ini dihitung dari jam mulai shift pukul 08:00, bukan dari batas toleransi pukul 08:15.",
+      "usage": {
+        "calls": 3,
+        "input": 24412,
+        "output": 535,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 7.797
+    },
+    {
+      "id": "WL-020",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "multi_turn",
+      "turns": [
+        "Berapa karyawan yang hadir pada 11 November 2026?",
+        "Maaf, maksud saya tanggal 13 November 2026."
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_get_today_summary",
+        "hris_attendance_get_today_summary"
+      ],
+      "answer": "Pada 13 November 2026 juga ada **7 karyawan yang hadir** dari 8 yang dijadwalkan kerja.\n\n- **Hadir:** 7 orang. 1 di antaranya datang terlambat.\n- **Cuti/izin:** 1 orang\n- **Tidak hadir:** tidak ada",
+      "usage": {
+        "calls": 4,
+        "input": 30996,
+        "output": 361,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 6.791
+    },
+    {
+      "id": "WL-021",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "multi_step",
+      "turns": [
+        "Siapa yang terlambat lebih dari satu kali selama periode 10 sampai 14 November 2026?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_daily",
+        "hris_attendance_search_daily",
+        "hris_attendance_search_daily",
+        "hris_attendance_search_daily",
+        "hris_attendance_search_daily"
+      ],
+      "answer": "Pada periode **10–14 November 2026**, hanya **Abraham Gamaliel Figrana (D-0006)** yang terlambat lebih dari satu kali. Ia terlambat **5 kali**, yaitu setiap hari dalam periode itu:\n\n| Tanggal | Check-in | Terlambat |\n|---|---|---|\n| 10 Nov | 08:30 | 30 menit |\n| 11 Nov | 08:33 | 33 menit |\n| 12 Nov | 08:36 | 36 menit |\n| 13 Nov | 08:39 | 39 menit |\n| 14 Nov | 08:42 | 42 menit |\n\nShift-nya adalah Shift Pagi, mulai pukul 08:00 dengan toleranceMinutes 15 menit. Keterlambatannya makin lama setiap hari.\n\nArdi Mahendra (D-0005) juga terlambat, tetapi hanya **sekali**, pada 12 November (check-in 08:25, terlambat 25 menit). Jadi ia tidak termasuk yang terlambat lebih dari satu kali.\n\nData ini hanya mencakup karyawan yang datang terlambat lalu check-in. Pada 11 November ada 1 karyawan yang tidak hadir, serta 1 karyawan cuti/izin pada 13 November dan 1 lagi pada 14 November. Mereka tidak dihitung sebagai terlambat.",
+      "usage": {
+        "calls": 2,
+        "input": 20336,
+        "output": 1081,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 10.359
+    },
+    {
+      "id": "WL-022",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "multi_step",
+      "turns": [
+        "Berapa kali Abraham Gamaliel Figrana terlambat selama 10 sampai 14 November 2026, dan rata-rata berapa menit?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_daily",
+        "hris_attendance_search_daily",
+        "hris_attendance_search_daily",
+        "hris_attendance_search_daily",
+        "hris_attendance_search_daily"
+      ],
+      "answer": "Antara 10 dan 14 November 2026, Abraham Gamaliel Figrana (D-0006) **terlambat 5 kali**, yaitu setiap hari pada rentang itu. **Rata-rata terlambatnya 36 menit.**\n\n| Tanggal | Check-in | Terlambat |\n|---|---|---|\n| 10 Nov | 08:30 | 30 menit |\n| 11 Nov | 08:33 | 33 menit |\n| 12 Nov | 08:36 | 36 menit |\n| 13 Nov | 08:39 | 39 menit |\n| 14 Nov | 08:42 | 42 menit |\n\nIa masuk Shift Pagi yang mulai pukul 08:00, dengan toleransi terlambat 15 menit. Menit terlambat di atas dihitung dari pukul 08:00, jadi totalnya 180 menit. Jam check-in-nya makin siang 3 menit setiap hari.",
+      "usage": {
+        "calls": 2,
+        "input": 19805,
+        "output": 915,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 8.711
+    },
+    {
+      "id": "WL-023",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "multi_step",
+      "turns": [
+        "Siapa yang cuti pada 13 November 2026, dan sejak kapan dia bekerja di perusahaan?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_daily",
+        "hris_employees_get_profile"
+      ],
+      "answer": "Pada **13 November 2026** hanya ada satu karyawan yang tercatat cuti/izin: **ACHMAD FATHONI** (kode B-0360). Data yang ada tidak membedakan apakah dia cuti atau izin.\n\nDia **mulai bekerja pada 1 Juni 2024**, jadi sudah bekerja sekitar 2 tahun 5 bulan.",
+      "usage": {
+        "calls": 3,
+        "input": 24186,
+        "output": 339,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 6.364
+    },
+    {
+      "id": "WL-024",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "out_of_scope",
+      "turns": [
+        "Berapa gaji Ardi Mahendra bulan ini?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [],
+      "answer": "Saya tidak bisa melihat gaji Ardi Mahendra bulan ini. Akses saya di Workin hanya mencakup data karyawan (profil, jumlah karyawan, ulang tahun) dan kehadiran (absensi, jadwal shift, pengajuan). Data gaji dan payroll tidak termasuk.\n\nSilakan cek di modul Payroll Workin atau tanyakan ke tim Payroll/Finance.\n\nKalau perlu, saya bisa bantu cek kehadiran atau lembur Ardi bulan ini, yang biasanya dipakai untuk menghitung gaji.",
+      "usage": {
+        "calls": 1,
+        "input": 7081,
+        "output": 258,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 3.692
+    },
+    {
+      "id": "WL-025",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "out_of_scope",
+      "turns": [
+        "Tolong hapus data karyawan Agus Setiawan dari sistem."
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [],
+      "answer": "Maaf, saya tidak bisa menghapus data karyawan Agus Setiawan. Di sini saya hanya bisa melihat data karyawan, dan tidak ada fungsi untuk menghapus, menonaktifkan, atau mengubah status karyawan.\n\nAnda bisa melakukannya langsung di aplikasi Workin lewat menu data karyawan, atau minta bantuan admin sistem. Biasanya karyawan yang sudah tidak bekerja lebih baik diubah statusnya menjadi **nonaktif** atau **keluar** daripada dihapus, supaya riwayat kehadiran dan datanya tetap tersimpan.\n\nKalau mau, saya bisa cari profil Agus Setiawan dulu untuk memastikan data mana yang dimaksud, misalnya kode karyawan, status, dan tanggal bergabungnya.",
+      "usage": {
+        "calls": 1,
+        "input": 7085,
+        "output": 351,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 4.224
+    },
+    {
+      "id": "WL-026",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "approval",
+      "turns": [
+        "Buatkan jadwal Shift Pagi (dummy MCP) untuk Agus Setiawan tanggal 25 November 2026."
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_create_schedule",
+        "hris_attendance_get_schedule"
+      ],
+      "answer": "Jadwal shift untuk Agus Setiawan sudah dibuat dan tersimpan. Saya sudah mengeceknya lagi di jadwal.\n\n- **Karyawan:** Agus Setiawan (D-0013)\n- **Tanggal:** Rabu, 25 November 2026\n- **Shift:** Shift Pagi (dummy MCP), jam 08:00–17:00\n- **Check-in dibuka:** 07:00\n- **Toleransi terlambat:** 15 menit\n\nTanggal ini bukan hari libur perusahaan.",
+      "usage": {
+        "calls": 3,
+        "input": 24194,
+        "output": 557,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [
+        "hris_attendance_create_schedule"
+      ],
+      "seconds": 7.629
+    },
+    {
+      "id": "WL-027",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "approval",
+      "turns": [
+        "Jadwalkan Ardi Mahendra masuk Shift Pagi (dummy MCP) pada 26 November 2026."
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_create_schedule"
+      ],
+      "answer": "Ardi Mahendra **belum dijadwalkan** masuk Shift Pagi (dummy MCP) pada 26 November 2026. Permintaan pembuatan jadwalnya ditolak saat konfirmasi, jadi tidak ada data yang berubah.\n\nKalau ingin tetap menjadwalkan, minta saja lagi atau sebutkan perubahan yang diperlukan, misalnya tanggal atau tipe shift lain.",
+      "usage": {
+        "calls": 2,
+        "input": 14443,
+        "output": 335,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [
+        "hris_attendance_create_schedule"
+      ],
+      "seconds": 5.15
+    },
+    {
+      "id": "WL-028",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Siapa saja yang dijadwalkan bekerja pada 20 November 2026?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_schedule",
+        "hris_attendance_search_schedule"
+      ],
+      "answer": "Pada **20 November 2026**, ada **8 karyawan** yang dijadwalkan kerja dari total 280 karyawan aktif. Semuanya masuk **Shift Pagi**.\n\n| No | Kode | Nama |\n|---|---|---|\n| 1 | D-0013 | Agus Setiawan |\n| 2 | B-0358 | Agung Setyo |\n| 3 | B-0348 | Achmad Ghofur |\n| 4 | D-0006 | Abraham Gamaliel Figrana |\n| 5 | B-0360 | Achmad Fathoni |\n| 6 | D-0005 | Ardi Mahendra |\n| 7 | B-0432 | Ahmad Qayyim |\n| 8 | TESTING | adas silalahi |\n\n**Jam Shift Pagi:** 08.00–17.00. Check-in dibuka pukul 07.00, dan toleransi terlambat 15 menit.\n\nDua hal perlu dicek:\n- Di sistem, shift ini bernama \"Shift Pagi (dummy MCP)\". Kemungkinan ini data uji coba, bukan jadwal yang sebenarnya.\n- Karyawan \"adas silalahi\" memakai kode \"TESTING\", jadi kemungkinan ini akun uji coba.\n\nSisa 272 karyawan aktif belum punya jadwal shift pada tanggal itu.",
+      "usage": {
+        "calls": 3,
+        "input": 29186,
+        "output": 765,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 8.783
+    },
+    {
+      "id": "WL-029",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Berapa toleransi keterlambatan Shift Pagi (dummy MCP), dan jam berapa check-in sudah bisa dilakukan?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_list_shift_types"
+      ],
+      "answer": "Untuk **Shift Pagi (dummy MCP)** (kode DMCP, jam kerja 08:00–17:00):\n\n- **Toleransi keterlambatan:** 15 menit. Karyawan yang check-in setelah 08:15 dihitung terlambat.\n- **Check-in bisa dilakukan mulai:** pukul 07:00.",
+      "usage": {
+        "calls": 2,
+        "input": 14793,
+        "output": 269,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 5.249
+    },
+    {
+      "id": "WL-030",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Ada berapa karyawan aktif yang bernama Agus?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_employees_search"
+      ],
+      "answer": "Ada **3 karyawan aktif yang bernama Agus**:\n\n1. **Agus Ariyanto**, kode 2023010103151301\n2. **AGUS RIFAI**, kode 202401020119130213\n3. **Agus Setiawan**, kode D-0013\n\nHasil pencarian sebenarnya ada 7. Tapi 4 di antaranya hanya muncul karena namanya mengandung \"Bagus\", jadi tidak saya hitung: Ardinas Bagus Prasetyo, Bagus Aditya Pratama, Bagus Fajar Syaifulloh, dan Perdana Bagus Kusuma.",
+      "usage": {
+        "calls": 2,
+        "input": 16498,
+        "output": 346,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 5.033
+    },
+    {
+      "id": "WL-031",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Kapan Agus Setiawan mulai bekerja?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_employees_get_profile"
+      ],
+      "answer": "Agus Setiawan (D-0013) mulai bekerja pada **13 Mei 2024**. Masa kerjanya sekarang 2 tahun 6 bulan, dan statusnya masih aktif.",
+      "usage": {
+        "calls": 2,
+        "input": 14910,
+        "output": 138,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 3.082
+    },
+    {
+      "id": "WL-032",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Siapa saja karyawan aktif yang berulang tahun tanggal 11 Mei?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_employees_list_birthdays"
+      ],
+      "answer": "Ada **2 karyawan aktif** yang berulang tahun tanggal 11 Mei:\n\n1. **ACHMAD FATHONI** (B-0360), lahir 11 Mei 1998, sekarang berusia 28 tahun\n2. **M HAIKAL FAKHREZI** (B-0356), lahir 11 Mei 2004, sekarang berusia 22 tahun",
+      "usage": {
+        "calls": 2,
+        "input": 21302,
+        "output": 320,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 4.33
+    },
+    {
+      "id": "WL-033",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Berapa karyawan yang sudah keluar dari perusahaan?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_employees_get_headcount"
+      ],
+      "answer": "Ada **2 karyawan** yang sudah keluar dari perusahaan.\n\nTotal karyawan yang tercatat ada 292:\n- **Aktif:** 280\n- **Nonaktif:** 10\n- **Keluar:** 2",
+      "usage": {
+        "calls": 2,
+        "input": 14596,
+        "output": 119,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 3.338
+    },
+    {
+      "id": "WL-034",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Apakah Ahmad Qayyim sudah check-in pada 17 November 2026, dan jam berapa?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_daily",
+        "hris_employees_search",
+        "hris_attendance_search_schedule",
+        "hris_attendance_search_daily"
+      ],
+      "answer": "Ya, Ahmad Qayyim (B-0432) sudah check-in pada 17 November 2026 **pukul 08:16 WIB**.\n\n- **Shift:** Shift Pagi, 08:00–17:00, dengan toleransi terlambat 15 menit.\n- **Status:** Hadir, tetapi tercatat **terlambat 16 menit** karena check-in lewat dari batas toleransi (08:15).\n- **Check-out:** Belum ada.",
+      "usage": {
+        "calls": 4,
+        "input": 35774,
+        "output": 549,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 8.749
+    },
+    {
+      "id": "WL-035",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Siapa saja yang belum check-in pada 17 November 2026?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_daily"
+      ],
+      "answer": "Pada 17 November 2026 ada **2 karyawan yang belum check-in**. Keduanya sudah lewat batas toleransi terlambat:\n\n| Kode | Nama | Shift | Jam mulai | Batas toleransi |\n|---|---|---|---|---|\n| B-0348 | ACHMAD GHOFUR | Shift Pagi | 08:00 | 15 menit (08:15) |\n| B-0358 | AGUNG SETYO | Shift Pagi | 08:00 | 15 menit (08:15) |\n\nDari 8 karyawan yang dijadwalkan hari ini, 6 sudah hadir (2 di antaranya terlambat). Tidak ada yang cuti, izin, atau tercatat tidak hadir.\n\nHari ini masih berjalan, jadi status bisa berubah kalau mereka check-in nanti.",
+      "usage": {
+        "calls": 2,
+        "input": 15798,
+        "output": 449,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 5.307
+    },
+    {
+      "id": "WL-036",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Pengajuan WFH siapa saja yang sudah disetujui pada bulan November 2026?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_requests"
+      ],
+      "answer": "Di bulan November 2026 hanya ada **1 pengajuan WFH yang sudah disetujui**:\n\n| Karyawan | Kode | Tanggal WFH | Alasan |\n|---|---|---|---|\n| adas silalahi | TESTING | 12 November 2026 | WFH karena renovasi rumah (dummy MCP) |\n\nPengajuan ini baru dikirim tanggal 17 November 2026 pukul 16.34, jadi diajukan setelah tanggal WFH-nya lewat. Kode karyawan \"TESTING\" dan keterangan \"dummy MCP\" juga menunjukkan ini kemungkinan data uji coba, bukan pengajuan sungguhan.",
+      "usage": {
+        "calls": 2,
+        "input": 15075,
+        "output": 458,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 5.68
+    },
+    {
+      "id": "WL-037",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Apakah Agus Setiawan punya pengajuan lembur di bulan November 2026? Untuk tanggal berapa?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_requests"
+      ],
+      "answer": "Ya, Agus Setiawan (D-0013) mengajukan 1 kali lembur di November 2026:\n\n- **Tanggal lembur:** Rabu, 18 November 2026 (besok)\n- **Alasan:** Lembur closing bulanan (dummy MCP)\n- **Status:** Masih menunggu persetujuan\n- **Diajukan:** 17 November 2026 pukul 16.34",
+      "usage": {
+        "calls": 2,
+        "input": 15112,
+        "output": 306,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 4.068
+    },
+    {
+      "id": "WL-038",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "tools",
+      "turns": [
+        "Rekap kehadiran Achmad Ghofur untuk periode 10 sampai 14 November 2026."
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_get_period_summary"
+      ],
+      "answer": "Achmad Ghofur (B-0348) hadir 4 dari 5 hari terjadwal pada 10–14 November 2026. Ia tidak hadir 1 hari, yaitu Rabu, 11 November.\n\n| Tanggal | Status |\n|---|---|\n| Sel, 10 Nov | Hadir |\n| Rab, 11 Nov | **Tidak hadir** (alasan tidak dicatat) |\n| Kam, 12 Nov | Hadir |\n| Jum, 13 Nov | Hadir |\n| Sab, 14 Nov | Hadir |\n\nTidak ada cuti atau izin yang disetujui pada periode ini.",
+      "usage": {
+        "calls": 2,
+        "input": 16044,
+        "output": 396,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 5.592
+    },
+    {
+      "id": "WL-039",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "robustness",
+      "turns": [
+        "Tampilkan daftar semua karyawan aktif yang berulang tahun di bulan Mei beserta tanggalnya."
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_employees_list_birthdays"
+      ],
+      "answer": "Ada **20 karyawan aktif** yang berulang tahun di bulan Mei:\n\n| No | Tanggal | Nama | Kode |\n|---|---|---|---|\n| 1 | 1 Mei | Unang Sodikin | D-0012 |\n| 2 | 7 Mei | perski mak | ID-19239 |\n| 3 | 9 Mei | Muhammad Rafi Irfansyah | D-0040 |\n| 4 | 11 Mei | ACHMAD FATHONI | B-0360 |\n| 5 | 11 Mei | M HAIKAL FAKHREZI | B-0356 |\n| 6 | 16 Mei | SUWARDI SUWARDI | B-0371 |\n| 7 | 17 Mei | Fania Isfandiari Arifah | D-0016 |\n| 8 | 20 Mei | Irfan Choiruddin Anwar | D-0036 |\n| 9 | 21 Mei | AGUNG SETYO | B-0358 |\n| 10 | 21 Mei | Irfan Ke 3 Choiruddin Anwar ke 3 | D-151 |\n| 11 | 23 Mei | Irfan Ke 5 Choiruddin Anwar ke 5 | D-103 |\n| 12 | 24 Mei | Irfan Ke 6 Choiruddin Anwar ke 6 | D-104 |\n| 13 | 25 Mei | Irfan Ke 7 Choiruddin Anwar ke 7 | D-105 |\n| 14 | 26 Mei | Irfan Ke 8 Choiruddin Anwar ke 8 | D-106 |\n| 15 | 27 Mei | Irfan Ke 9 Choiruddin Anwar ke 9 | D-107 |\n| 16 | 28 Mei | Irfan Ke 10 Choiruddin Anwar ke 10 | D-108 |\n| 17 | 28 Mei | Mia Ratu Perwitasari | D-0008 |\n| 18 | 29 Mei | Irfan Ke 11 Choiruddin Anwar ke 11 | D-109 |\n| 19 | 30 Mei | Irfan Ke 12 Choiruddin Anwar ke 12 | D-110 |\n| 20 | 31 Mei | Irfan Ke 13 Choiruddin Anwar ke 13 | D-111 |\n\n⚠️ **Ada tanggal lahir yang tampaknya salah:**\n- **9 karyawan \"Irfan Ke 3\" sampai \"Irfan Ke 13\"** (D-151, D-103 s.d. D-111) tercatat lahir tahun **2055**, yang masih di masa depan. Nama-nama ini juga terlihat seperti data uji coba.\n- **perski mak** (ID-19239) tercatat lahir pada **7 Mei 2025**, sama dengan tanggal bergabungnya. Ini kemungkinan salah input.\n\nData karyawan-karyawan ini sebaiknya dicek dan diperbaiki.",
+      "usage": {
+        "calls": 2,
+        "input": 21324,
+        "output": 1167,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 11.439
+    },
+    {
+      "id": "WL-040",
+      "trial": 1,
+      "variant": "baseline",
+      "family": "robustness",
+      "turns": [
+        "Siapa yang tidak hadir pada 12 November 2026?"
+      ],
+      "pass": true,
+      "failures": [],
+      "status": "completed",
+      "tools": [
+        "hris_attendance_search_daily"
+      ],
+      "answer": "Pada 12 November 2026, semua karyawan yang dijadwalkan masuk kerja. Tidak ada yang absen.\n\n- **Dijadwalkan:** 8 karyawan\n- **Hadir:** 8, termasuk 2 yang terlambat\n- **Tidak hadir:** 0\n- **Cuti atau izin:** 0\n\nHari itu juga bukan hari libur. Ringkasan ini hanya menghitung karyawan yang punya jadwal shift pada tanggal tersebut.",
+      "usage": {
+        "calls": 2,
+        "input": 14936,
+        "output": 283,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "approvals": [],
+      "seconds": 4.862
+    }
+  ]
+}
