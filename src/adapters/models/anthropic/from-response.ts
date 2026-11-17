@@ -13,11 +13,14 @@ function failed(code: ModelFailureCode, message: string): Interpretation {
   return { ok: false, error: Object.freeze({ code, message, retryable: false }) };
 }
 
-/** Billed input includes cache reads/writes; the engine reports one input figure. */
+/** inputTokens is the whole prompt (uncached + cache reads + cache writes); the cache parts are kept separately. */
 export function usageFrom(usage: BetaUsage): ModelUsage {
-  const input = usage.input_tokens + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0);
+  const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
+  const cacheWriteTokens = usage.cache_creation_input_tokens ?? 0;
+  const input = usage.input_tokens + cacheReadTokens + cacheWriteTokens;
   return parseModelUsage({
     source: 'provider', inputTokens: input, outputTokens: usage.output_tokens, totalTokens: input + usage.output_tokens,
+    cacheReadTokens, cacheWriteTokens,
   });
 }
 

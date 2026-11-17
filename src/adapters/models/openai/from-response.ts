@@ -18,8 +18,11 @@ export function usageFrom(usage: CompletionUsage | null | undefined): ModelUsage
     return Object.freeze({ source: 'unavailable', inputTokens: null, outputTokens: null, totalTokens: null });
   }
   if (usage.prompt_tokens + usage.completion_tokens !== usage.total_tokens) throw new Error('Inconsistent model usage');
+  // Automatic prefix caching reports reads only; writes are not reported, so that field stays absent.
+  const cached = usage.prompt_tokens_details?.cached_tokens;
   return parseModelUsage({
     source: 'provider', inputTokens: usage.prompt_tokens, outputTokens: usage.completion_tokens, totalTokens: usage.total_tokens,
+    ...(typeof cached === 'number' ? { cacheReadTokens: cached } : {}),
   });
 }
 

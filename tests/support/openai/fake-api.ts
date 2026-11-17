@@ -8,7 +8,7 @@ export interface FakeChatTurn {
   readonly toolCalls?: readonly { readonly id: string; readonly name: string; readonly argumentFragments: readonly string[] }[];
   readonly refusal?: string;
   readonly finishReason?: 'stop' | 'length' | 'tool_calls' | 'content_filter';
-  readonly usage?: { readonly prompt: number; readonly completion: number };
+  readonly usage?: { readonly prompt: number; readonly completion: number; readonly cached?: number };
 }
 
 export type FakeChatReply = FakeChatTurn | { readonly status: number; readonly errorType: string };
@@ -38,7 +38,8 @@ export function chatStreamBody(turn: FakeChatTurn): string {
     ...toolChunks(turn),
     chunk({}, finish),
     `data: ${JSON.stringify({ id: 'chatcmpl-test', object: 'chat.completion.chunk', created: 1, model: 'test-model', choices: [],
-      usage: { prompt_tokens: usage.prompt, completion_tokens: usage.completion, total_tokens: usage.prompt + usage.completion } })}\n\n`,
+      usage: { prompt_tokens: usage.prompt, completion_tokens: usage.completion, total_tokens: usage.prompt + usage.completion,
+        ...('cached' in usage ? { prompt_tokens_details: { cached_tokens: usage.cached } } : {}) } })}\n\n`,
     'data: [DONE]\n\n',
   ].join('');
 }

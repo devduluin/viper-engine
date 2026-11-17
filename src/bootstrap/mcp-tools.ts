@@ -51,10 +51,18 @@ export async function discoverRuntimeTools(scope: TrustedScope, selected: readon
       if (definitions.length > options.maxTools - tools.length) throw new EngineSetupError('invalid_catalog');
       tools.push(...namespaceTools(namespace(binding), definitions).map(tool => Object.freeze({ ...tool, context })));
     }
-    return Object.freeze(tools);
+    return Object.freeze(sortByAlias(tools));
   }, { operationName: 'MCP discovery', timeoutMs: options.timeoutMs });
   indexTools(tools, scope); // Reject ambiguous aliases/definitions before the model is called.
   return tools;
+}
+
+/**
+ * Deterministic catalog order: the tool list is the first part of a provider prompt, so connection
+ * or page order must not change its bytes (prompt-cache prefix). Code-point order, not locale order.
+ */
+export function sortByAlias<T extends { readonly alias: string }>(tools: readonly T[]): T[] {
+  return [...tools].sort((a, b) => (a.alias < b.alias ? -1 : a.alias > b.alias ? 1 : 0));
 }
 
 async function pages(context: Parameters<McpGateway['listTools']>[0], gateway: McpGateway, options: DiscoveryOptions,

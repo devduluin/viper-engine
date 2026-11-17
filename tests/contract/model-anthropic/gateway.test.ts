@@ -42,7 +42,8 @@ test('tool_use becomes a tool_calls decision; usage includes cache reads and wri
   assert.ok(result.ok && result.decision.kind === 'tool_calls');
   assert.deepEqual(result.decision.calls, [{ id: 'toolu_1', name: 'inv__lookup', arguments: { id: 'item-1' } }]);
   assert.deepEqual(result.decision.content, [{ type: 'text', text: 'Checking.' }]);
-  assert.deepEqual(result.usage, { source: 'provider', inputTokens: 157, outputTokens: 20, totalTokens: 177 });
+  // inputTokens stays the whole prompt (100 uncached + 50 read + 7 written); the cache parts are kept separately.
+  assert.deepEqual(result.usage, { source: 'provider', inputTokens: 157, outputTokens: 20, totalTokens: 177, cacheReadTokens: 50, cacheWriteTokens: 7 });
 });
 
 test('history: one user message per batch of results, is_error for error/unknown, JSON as text', async () => {

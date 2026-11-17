@@ -37,6 +37,25 @@ export function repoState(dir: string): Row {
   }
 }
 
+/**
+ * X04: input tokens the tool catalog adds to every request, measured with the provider's token counter
+ * (same request with and without tools). Needs ANTHROPIC_API_KEY and VIPER_MODEL; otherwise NOT_MEASURED.
+ */
+async function catalogTokens(definitions: Row[]): Promise<Row> {
+  const apiKey = process.env.ANTHROPIC_API_KEY; const model = process.env.VIPER_MODEL ?? 'claude-opus-5-5';
+  if (!apiKey || definitions.length === 0) return { status: 'NOT_MEASURED' };
+  try {
+    const { default: Anthropic } = await import('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey });
+    const messages = [{ role: 'user' as const, content: 'x' }];
+    const base = await client.messages.countTokens({ model, messages });
+    const withTools = await client.messages.countTokens({ model, messages, tools: definitions as never });
+    return { status: 'measured', model, catalogTokens: withTools.input_tokens - base.input_tokens };
+  } catch (error) {
+    return { status: 'ERROR', error: error instanceof Error ? error.message.slice(0, 200) : String(error) };
+  }
+}
+
 /** tools/list through the gateway with the same token: names, annotations and a schema hash per tool. */
 export async function toolCatalog(gatewayUrl: string, token: string): Promise<Row> {
   const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
@@ -45,17 +64,22 @@ export async function toolCatalog(gatewayUrl: string, token: string): Promise<Ro
   try {
     await client.connect(new StreamableHTTPClientTransport(new URL(gatewayUrl), { requestInit: { headers: { Authorization: `Bearer ${token}` } } }));
     const tools: Row[] = [];
+    const definitions: Row[] = [];
     let cursor: string | undefined;
     do {
       const page = await client.listTools(cursor === undefined ? {} : { cursor });
       for (const tool of page.tools) {
-        tools.push({ name: tool.name, readOnly: tool.annotations?.readOnlyHint ?? null,
+        // What the Anthropic adapter sends per tool (alias, description, input schema) for the X04 catalog size.
+        const definition = { name: `workin__${tool.name}`, ...(tool.description === undefined ? {} : { description: tool.description }), input_schema: tool.inputSchema };
+        definitions.push(definition);
+        tools.push({ name: tool.name, readOnly: tool.annotations?.readOnlyHint ?? null, bytes: Buffer.byteLength(JSON.stringify(definition)),
           sha256: sha256(JSON.stringify({ description: tool.description, inputSchema: tool.inputSchema, outputSchema: tool.outputSchema ?? null })) });
       }
       cursor = page.nextCursor;
     } while (cursor !== undefined);
-    tools.sort((a, b) => String(a.name).localeCompare(String(b.name)));
-    return { count: tools.length, sha256: sha256(JSON.stringify(tools)), tools };
+    tools.sort((a, b) => (String(a.name) < String(b.name) ? -1 : 1));
+    const schemaBytes = tools.reduce((sum, tool) => sum + Number(tool.bytes), 0);
+    return { count: tools.length, schemaBytes, sha256: sha256(JSON.stringify(tools)), tools, tokens: await catalogTokens(definitions) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   } finally {

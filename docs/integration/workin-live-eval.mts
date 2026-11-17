@@ -124,7 +124,10 @@ async function runCase(item: Case, started: number, approvals: string[], events:
   const tools = messages.flatMap((m) => (Array.isArray(m.tool_calls) ? (m.tool_calls as Row[]).map((c) => remoteName(String(c.name))) : []));
   const answer = text([...messages].reverse().find((m) => m.role === 'assistant' && text(m.content))?.content);
   if (!['completed', 'partial', 'waiting_for_approval', 'waiting_for_input'].includes(status)) events.push(...await failureEvents(turns.at(-1)!.runId));
-  const usage = (await db.pool.query('SELECT count(*)::int AS calls, coalesce(sum(input_tokens),0)::int AS input, coalesce(sum(output_tokens),0)::int AS output FROM viper_engine.model_calls WHERE run_id = ANY($1)', [turns.map((turn) => turn.runId)])).rows[0] as Row;
+  // input = whole prompt; cacheRead/cacheWrite are parts of it (X01). NULL cache columns count as 0.
+  const usage = (await db.pool.query(`SELECT count(*)::int AS calls, coalesce(sum(input_tokens),0)::int AS input, coalesce(sum(output_tokens),0)::int AS output,
+    coalesce(sum(cache_read_tokens),0)::int AS "cacheRead", coalesce(sum(cache_write_tokens),0)::int AS "cacheWrite"
+    FROM viper_engine.model_calls WHERE run_id = ANY($1)`, [turns.map((turn) => turn.runId)])).rows[0] as Row;
   return { status, tools, answer, usage };
 }
 
@@ -144,7 +147,7 @@ try {
     const result = { id: item.id, trial, variant, family: item.family, turns: turnsOf(item), pass: failures.length === 0, failures, ...observed, approvals, events, seconds: (Date.now() - started) / 1000 };
     results.push(result);
     const tag = `${trials > 1 ? ` #${trial}` : ''}${variants.length > 1 ? ` [${variant}]` : ''}`;
-    console.log(`${result.pass ? 'PASS' : 'FAIL'} ${item.id}${tag} (${result.seconds}s, ${usage.calls ?? 0} calls, ${usage.input ?? 0}/${usage.output ?? 0} tok) ${turnsOf(item).join(' / ')}`);
+    console.log(`${result.pass ? 'PASS' : 'FAIL'} ${item.id}${tag} (${result.seconds}s, ${usage.calls ?? 0} calls, ${usage.input ?? 0}/${usage.output ?? 0} tok, cache r${usage.cacheRead ?? 0}/w${usage.cacheWrite ?? 0}) ${turnsOf(item).join(' / ')}`);
     for (const failure of failures) console.log(`     - ${failure}`);
     if (!result.pass) console.log(`     events: ${events.join(' > ')}`);
   }
@@ -156,12 +159,16 @@ const reportId = `workin-live-${new Date().toISOString().replace(/[:.]/g, '-')}`
 const dir = path.join('artifacts', 'evals', reportId);
 mkdirSync(dir, { recursive: true });
 
+// Opus 5.5 / Sonnet 5.5 prompt-cache price factors relative to base input (5-minute TTL); recorded in the report.
+const CACHE_FACTORS = { read: 0.05, write5m: 1.25 };
+
 function totalsOf(rows: Row[]) {
-  return rows.reduce((acc: Row, r) => {
-    const u = r.usage as Row;
-    return { pass: Number(acc.pass) + (r.pass ? 1 : 0), calls: Number(acc.calls) + Number(u.calls ?? 0),
-      input: Number(acc.input) + Number(u.input ?? 0), output: Number(acc.output) + Number(u.output ?? 0), seconds: Number(acc.seconds) + Number(r.seconds) };
-  }, { pass: 0, calls: 0, input: 0, output: 0, seconds: 0 });
+  const sum = (key: string) => rows.reduce((acc, r) => acc + Number((r.usage as Row)[key] ?? 0), 0);
+  const [input, cacheRead, cacheWrite] = [sum('input'), sum('cacheRead'), sum('cacheWrite')];
+  // Base-input-equivalent tokens: what the prompt costs once cache reads/writes are priced (X01).
+  const effectiveInput = Math.round(input - cacheRead - cacheWrite + CACHE_FACTORS.write5m * cacheWrite + CACHE_FACTORS.read * cacheRead);
+  return { pass: rows.filter((r) => r.pass).length, calls: sum('calls'), input, output: sum('output'), cacheRead, cacheWrite, effectiveInput,
+    seconds: rows.reduce((acc, r) => acc + Number(r.seconds), 0) };
 }
 
 // Per case over all trials; `allTrials` is pass^k (every trial passed), the stricter reliability number.
@@ -181,10 +188,11 @@ for (const variant of variants) {
   writeFileSync(file, JSON.stringify({
     reportId: variants.length > 1 ? `${reportId}-${variant}` : reportId, kind: 'workin-live (pinned manifest; reference evidence, not the P08-01 regression gate)',
     manifest: { ...manifest, plan, pairedWith: variants.length > 1 ? variants : undefined },
-    hostInstruction: HOST_INSTRUCTION, model: modelInfo, gatewayUrl,
+    hostInstruction: HOST_INSTRUCTION, model: modelInfo, gatewayUrl, cacheFactors: CACHE_FACTORS,
     totals: { cases: cases.length, trials, runs: rows.length, ...totals, casesAllTrials: byCase.filter((c) => c.allTrials).length }, byCase, results: rows,
   }, null, 2));
   console.log(`\n[${variant}] ${totals.pass}/${rows.length} runs passed${trials > 1 ? ` (all trials: ${byCase.filter((c) => c.allTrials).length}/${cases.length} cases)` : ''}`
-    + ` | model calls ${totals.calls} | tokens in ${totals.input} / out ${totals.output} | ${Number(totals.seconds).toFixed(1)}s`);
+    + ` | model calls ${totals.calls} | tokens in ${totals.input} / out ${totals.output}`
+    + ` | cache read ${totals.cacheRead} / write ${totals.cacheWrite} | effective input ${totals.effectiveInput} | ${Number(totals.seconds).toFixed(1)}s`);
   console.log(`report: ${file}`);
 }

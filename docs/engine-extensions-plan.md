@@ -32,6 +32,35 @@ Referensi API: dokumentasi Anthropic prompt caching dan tool search (render orde
 messages`, maksimal 4 breakpoint, minimum 512 token prefix untuk Opus 5.5/Sonnet 5.5, read 0,05×,
 write 1,25× untuk TTL 5 menit).
 
+## Status (17 November 2026)
+
+| Task | Status | Bukti |
+| --- | --- | --- |
+| X01 | **DONE** (Claude) | Detail di bawah |
+| X04 | **DONE** (Claude) | Detail di bawah |
+| X02, X03, X05, X06 | Belum mulai | X02 adalah langkah berikutnya |
+
+**X01**
+
+- `ModelUsage.cacheReadTokens/cacheWriteTokens` opsional; `inputTokens` tetap total.
+- Mapping Anthropic dan OpenAI (`cached_tokens`).
+- Migration `0013_model_call_cache_usage.sql`, dengan constraint cache ≤ input dan null untuk usage `unavailable`.
+- Runner menulis `cacheRead`, `cacheWrite`, `effectiveInput`, dan `cacheFactors`.
+- Test: unit `model-usage`, contract kedua adapter, integration `model-call-cache-usage`.
+
+**X04**
+
+- `sortByAlias` (urutan code-point) di `discoverRuntimeTools`, dengan unit test `tool-order`.
+- Manifest workin-live mencatat `schemaBytes` dan `catalogTokens` dari token counter provider.
+
+Gate: unit 294, contract 153, integration 177/177; typecheck/lint/architecture bersih untuk file ini.
+
+**Baseline terukur** (`artifacts/evals/workin-live-2026-11-17T16-05-46-756Z/report.json`, Opus 5.5):
+
+- Cache read/write **0** di setiap call. Caching memang belum aktif, dan kini terbukti.
+- Katalog 13 tool = 14 059 byte = **6 926 token**, sekitar 46% input per call WL-001 (≈ 7 470 token per call).
+  Bagian ini identik antar call dan menjadi target utama X02.
+
 ## X01: Usage cache yang terukur (prasyarat X02–X06)
 
 Masalah: tanpa pemisahan read/write, caching tidak bisa dibuktikan atau dipantau regresinya.

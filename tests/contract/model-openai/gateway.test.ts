@@ -113,3 +113,12 @@ test('a function named like a clarification (clarify) is an ordinary tool call, 
   assert.ok(result.ok && result.decision.kind === 'tool_calls');
   assert.deepEqual(result.decision.calls, [{ id: 'call_c', name: 'clarify', arguments: { question: 'Which Ardi?' } }]);
 });
+
+test('usage: automatic prefix-cache reads are reported separately; writes are not reported by the provider', async () => {
+  const fake = new FakeOpenAI([{ text: ['ok'], usage: { prompt: 1200, completion: 5, cached: 1024 } }, { text: ['ok'] }]);
+  const cached = await fake.gateway().generate(request([user]));
+  assert.ok(cached.ok);
+  assert.deepEqual(cached.usage, { source: 'provider', inputTokens: 1200, outputTokens: 5, totalTokens: 1205, cacheReadTokens: 1024 });
+  const plain = await fake.gateway().generate(request([user]));
+  assert.ok(plain.ok && !('cacheReadTokens' in plain.usage) && !('cacheWriteTokens' in plain.usage));
+});

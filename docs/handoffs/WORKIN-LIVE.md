@@ -124,3 +124,16 @@ Tidak ada perubahan pada `src/`, progress, atau checklist.
 - Untuk P08-01 nanti:
   - kandidat baseline: 40 case × 3 trial dengan manifest identik, setelah P07-04;
   - `VIPER_TEST_DB_*` di `.env` masih kosong, sehingga `test:integration` dan runner butuh env manual.
+
+## Nama ambigu sebagai pilihan, bukan error (Claude, 17 November 2026)
+
+Temuan dari ablation P07-04 (`docs/reports/P07-04-ablation.md`):
+
+- Masalahnya: `EMPLOYEE_AMBIGUOUS` dengan `isError` membuat run klarifikasi yang benar dinilai `failed`
+  (`outcome.ts`: hanya kegagalan → `failed`).
+- Perbaikan di kedua service: tool baca menjawab dengan `response.choices` (`data: null`, `meta.candidates`), plus
+  `responseSchemaFor({ choices: true })`. Ini dicatat di bagian "Pilihan" pada `MCP_RESPONSE_STANDARD.md`.
+  - Commit: employees `7ba8d24`, attendance `1c6b22e`.
+  - `tool.util.js` identik di kedua service.
+- Tool tulis (`create_schedule`) dan `*_NOT_FOUND` tetap error.
+- WL-002 menjadi 3/3 `completed` dengan 1 call. Engine tidak diubah.

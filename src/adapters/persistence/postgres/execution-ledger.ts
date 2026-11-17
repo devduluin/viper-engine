@@ -69,9 +69,11 @@ export class PostgresExecutionLedger implements ExecutionLedger {
       validateModelFinish(input);
       const { usage } = input;
       const done = await tx.query(`UPDATE viper_engine.model_calls SET outcome = $3, failure_code = $4, usage_source = $5,
-          input_tokens = $6, output_tokens = $7, total_tokens = $8, ended_at = ${MS_PARAM(9)}
+          input_tokens = $6, output_tokens = $7, total_tokens = $8, ended_at = ${MS_PARAM(9)},
+          cache_read_tokens = $10, cache_write_tokens = $11
         WHERE run_id = $1 AND id = $2 AND outcome = 'pending'`, [input.runId, input.modelCallId, input.outcome,
-        input.failureCode ?? null, usage.source, usage.inputTokens, usage.outputTokens, usage.totalTokens, input.at]);
+        input.failureCode ?? null, usage.source, usage.inputTokens, usage.outputTokens, usage.totalTokens, input.at,
+        usage.cacheReadTokens ?? null, usage.cacheWriteTokens ?? null]);
       return done.rowCount === 1 ? undefined : ALREADY('Model call');
     }, { modelCallId: input.modelCallId });
   }
