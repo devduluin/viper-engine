@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "VE-002",
+  "family": "tools",
+  "goal": "Get item-1 stock",
+  "contextRequests": [],
+  "modelResponses": [
+    {
+      "kind": "tool_calls",
+      "calls": [
+        {
+          "id": "c1",
+          "name": "lookup_item",
+          "arguments": {
+            "id": "item-1"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "final",
+      "content": [
+        {
+          "type": "text",
+          "text": "Stock: 5"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "state": "completed",
+    "toolNames": [
+      "lookup_item"
+    ],
+    "assertions": [
+      "Actual lookup evidence precedes stock answer"
+    ]
+  }
+}

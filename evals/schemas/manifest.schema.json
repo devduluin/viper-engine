@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://viper.local/schemas/manifest.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "datasetVersion": {
+      "const": "foundation-v1"
+    },
+    "status": {
+      "const": "not_measured"
+    },
+    "engines": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "viper_engine": {
+          "const": "not_measured"
+        },
+        "viper_v4": {
+          "const": "not_measured"
+        },
+        "hermes": {
+          "const": "not_measured"
+        }
+      },
+      "required": [
+        "viper_engine",
+        "viper_v4",
+        "hermes"
+      ]
+    },
+    "model": {
+      "type": "null"
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxSteps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxToolCalls": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxTimeMs": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "maxSteps",
+        "maxToolCalls",
+        "maxTimeMs"
+      ]
+    },
+    "sourceSnapshot": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    },
+    "datasetHashes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "datasetVersion",
+    "status",
+    "engines",
+    "model",
+    "budgets",
+    "sourceSnapshot",
+    "datasetHashes"
+  ]
+}

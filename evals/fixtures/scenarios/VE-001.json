@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "VE-001",
+  "family": "final",
+  "goal": "Answer a greeting",
+  "contextRequests": [],
+  "modelResponses": [
+    {
+      "kind": "final",
+      "content": [
+        {
+          "type": "text",
+          "text": "Hello"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "state": "completed",
+    "toolNames": [],
+    "assertions": [
+      "No MCP dispatch"
+    ]
+  }
+}

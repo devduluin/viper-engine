@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "VE-009",
+  "family": "budget",
+  "goal": "Model repeats lookup beyond configured limit",
+  "contextRequests": [],
+  "modelResponses": [
+    {
+      "kind": "tool_calls",
+      "calls": [
+        {
+          "id": "c1",
+          "name": "lookup_item",
+          "arguments": {
+            "id": "item-1"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "tool_calls",
+      "calls": [
+        {
+          "id": "c2",
+          "name": "lookup_item",
+          "arguments": {
+            "id": "item-1"
+          }
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "state": "failed",
+    "toolNames": [
+      "lookup_item"
+    ],
+    "assertions": [
+      "Runtime repetition/budget policy stops extra dispatch"
+    ]
+  }
+}

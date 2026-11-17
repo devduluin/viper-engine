@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "VE-004",
+  "family": "clarification",
+  "goal": "Get stock without an item ID",
+  "contextRequests": [],
+  "modelResponses": [
+    {
+      "kind": "needs_input",
+      "question": "Which item ID?"
+    }
+  ],
+  "expected": {
+    "state": "waiting_for_input",
+    "toolNames": [],
+    "assertions": [
+      "No guessed item ID",
+      "No tool dispatch before input"
+    ]
+  }
+}

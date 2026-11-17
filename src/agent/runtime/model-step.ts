@@ -1,0 +1,75 @@
+import type { AssistantMessage, Message } from '../../contracts/messages/message.js';
+import { parseMessage } from '../../contracts/messages/parse-message.js';
+import type { ModelDecision } from '../../contracts/models/decision.js';
+import type { ModelFailure, ModelRequest } from '../../contracts/models/gateway.js';
+import { parseModelDecision } from '../../contracts/models/decision.js';
+import { parseModelUsage } from '../../contracts/models/usage.js';
+import { prepareModelContext } from './prepare-model.js';
+import type { StepContext } from './types.js';
+import { RunInterrupted } from '../policies/control.js';
+import { BudgetExceeded } from '../policies/limits.js';
+
+export type ModelStep =
+  | { readonly kind: 'decision'; readonly decision: ModelDecision; readonly assistant: AssistantMessage }
+  | { readonly kind: 'failure'; readonly failure: ModelFailure }
+  | { readonly kind: 'invalid' }
+  | { readonly kind: 'cancelled' };
+
+export type { StepContext } from './types.js';
+
+function knownCallIds(history: readonly Message[]): Set<string> {
+  return new Set(history.flatMap(message => message.role === 'assistant' ? (message.toolCalls ?? []).map(call => call.id) : []));
+}
+
+/** Assistant message for the decision, or undefined when it reuses a call ID already in history. */
+function assistantMessage(context: StepContext, decision: ModelDecision): AssistantMessage | undefined {
+  if (decision.kind === 'tool_calls') {
+    const known = knownCallIds(context.state.history);
+    if (decision.calls.some(call => known.has(call.id))) return undefined;
+  }
+  const content = decision.kind === 'needs_input' ? [{ type: 'text', text: decision.question }] : decision.content;
+  const message = parseMessage({
+    id: context.deps.ids.next('message'), role: 'assistant', content,
+    ...(decision.kind === 'tool_calls' ? { toolCalls: decision.calls } : {}),
+  });
+  return message.role === 'assistant' ? message : undefined;
+}
+
+async function generate(context: StepContext, request: ModelRequest) {
+  return context.control.call(signal => context.deps.model.generate(request, { signal }));
+}
+
+/** One model call over the complete current history. Unexpected gateway faults propagate. */
+export async function requestDecision(context: StepContext): Promise<ModelStep> {
+  const { input, deps, state } = context;
+  if (state.history.some(message => message.content.some(block => !deps.model.capabilities.contentTypes.includes(block.type)))) {
+    return { kind: 'failure', failure: { code: 'unsupported', message: 'Model does not support content retained in this conversation', retryable: false } };
+  }
+  const stepId = deps.ids.next('step');
+  const modelCallId = deps.ids.next('model_call');
+  const prepared = await prepareModelContext(context, stepId, modelCallId);
+  await context.emit({ type: 'model_call_started', stepId, modelCallId,
+    ...(state.contextCheckpoint === undefined ? {} : { contextCheckpoint: state.contextCheckpoint }) });
+  const result = await generate(context, prepared.request);
+  const limit = context.budget.output('model', result);
+  const usage = parseModelUsage(result.usage);
+  await context.emit({ type: 'model_call_finished', modelCallId, ok: result.ok, usage,
+    ...(result.ok ? {} : { failureCode: result.error.code }) });
+  const stopped = context.control.check();
+  if (stopped !== undefined) throw new RunInterrupted(stopped);
+  if (limit !== undefined) throw new BudgetExceeded(limit);
+  if (usage.source === 'provider' && usage.outputTokens !== null && usage.outputTokens > input.maxOutputTokens) {
+    throw new BudgetExceeded('model_output_limit');
+  }
+  if (!result.ok) return { kind: 'failure', failure: result.error };
+  return normalizeDecision(context, result.decision);
+}
+
+function normalizeDecision(context: StepContext, value: unknown): ModelStep {
+  let decision: ModelDecision;
+  try { decision = parseModelDecision(value); } catch { return { kind: 'invalid' }; }
+  const assistant = assistantMessage(context, decision);
+  if (assistant === undefined) return { kind: 'invalid' };
+  if (decision.kind === 'tool_calls') context.budget.propose(decision.calls, context.index);
+  return { kind: 'decision', decision, assistant };
+}

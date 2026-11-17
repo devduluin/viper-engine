@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "VE-006",
+  "family": "resource",
+  "goal": "Explain fixture stock policy",
+  "contextRequests": [
+    {
+      "method": "resources/read",
+      "params": {
+        "uri": "fixture://policy"
+      }
+    }
+  ],
+  "modelResponses": [
+    {
+      "kind": "final",
+      "content": [
+        {
+          "type": "text",
+          "text": "Stock count does not reserve an item"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "state": "completed",
+    "toolNames": [],
+    "assertions": [
+      "Only the discovered resource is read"
+    ]
+  }
+}

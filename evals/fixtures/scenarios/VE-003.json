@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "VE-003",
+  "family": "tools",
+  "goal": "Add 3 to item-1 stock",
+  "contextRequests": [],
+  "modelResponses": [
+    {
+      "kind": "tool_calls",
+      "calls": [
+        {
+          "id": "c1",
+          "name": "lookup_item",
+          "arguments": {
+            "id": "item-1"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "tool_calls",
+      "calls": [
+        {
+          "id": "c2",
+          "name": "add_numbers",
+          "arguments": {
+            "a": 5,
+            "b": 3
+          }
+        }
+      ]
+    },
+    {
+      "kind": "final",
+      "content": [
+        {
+          "type": "text",
+          "text": "Total: 8"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "state": "completed",
+    "toolNames": [
+      "lookup_item",
+      "add_numbers"
+    ],
+    "assertions": [
+      "Second call uses first result stock",
+      "Call/result IDs remain paired"
+    ]
+  }
+}

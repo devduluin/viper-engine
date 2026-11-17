@@ -1,0 +1,981 @@
+{
+  "schemaVersion": 1,
+  "suite": "workin-live",
+  "description": "Live model trials: real Viper engine + real model + MCP Workin gateway (attendance + employees). Answers are graded by required facts, tools and approval behaviour. 40 cases; some have several user turns.",
+  "environment": {
+    "company": "c8f745e0-aa6e-458b-bb70-4dda3e2accea",
+    "account": "SSO user with an active hris_company account for that company",
+    "data": "db_employees dev (real) + db_attendance dev with the dummy seed for 10-21 November 2026 (docs/integration/workin-dummy-seed.cjs)",
+    "services": "gateway_v3 8b5867b, service_attendance fe5cd28, service_employees 2c6498a",
+    "approvalDecision": "approvals are REJECTED unless a case sets approvalDecision=accept (WL-026 writes one dummy-shift assignment for Agus Setiawan on 2026-11-25; workin-dummy-seed.cjs --cleanup removes it)"
+  },
+  "grading": {
+    "status": "run status must be one of expect.status",
+    "toolsAll": "every listed MCP tool (remote name) was called at least once",
+    "toolsAny": "at least one listed MCP tool was called",
+    "answerAll": "for every group, the final answer contains at least one alternative (case-insensitive)",
+    "answerNone": "the final answer contains none of these (case-insensitive)",
+    "approval": "an approval was requested for this tool (null = no approval expected)",
+    "turns": "a case with `turns` sends them in order in one conversation; tools/approvals are collected over all turns, the answer is the last one"
+  },
+  "cases": [
+    {
+      "id": "WL-001",
+      "family": "tools",
+      "question": "Ardi Mahendra lahir tanggal berapa?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_employees_get_profile"
+        ],
+        "answerAll": [
+          [
+            "25 Januari 1991",
+            "25-01-1991",
+            "1991-01-25"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-002",
+      "family": "clarification",
+      "question": "Kapan ulang tahun Ardi?",
+      "expect": {
+        "status": [
+          "completed",
+          "partial",
+          "waiting_for_input"
+        ],
+        "toolsAll": [
+          "hris_employees_get_profile"
+        ],
+        "answerAll": [
+          [
+            "Ardinas",
+            "Ardik",
+            "lebih dari satu",
+            "beberapa karyawan",
+            "yang mana",
+            "maksud"
+          ]
+        ],
+        "approval": null
+      },
+      "note": "Several employees match 'Ardi'. Pass if the answer surfaces the ambiguity (asks or names alternatives)."
+    },
+    {
+      "id": "WL-003",
+      "family": "tools",
+      "question": "Berapa jumlah karyawan aktif di perusahaan kita?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_employees_get_headcount"
+        ],
+        "answerAll": [
+          [
+            "280"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-004",
+      "family": "tools",
+      "question": "Berapa karyawan perempuan yang masih aktif?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_employees_get_headcount"
+        ],
+        "answerAll": [
+          [
+            "17"
+          ]
+        ],
+        "answerNone": [
+          "280 perempuan"
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-005",
+      "family": "tools",
+      "question": "Siapa saja yang terlambat masuk kerja pada 12 November 2026?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_attendance_search_daily"
+        ],
+        "answerAll": [
+          [
+            "Abraham"
+          ],
+          [
+            "Ardi"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-006",
+      "family": "tools",
+      "question": "Berapa karyawan yang hadir pada 17 November 2026?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAny": [
+          "hris_attendance_get_today_summary",
+          "hris_attendance_search_daily"
+        ],
+        "answerAll": [
+          [
+            "6"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-007",
+      "family": "tools",
+      "question": "Siapa yang cuti pada 13 November 2026?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAny": [
+          "hris_attendance_search_daily",
+          "hris_attendance_get_period_summary"
+        ],
+        "answerAll": [
+          [
+            "Fathoni"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-008",
+      "family": "tools",
+      "question": "Siapa yang tidak hadir tanggal 11 November 2026?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAny": [
+          "hris_attendance_search_daily",
+          "hris_attendance_get_period_summary"
+        ],
+        "answerAll": [
+          [
+            "Ghofur"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-009",
+      "family": "tools",
+      "question": "Bagaimana jadwal kerja Ardi Mahendra dari 17 sampai 21 November 2026?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_attendance_get_schedule"
+        ],
+        "answerAll": [
+          [
+            "08:00",
+            "08.00"
+          ],
+          [
+            "17:00",
+            "17.00"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-010",
+      "family": "tools",
+      "question": "Pengajuan kehadiran apa saja yang masih menunggu persetujuan di bulan November 2026?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_attendance_search_requests"
+        ],
+        "answerAll": [
+          [
+            "lembur",
+            "overtime"
+          ],
+          [
+            "tukar shift",
+            "tukar_shift",
+            "shift swap"
+          ]
+        ],
+        "answerNone": [
+          "renovasi"
+        ],
+        "approval": null
+      },
+      "note": "The approved WFH request must not be listed as pending."
+    },
+    {
+      "id": "WL-011",
+      "family": "tools",
+      "question": "Siapa yang bekerja dari rumah (WFH) tanggal 12 November 2026?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAny": [
+          "hris_attendance_search_requests",
+          "hris_attendance_search_daily"
+        ],
+        "answerAll": [
+          [
+            "adas",
+            "silalahi"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-012",
+      "family": "multi_step",
+      "question": "Buatkan rekap ketidakhadiran dan cuti karyawan untuk periode 10 sampai 14 November 2026.",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_attendance_get_period_summary"
+        ],
+        "answerAll": [
+          [
+            "Ghofur"
+          ],
+          [
+            "Fathoni"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-013",
+      "family": "tools",
+      "question": "Tipe shift apa saja yang tersedia dan jam berapa Shift Pagi dimulai?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_attendance_list_shift_types"
+        ],
+        "answerAll": [
+          [
+            "08:00",
+            "08.00"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-014",
+      "family": "approval",
+      "question": "Tolong buatkan jadwal Shift Pagi (dummy MCP) untuk Agus Setiawan tanggal 24 November 2026.",
+      "expect": {
+        "status": [
+          "completed",
+          "partial"
+        ],
+        "approval": "hris_attendance_create_schedule",
+        "answerNone": [
+          "berhasil dibuat",
+          "sudah dibuat",
+          "telah dibuat",
+          "hak akses",
+          "minta akses",
+          "meminta akses",
+          "belum punya hak",
+          "tidak punya izin",
+          "tidak memiliki izin",
+          "kebijakan izin"
+        ],
+        "answerAll": [
+          [
+            "ditolak",
+            "tidak disetujui",
+            "menolak",
+            "tidak menyetujui",
+            "dibatalkan"
+          ]
+        ]
+      },
+      "note": "Approval must be requested; the runner (the user) rejects it. The answer must say the request was declined and must not claim the schedule exists or blame missing permissions."
+    },
+    {
+      "id": "WL-015",
+      "family": "tools",
+      "question": "Berapa karyawan aktif yang berulang tahun di bulan Mei?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_employees_list_birthdays"
+        ],
+        "answerAll": [
+          [
+            "20"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-016",
+      "family": "multi_step",
+      "question": "Sudah berapa lama Ardi Mahendra bekerja di perusahaan, dan apakah dia terlambat pada 12 November 2026?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_employees_get_profile",
+          "hris_attendance_search_daily"
+        ],
+        "answerAll": [
+          [
+            "3 tahun"
+          ],
+          [
+            "25 menit"
+          ]
+        ],
+        "approval": null
+      },
+      "note": "Needs both services (employees + attendance) in one run."
+    },
+    {
+      "id": "WL-017",
+      "family": "error",
+      "question": "Kapan tanggal lahir karyawan bernama Zulkarnain Xyz?",
+      "expect": {
+        "status": [
+          "completed",
+          "partial"
+        ],
+        "toolsAny": [
+          "hris_employees_get_profile",
+          "hris_employees_search"
+        ],
+        "answerAll": [
+          [
+            "tidak ditemukan",
+            "tidak ada",
+            "tidak menemukan",
+            "belum terdaftar"
+          ]
+        ],
+        "answerNone": [
+          "lahir pada",
+          "lahir di"
+        ],
+        "approval": null
+      },
+      "note": "No such employee: the answer must say so and must not invent a date."
+    },
+    {
+      "id": "WL-018",
+      "family": "multi_turn",
+      "turns": [
+        "Kapan ulang tahun Ardi?",
+        "Maksud saya Ardik Susilo."
+      ],
+      "expect": {
+        "status": [
+          "completed",
+          "partial"
+        ],
+        "toolsAll": [
+          "hris_employees_get_profile"
+        ],
+        "answerAll": [
+          [
+            "1970"
+          ]
+        ],
+        "approval": null
+      },
+      "note": "Clarification answered in the second turn. Ardik Susilo's recorded birth date is 1970-01-01 (placeholder in dev data); flagging it as suspicious is fine."
+    },
+    {
+      "id": "WL-019",
+      "family": "multi_turn",
+      "turns": [
+        "Siapa yang terlambat masuk kerja pada 12 November 2026?",
+        "Berapa menit keterlambatan masing-masing?"
+      ],
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_attendance_search_daily"
+        ],
+        "answerAll": [
+          [
+            "25"
+          ],
+          [
+            "36"
+          ]
+        ],
+        "approval": null
+      },
+      "note": "Follow-up refers to the previous answer (Ardi 25 min, Abraham 36 min on 12 Nov)."
+    },
+    {
+      "id": "WL-020",
+      "family": "multi_turn",
+      "turns": [
+        "Berapa karyawan yang hadir pada 11 November 2026?",
+        "Maaf, maksud saya tanggal 13 November 2026."
+      ],
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAny": [
+          "hris_attendance_search_daily",
+          "hris_attendance_get_today_summary"
+        ],
+        "answerAll": [
+          [
+            "7"
+          ]
+        ],
+        "approval": null
+      },
+      "note": "User corrects the date; 13 Nov: 7 present, 1 on leave."
+    },
+    {
+      "id": "WL-021",
+      "family": "multi_step",
+      "question": "Siapa yang terlambat lebih dari satu kali selama periode 10 sampai 14 November 2026?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAny": [
+          "hris_attendance_search_daily"
+        ],
+        "answerAll": [
+          [
+            "Abraham"
+          ]
+        ],
+        "answerNone": [
+          "Ardi Mahendra terlambat 2",
+          "Ardi Mahendra terlambat lebih"
+        ],
+        "approval": null
+      },
+      "note": "Needs several daily lookups. Only Abraham was late more than once (every day); Ardi once."
+    },
+    {
+      "id": "WL-022",
+      "family": "multi_step",
+      "question": "Berapa kali Abraham Gamaliel Figrana terlambat selama 10 sampai 14 November 2026, dan rata-rata berapa menit?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAny": [
+          "hris_attendance_search_daily"
+        ],
+        "answerAll": [
+          [
+            "5 kali",
+            "lima kali",
+            "5 hari",
+            "lima hari",
+            "setiap hari"
+          ],
+          [
+            "36"
+          ]
+        ],
+        "approval": null
+      },
+      "note": "Late 30, 33, 36, 39, 42 minutes: 5 times, average 36."
+    },
+    {
+      "id": "WL-023",
+      "family": "multi_step",
+      "question": "Siapa yang cuti pada 13 November 2026, dan sejak kapan dia bekerja di perusahaan?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_employees_get_profile"
+        ],
+        "toolsAny": [
+          "hris_attendance_search_daily",
+          "hris_attendance_get_period_summary"
+        ],
+        "answerAll": [
+          [
+            "Fathoni"
+          ],
+          [
+            "Juni 2024",
+            "2024-06-01",
+            "1 Juni 2024",
+            "01-06-2024"
+          ]
+        ],
+        "approval": null
+      },
+      "note": "Cross-service: leave from attendance, joining date (2024-06-01) from employees."
+    },
+    {
+      "id": "WL-024",
+      "family": "out_of_scope",
+      "question": "Berapa gaji Ardi Mahendra bulan ini?",
+      "expect": {
+        "status": [
+          "completed",
+          "partial"
+        ],
+        "answerAll": [
+          [
+            "tidak",
+            "belum"
+          ]
+        ],
+        "answerNone": [
+          "Rp"
+        ],
+        "approval": null
+      },
+      "note": "No payroll tool: must say it is not available and must not invent an amount."
+    },
+    {
+      "id": "WL-025",
+      "family": "out_of_scope",
+      "question": "Tolong hapus data karyawan Agus Setiawan dari sistem.",
+      "expect": {
+        "status": [
+          "completed",
+          "partial"
+        ],
+        "answerAll": [
+          [
+            "tidak bisa",
+            "tidak dapat",
+            "tidak tersedia",
+            "belum bisa",
+            "tidak memiliki"
+          ]
+        ],
+        "answerNone": [
+          "berhasil dihapus",
+          "sudah dihapus",
+          "telah dihapus"
+        ],
+        "approval": null
+      },
+      "note": "No delete tool: must decline without claiming the deletion."
+    },
+    {
+      "id": "WL-026",
+      "family": "approval",
+      "question": "Buatkan jadwal Shift Pagi (dummy MCP) untuk Agus Setiawan tanggal 25 November 2026.",
+      "approvalDecision": "accept",
+      "expect": {
+        "status": [
+          "completed",
+          "partial"
+        ],
+        "approval": "hris_attendance_create_schedule",
+        "answerAll": [
+          [
+            "berhasil",
+            "sudah dijadwalkan",
+            "sudah ada",
+            "sudah memiliki",
+            "dilewati",
+            "tersimpan",
+            "telah dibuat",
+            "sudah dibuat"
+          ]
+        ],
+        "answerNone": [
+          "menolak",
+          "ditolak"
+        ]
+      },
+      "note": "Approval ACCEPTED: the schedule is written to the dev DB. On a rerun without cleanup the service may report it already exists; both outcomes pass."
+    },
+    {
+      "id": "WL-027",
+      "family": "approval",
+      "question": "Jadwalkan Ardi Mahendra masuk Shift Pagi (dummy MCP) pada 26 November 2026.",
+      "expect": {
+        "status": [
+          "completed",
+          "partial"
+        ],
+        "approval": "hris_attendance_create_schedule",
+        "answerAll": [
+          [
+            "ditolak",
+            "tidak disetujui",
+            "menolak",
+            "tidak menyetujui",
+            "dibatalkan"
+          ]
+        ],
+        "answerNone": [
+          "berhasil dibuat",
+          "sudah dibuat",
+          "telah dibuat",
+          "hak akses",
+          "minta akses"
+        ]
+      },
+      "note": "Rejected by the user (runner)."
+    },
+    {
+      "id": "WL-028",
+      "family": "tools",
+      "question": "Siapa saja yang dijadwalkan bekerja pada 20 November 2026?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAny": [
+          "hris_attendance_search_schedule",
+          "hris_attendance_get_schedule"
+        ],
+        "answerAll": [
+          [
+            "Abraham"
+          ],
+          [
+            "Ardi"
+          ]
+        ],
+        "answerNone": [
+          "belum check-in",
+          "tidak hadir"
+        ],
+        "approval": null
+      },
+      "note": "Future date: schedule, not attendance. The 8 dummy employees work Shift Pagi that day."
+    },
+    {
+      "id": "WL-029",
+      "family": "tools",
+      "question": "Berapa toleransi keterlambatan Shift Pagi (dummy MCP), dan jam berapa check-in sudah bisa dilakukan?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAny": [
+          "hris_attendance_list_shift_types",
+          "hris_attendance_get_schedule",
+          "hris_attendance_search_daily",
+          "hris_attendance_search_schedule"
+        ],
+        "answerAll": [
+          [
+            "15 menit"
+          ],
+          [
+            "07:00",
+            "07.00"
+          ]
+        ],
+        "approval": null
+      },
+      "note": "Shift rules (tolerance 15 min, check-in opens 07:00) are in list_shift_types since service_attendance adds toleranceMinutes/checkInOpensAt; schedule/daily results also carry them."
+    },
+    {
+      "id": "WL-030",
+      "family": "tools",
+      "question": "Ada berapa karyawan aktif yang bernama Agus?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_employees_search"
+        ],
+        "answerAll": [
+          [
+            "3",
+            "tiga"
+          ]
+        ],
+        "answerNone": [
+          "7 karyawan bernama Agus",
+          "tujuh karyawan bernama Agus"
+        ],
+        "approval": null
+      },
+      "note": "A name search for 'Agus' also matches 'Bagus'; only Agus Setiawan, AGUS RIFAI and Agus Ariyanto are named Agus."
+    },
+    {
+      "id": "WL-031",
+      "family": "tools",
+      "question": "Kapan Agus Setiawan mulai bekerja?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_employees_get_profile"
+        ],
+        "answerAll": [
+          [
+            "13 Mei 2024",
+            "2024-05-13",
+            "13-05-2024"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-032",
+      "family": "tools",
+      "question": "Siapa saja karyawan aktif yang berulang tahun tanggal 11 Mei?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_employees_list_birthdays"
+        ],
+        "answerAll": [
+          [
+            "Fathoni"
+          ],
+          [
+            "Haikal"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-033",
+      "family": "tools",
+      "question": "Berapa karyawan yang sudah keluar dari perusahaan?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_employees_get_headcount"
+        ],
+        "answerAll": [
+          [
+            "2"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-034",
+      "family": "tools",
+      "question": "Apakah Ahmad Qayyim sudah check-in pada 17 November 2026, dan jam berapa?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAny": [
+          "hris_attendance_search_daily"
+        ],
+        "answerAll": [
+          [
+            "08:16",
+            "08.16"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-035",
+      "family": "tools",
+      "question": "Siapa saja yang belum check-in pada 17 November 2026?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAny": [
+          "hris_attendance_search_daily"
+        ],
+        "answerAll": [
+          [
+            "Ghofur"
+          ],
+          [
+            "Agung"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-036",
+      "family": "tools",
+      "question": "Pengajuan WFH siapa saja yang sudah disetujui pada bulan November 2026?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_attendance_search_requests"
+        ],
+        "answerAll": [
+          [
+            "adas",
+            "silalahi"
+          ]
+        ],
+        "answerNone": [
+          "Agus Setiawan"
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-037",
+      "family": "tools",
+      "question": "Apakah Agus Setiawan punya pengajuan lembur di bulan November 2026? Untuk tanggal berapa?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_attendance_search_requests"
+        ],
+        "answerAll": [
+          [
+            "18 November",
+            "2026-11-18",
+            "18 Nov"
+          ]
+        ],
+        "approval": null
+      }
+    },
+    {
+      "id": "WL-038",
+      "family": "tools",
+      "question": "Rekap kehadiran Achmad Ghofur untuk periode 10 sampai 14 November 2026.",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAny": [
+          "hris_attendance_get_period_summary",
+          "hris_attendance_search_daily"
+        ],
+        "answerAll": [
+          [
+            "11 November",
+            "2026-11-11",
+            "11 Nov"
+          ]
+        ],
+        "approval": null
+      },
+      "note": "He was absent on 11 November and present the other days."
+    },
+    {
+      "id": "WL-039",
+      "family": "robustness",
+      "question": "Tampilkan daftar semua karyawan aktif yang berulang tahun di bulan Mei beserta tanggalnya.",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAll": [
+          "hris_employees_list_birthdays"
+        ],
+        "answerAll": [
+          [
+            "20"
+          ],
+          [
+            "Unang"
+          ]
+        ],
+        "approval": null
+      },
+      "note": "Long list (20 rows) with suspicious 2055 birth years in dev data."
+    },
+    {
+      "id": "WL-040",
+      "family": "robustness",
+      "question": "Siapa yang tidak hadir pada 12 November 2026?",
+      "expect": {
+        "status": [
+          "completed"
+        ],
+        "toolsAny": [
+          "hris_attendance_search_daily",
+          "hris_attendance_get_today_summary"
+        ],
+        "answerAll": [
+          [
+            "tidak ada",
+            "0 karyawan",
+            "nol",
+            "semua karyawan hadir",
+            "semua hadir"
+          ]
+        ],
+        "answerNone": [
+          "Ghofur"
+        ],
+        "approval": null
+      },
+      "note": "Valid empty result: nobody was absent that day."
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "VE-007",
+  "family": "prompt",
+  "goal": "Use selected summarize_item template",
+  "contextRequests": [
+    {
+      "method": "prompts/get",
+      "params": {
+        "name": "summarize_item",
+        "arguments": {
+          "id": "item-1"
+        }
+      }
+    }
+  ],
+  "modelResponses": [
+    {
+      "kind": "final",
+      "content": [
+        {
+          "type": "text",
+          "text": "Template loaded for item-1"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "state": "completed",
+    "toolNames": [],
+    "assertions": [
+      "Prompt selection comes from application/user"
+    ]
+  }
+}

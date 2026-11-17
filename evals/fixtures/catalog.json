@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "tools": [
+    {
+      "name": "lookup_item",
+      "description": "Get fixture item stock by exact ID",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stock": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "stock"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "responses": [
+        {
+          "arguments": {
+            "id": "item-1"
+          },
+          "result": {
+            "isError": false,
+            "structuredContent": {
+              "id": "item-1",
+              "stock": 5
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "{\"id\": \"item-1\", \"stock\": 5}"
+              }
+            ]
+          }
+        },
+        {
+          "arguments": {
+            "id": "missing"
+          },
+          "result": {
+            "isError": true,
+            "structuredContent": {
+              "code": "not_found"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "{\"code\": \"not_found\"}"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "add_numbers",
+      "description": "Add two fixture numbers",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "a": {
+            "type": "number"
+          },
+          "b": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sum": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "sum"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "responses": [
+        {
+          "arguments": {
+            "a": 5,
+            "b": 3
+          },
+          "result": {
+            "isError": false,
+            "structuredContent": {
+              "sum": 8
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "{\"sum\": 8}"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "save_note",
+      "description": "Write a note in fixture memory only",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "responses": [
+        {
+          "arguments": {
+            "text": "example"
+          },
+          "result": {
+            "isError": false,
+            "structuredContent": {
+              "id": "note-1"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "{\"id\": \"note-1\"}"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "uri": "fixture://policy",
+      "name": "Fixture policy",
+      "mimeType": "text/plain",
+      "text": "Stock is a count, not a reservation."
+    }
+  ],
+  "prompts": [
+    {
+      "name": "summarize_item",
+      "description": "Selected application fixture template",
+      "fixtures": [
+        {
+          "arguments": {
+            "id": "item-1"
+          },
+          "result": {
+            "messages": [
+              {
+                "role": "user",
+                "content": {
+                  "type": "text",
+                  "text": "Summarize item-1 using available stock data."
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

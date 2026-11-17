@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "VE-008",
+  "family": "approval",
+  "goal": "Save the example note",
+  "contextRequests": [],
+  "modelResponses": [
+    {
+      "kind": "tool_calls",
+      "calls": [
+        {
+          "id": "c1",
+          "name": "save_note",
+          "arguments": {
+            "text": "example"
+          }
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "state": "waiting_for_approval",
+    "toolNames": [],
+    "assertions": [
+      "Write remains a proposal without an execution permit"
+    ]
+  }
+}

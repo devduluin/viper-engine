@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "VE-005",
+  "family": "error",
+  "goal": "Get nonexistent item",
+  "contextRequests": [],
+  "modelResponses": [
+    {
+      "kind": "tool_calls",
+      "calls": [
+        {
+          "id": "c1",
+          "name": "lookup_item",
+          "arguments": {
+            "id": "missing"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "final",
+      "content": [
+        {
+          "type": "text",
+          "text": "Item was not found"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "state": "failed",
+    "toolNames": [
+      "lookup_item"
+    ],
+    "assertions": [
+      "MCP isError is not reported as success"
+    ]
+  }
+}
