@@ -4,6 +4,8 @@ import { parseModelConfig } from './model-config.js';
 import type { AnthropicModelConfig } from './model-config.js';
 import { createModelGateway, type RunEffortLookup } from './model.js';
 import { createOpenAIModelGateway, parseOpenAIModelConfig } from './openai-model.js';
+import { processDeltas } from '../application/streaming/delta-bus.js';
+import { withDeltaPublishing } from './streaming-model.js';
 import type { OpenAIModelConfig } from './openai-model.js';
 
 export interface EngineModel {
@@ -24,6 +26,7 @@ export function parseConfiguredModelConfig(env: Readonly<Record<string, string |
 
 /** `runEffort` (Anthropic): per-run effort from the composer, e.g. runEffortFromDatabase(pool). OpenAI keeps its configured effort. */
 export function createConfiguredModelBinding(config: ConfiguredModel, clock: Clock, runEffort?: RunEffortLookup): EngineModel {
-  return Object.freeze({ provider: config.provider, model: config.model,
-    gateway: config.provider === 'anthropic' ? createModelGateway(config, clock, runEffort) : createOpenAIModelGateway(config, clock) });
+  const gateway = config.provider === 'anthropic' ? createModelGateway(config, clock, runEffort) : createOpenAIModelGateway(config, clock);
+  // Live answer text for the SSE stream of the same process (message.delta); never changes run results.
+  return Object.freeze({ provider: config.provider, model: config.model, gateway: withDeltaPublishing(gateway, processDeltas, clock) });
 }
