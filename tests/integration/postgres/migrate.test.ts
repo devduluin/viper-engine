@@ -23,7 +23,7 @@ test('fresh install applies every migration once and records checksums', async (
   const { pool } = await fresh();
   const versions = migrations.map(m => m.version);
   const current = versions.at(-1);
-  assert.deepEqual(versions, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+  assert.deepEqual(versions, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
   assert.deepEqual(await migrate(pool, migrations), { applied: versions, current });
   assert.deepEqual(await migrate(pool, migrations), { applied: [], current });
   const tables = await pool.query(`SELECT count(*)::int AS n FROM information_schema.tables

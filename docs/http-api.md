@@ -113,6 +113,10 @@ messages are omitted, so a conversation created before a failed start does not a
 leaves the list, reads and new runs answer 404, while runs, tool calls, approvals and events are kept for
 audit. Idempotent; `INVALID_STATE` (409) while a run is active; another owner gets 404.
 
+`StartRun.options.effort` (`low` | `medium` | `high`, optional) is stored on the run (migration 0015) and
+used for that run's Anthropic model calls when the host passes `runEffortFromDatabase(pool)` to
+`createConfiguredModelBinding`; absent = the configured `VIPER_MODEL_EFFORT`. OpenAI keeps its own setting.
+
 Signed opaque cursors bind version/kind/owner/app/tenant/resource/position/expiry. Page and event
 tokens are distinct. Use a stable deployment secret across restarts; key changes invalidate old
 cursors. Event expiry gives 410/fetch_snapshot; invalid/foreign page cursors give 400. Event token

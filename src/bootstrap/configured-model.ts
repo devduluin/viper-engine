@@ -2,7 +2,7 @@ import type { Clock } from '../contracts/identity/ports.js';
 import type { ModelGateway } from '../contracts/models/gateway.js';
 import { parseModelConfig } from './model-config.js';
 import type { AnthropicModelConfig } from './model-config.js';
-import { createModelGateway } from './model.js';
+import { createModelGateway, type RunEffortLookup } from './model.js';
 import { createOpenAIModelGateway, parseOpenAIModelConfig } from './openai-model.js';
 import type { OpenAIModelConfig } from './openai-model.js';
 
@@ -22,7 +22,8 @@ export function parseConfiguredModelConfig(env: Readonly<Record<string, string |
   throw new Error('Unsupported model provider');
 }
 
-export function createConfiguredModelBinding(config: ConfiguredModel, clock: Clock): EngineModel {
+/** `runEffort` (Anthropic): per-run effort from the composer, e.g. runEffortFromDatabase(pool). OpenAI keeps its configured effort. */
+export function createConfiguredModelBinding(config: ConfiguredModel, clock: Clock, runEffort?: RunEffortLookup): EngineModel {
   return Object.freeze({ provider: config.provider, model: config.model,
-    gateway: config.provider === 'anthropic' ? createModelGateway(config, clock) : createOpenAIModelGateway(config, clock) });
+    gateway: config.provider === 'anthropic' ? createModelGateway(config, clock, runEffort) : createOpenAIModelGateway(config, clock) });
 }

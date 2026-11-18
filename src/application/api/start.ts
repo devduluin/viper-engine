@@ -8,6 +8,8 @@ import { createFingerprint } from '../../shared/fingerprints/fingerprint.js';
 import { withDeadline } from '../../shared/async/deadline.js';
 import type { ApiOptions } from './options.js';
 import { accepted } from './projection.js';
+import { RUN_EFFORTS, type RunEffort } from '../../contracts/state/ports.js';
+import type { JsonObject } from '../../contracts/messages/json.js';
 import { authorizedUserMessage } from './user-input.js';
 
 export async function startRun(scope: TrustedScope, call: ApiCall, options: ApiOptions) {
@@ -27,7 +29,8 @@ export async function startRun(scope: TrustedScope, call: ApiCall, options: ApiO
     const instructions = await prepareContext(scope, call, options, stores);
     const input = await authorizedUserMessage(scope, call.body, options);
     const at = options.clock.now(); const runId = options.ids.next('run');
-    const run = requireState(await stores.runs.create(scope, { id: runId, conversationId: id, at,
+    const effort = runEffort(call.body);
+    const run = requireState(await stores.runs.create(scope, { id: runId, conversationId: id, at, ...(effort ? { effort } : {}),
       events: [{ eventId: options.ids.next('run_event'), type: 'run.queued', occurredAt: at, payload: {} }] }));
     requireState(await stores.messages.append(scope, id, { expectedRevision: conversation.revision, at, runId,
       messages: [input] }));
@@ -35,6 +38,13 @@ export async function startRun(scope: TrustedScope, call: ApiCall, options: ApiO
     requireState(await stores.idempotency.complete(scope, { ...request, claimId: begun.claimId, resourceRef: runId }));
     return accepted(run);
   });
+}
+
+/** `options.effort` (schema-validated): the user's speed/depth choice for this run. */
+function runEffort(body: JsonObject): RunEffort | undefined {
+  const options = body['options'];
+  const value = options !== null && typeof options === 'object' && !Array.isArray(options) ? (options as JsonObject)['effort'] : undefined;
+  return RUN_EFFORTS.find(effort => effort === value);
 }
 
 async function prepareContext(scope: TrustedScope, call: ApiCall, options: ApiOptions, stores: ApiStores) {

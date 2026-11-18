@@ -55,3 +55,18 @@ test('delete removes a conversation from history and blocks reads and new runs; 
     assert.equal(audit.rows[0].n, 1, 'runs are kept for audit');
   } finally { await app.close(); await db.drop(); }
 });
+
+test('start run stores the chosen effort; an unknown effort is rejected by the schema', async () => {
+  const db = await createDatabase(); const app = http(db.pool);
+  try {
+    const conversation = await newConversation(app);
+    const accepted = await request(app, 'POST', `/api/v1/conversations/${conversation}/runs`,
+      { ...INPUT, options: { effort: 'high' } }, { key: 'key-effort', status: 202, schema: 'RunAccepted' });
+    const stored = await db.pool.query('SELECT effort FROM viper_engine.runs WHERE id = $1', [accepted['runId']]);
+    assert.equal(stored.rows[0].effort, 'high');
+    const other = await newConversation(app);
+    await request(app, 'POST', `/api/v1/conversations/${other}/runs`, { ...INPUT, options: { effort: 'max' } }, { key: 'key-bad', status: 400 });
+    const plain = await start(app, other, 'key-plain');
+    assert.equal((await db.pool.query('SELECT effort FROM viper_engine.runs WHERE id = $1', [plain['runId']])).rows[0].effort, null);
+  } finally { await app.close(); await db.drop(); }
+});

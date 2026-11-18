@@ -26,10 +26,16 @@ export interface ConversationStore {
   get(scope: TrustedScope, id: ConversationId): Promise<StateResult<ConversationRecord>>;
 }
 
+/** Effort levels a client may request per run; absent = the host's configured effort. */
+export type RunEffort = 'low' | 'medium' | 'high';
+export const RUN_EFFORTS: readonly RunEffort[] = ['low', 'medium', 'high'];
+
 export interface RunStore {
   create(scope: TrustedScope, input: {
     readonly id: RunId; readonly conversationId: ConversationId; readonly at: number;
     readonly events: readonly NewRunEvent[];
+    /** User-chosen reasoning effort for this run's model calls; absent = host default. */
+    readonly effort?: RunEffort;
   }): Promise<StateResult<RunRecord>>;
   get(scope: TrustedScope, id: RunId): Promise<StateResult<RunRecord>>;
   /** Reads tool-call statuses inside the same transaction; `request.toolCalls` is advisory input. */

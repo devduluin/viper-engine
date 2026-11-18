@@ -1,3 +1,4 @@
+import type { RunEffort } from '../../../contracts/state/ports.js';
 import type { ConversationId, RunId } from '../../../contracts/identity/ids.js';
 import type { TrustedScope } from '../../../contracts/identity/scope.js';
 import type { NewRunEvent } from '../../../contracts/state/events.js';
@@ -61,6 +62,7 @@ export class PostgresRunStore implements RunStore {
 
   async create(scope: TrustedScope, input: {
     readonly id: RunId; readonly conversationId: ConversationId; readonly at: number; readonly events: readonly NewRunEvent[];
+    readonly effort?: RunEffort;
   }): Promise<StateResult<RunRecord>> {
     return withTransaction(this.pool, async tx => {
       const parent = await tx.query(`SELECT ${CONVERSATION_COLUMNS} FROM viper_engine.conversations WHERE id = $1 AND deleted_at IS NULL FOR SHARE`,
@@ -68,9 +70,9 @@ export class PostgresRunStore implements RunStore {
       const conversation = owned(parent.rows[0] === undefined ? undefined : conversationRecord(parent.rows[0]), scope);
       if (!conversation.ok) return stateConflict(conversation.error);
       const inserted = await tx.query(`INSERT INTO viper_engine.runs
-          (id, actor_id, app_id, tenant_key, conversation_id, status, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, 'queued', ${MS_PARAM(6)}, ${MS_PARAM(6)}) RETURNING ${RUN_COLUMNS}`,
-      [input.id, ...ownerColumns(scope), input.conversationId, input.at]);
+          (id, actor_id, app_id, tenant_key, conversation_id, status, created_at, updated_at, effort)
+        VALUES ($1, $2, $3, $4, $5, 'queued', ${MS_PARAM(6)}, ${MS_PARAM(6)}, $7) RETURNING ${RUN_COLUMNS}`,
+      [input.id, ...ownerColumns(scope), input.conversationId, input.at, input.effort ?? null]);
       const record = runRecord(inserted.rows[0]);
       await appendEvents(tx, scope, { record, lastEventSequence: 0, lease: { fence: 0 } }, revisionEvents(input.events, record));
       return stateOk(record);

@@ -15,6 +15,7 @@ import { interpretMessage, usageFrom } from './from-response.js';
 import { AssistantReplayCache, assistantKey } from './replay-cache.js';
 import type { AnthropicRequestSettings } from './to-request.js';
 import { toAnthropicParams } from './to-request.js';
+import type { AnthropicEffort } from './to-request.js';
 import { withDeadline } from '../../../shared/async/deadline.js';
 import { assertTimerDuration } from '../../../shared/async/delay.js';
 
@@ -32,6 +33,8 @@ export interface AnthropicGatewayOptions {
   readonly api: AnthropicMessagesApi;
   readonly clock: Clock;
   readonly settings: AnthropicRequestSettings;
+  /** Per-run effort (the user's choice for this run); undefined = settings.effort. */
+  readonly resolveEffort?: (request: ModelRequest) => Promise<AnthropicEffort | undefined>;
   readonly replayCache?: AssistantReplayCache;
   readonly requestTimeoutMs?: number;
 }
@@ -85,7 +88,9 @@ export class AnthropicModelGateway implements ModelGateway {
     assertModelCallOptions(this.capabilities, options);
     const now = this.options.clock.now();
     assertModelRequest(request, this.capabilities, now);
-    const params = toAnthropicParams(request, this.options.settings, this.cache);
+    const effort = await this.options.resolveEffort?.(request).catch(() => undefined);
+    const settings = effort === undefined ? this.options.settings : { ...this.options.settings, effort };
+    const params = toAnthropicParams(request, settings, this.cache);
     try {
       const { message, usage } = await this.call(params, request, options, now);
       const result = interpretMessage(message);
