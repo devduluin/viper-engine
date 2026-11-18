@@ -61,12 +61,12 @@ test('exported OpenAPI payloads validate the same fixtures as the standalone JSO
   }
 });
 
-test('twelve operations inherit auth, use exact contracts and expose no desktop/legacy routes', () => {
+test('thirteen operations inherit auth, use exact contracts and expose no desktop/legacy routes', () => {
   const paths = OPENAPI_DOCUMENT.paths;
   const operations = Object.values(paths).flatMap(path => Object.values(path));
   assert.equal(Object.keys(paths).length, 11);
-  assert.equal(operations.length, 12);
-  assert.equal(new Set(operations.map(operation => operation.operationId)).size, 12);
+  assert.equal(operations.length, 13);
+  assert.equal(new Set(operations.map(operation => operation.operationId)).size, 13);
   assert.deepEqual(OPENAPI_DOCUMENT.security, [{ bearerAuth: [] }]);
   for (const [path, item] of Object.entries(paths)) {
     assert.ok(path.startsWith('/api/v1/'));

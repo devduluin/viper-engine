@@ -1,6 +1,6 @@
 import type { StartRunView, SubmitInputView, DecideApprovalView } from './requests.js';
 import type { RunAcceptedView, RunSnapshotView, ConversationView, ApprovalView, ConnectionView,
-  ConnectionPageView, CapabilitiesView, DurableEventView } from './views.js';
+  ConnectionPageView, CapabilitiesView, DurableEventView, ConversationPageView } from './views.js';
 
 export interface ClientRead { readonly signal?: AbortSignal }
 export interface ClientPage extends ClientRead { readonly cursor?: string; readonly limit?: number }
@@ -9,6 +9,7 @@ export interface ClientEvent { readonly event: DurableEventView; readonly cursor
 export interface EngineClientPort {
   capabilities(options?: ClientRead): Promise<CapabilitiesView>;
   createConversation(body?: { readonly title?: string }, options?: ClientRead): Promise<ConversationView>;
+  conversations(options?: ClientPage): Promise<ConversationPageView>;
   conversation(id: string, options?: ClientPage): Promise<ConversationView>;
   startRun(conversationId: string, body: StartRunView, key: string, options?: ClientRead): Promise<RunAcceptedView>;
   run(id: string, options?: ClientRead): Promise<RunSnapshotView>;

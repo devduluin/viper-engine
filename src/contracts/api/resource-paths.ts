@@ -6,6 +6,9 @@ export const RESOURCE_PATHS = {
     post: { ...operation('createConversation', 'Create a scoped conversation', 'ConversationSnapshot', 201),
       requestBody: jsonBody('CreateConversation'),
     },
+    get: { ...operation('listConversations', 'List the caller non-empty conversations, newest first (no messages)', 'ConversationPage'),
+      parameters: pageParameters,
+    },
   },
   '/api/v1/conversations/{conversationId}': {
     get: { ...operation('getConversation', 'Read a bounded public message page', 'ConversationSnapshot'),

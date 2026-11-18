@@ -105,6 +105,11 @@ content blocks, the last JSON block carries `{type: 'content_overflow', blocks: 
 remains available. This is JSON data, not executable authority. Other provider/core output outside
 v1 wire bounds fails closed; hosts should retain the default <=32 tool proposals per batch.
 
+`GET /api/v1/conversations` lists the caller's conversation summaries (id, title, revision,
+messageCount, createdAt, updatedAt; never message content), newest activity first, keyset-paged on
+`(updatedAt, id)` with the `conversations` cursor kind (default 50 per page). Conversations without
+messages are omitted, so a conversation created before a failed start does not appear in history.
+
 Signed opaque cursors bind version/kind/owner/app/tenant/resource/position/expiry. Page and event
 tokens are distinct. Use a stable deployment secret across restarts; key changes invalidate old
 cursors. Event expiry gives 410/fetch_snapshot; invalid/foreign page cursors give 400. Event token

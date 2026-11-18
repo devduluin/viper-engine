@@ -5,7 +5,7 @@ import { parseMessage } from '../../../contracts/messages/parse-message.js';
 import { parseJsonObject } from '../../../contracts/messages/json.js';
 import type { JsonObject } from '../../../contracts/messages/json.js';
 import { stateConflict, stateOk } from '../../../contracts/state/result.js';
-import type { ApiControlStore } from '../../../contracts/api/control.js';
+import type { ApiControlStore, ConversationPosition } from '../../../contracts/api/control.js';
 import { withSnapshot } from './sql-client.js';
 import type { SqlPool } from './sql-client.js';
 import { lockRun, NOT_FOUND } from './run-lock.js';
@@ -24,6 +24,23 @@ export class PostgresApiControl extends PostgresApiConnections implements ApiCon
   async lockRun(scope: TrustedScope, id: RunId) {
     const result = await lockRun(this.pool, scope, id);
     return result.ok ? stateOk(result.value.record) : stateConflict<import('../../../contracts/state/records.js').RunRecord>(result.error);
+  }
+
+  /** Uses conversations_owner_recent; ms-truncated time keeps the keyset stable against the cursor's ms value. */
+  async listConversations(scope: TrustedScope, after: ConversationPosition | undefined, limit: number) {
+    const result = await this.pool.query(`SELECT id, title, revision, next_message_position,
+        floor(extract(epoch FROM created_at) * 1000)::bigint AS created_ms, floor(extract(epoch FROM updated_at) * 1000)::bigint AS updated_ms
+      FROM viper_engine.conversations
+      WHERE actor_id = $1 AND app_id = $2 AND tenant_key = $3 AND next_message_position > 0
+        AND ($4::bigint IS NULL OR (floor(extract(epoch FROM updated_at) * 1000)::bigint, id COLLATE "C") < ($4::bigint, $5::text COLLATE "C"))
+      ORDER BY updated_at DESC, id COLLATE "C" DESC LIMIT $6`,
+    [...ownerColumns(scope), after?.updatedAt ?? null, after?.id ?? '', limit]);
+    return result.rows.map((value) => {
+      const row = asRow(value); const title = row['title'];
+      return { schemaVersion: 1, conversationId: text(row, 'id'), revision: Number(row['revision']),
+        createdAt: Number(row['created_ms']), updatedAt: Number(row['updated_ms']),
+        messageCount: Number(row['next_message_position']), ...(typeof title === 'string' && title !== '' ? { title } : {}) };
+    });
   }
 
   async hasActiveRun(id: ConversationId) {

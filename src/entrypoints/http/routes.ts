@@ -7,6 +7,7 @@ export interface HttpRoute {
 export const HTTP_ROUTES: readonly HttpRoute[] = [
   { operation: 'getCapabilities', method: 'GET', url: '/api/v1/capabilities', response: 'Capabilities', status: 200 },
   { operation: 'createConversation', method: 'POST', url: '/api/v1/conversations', body: 'CreateConversation', response: 'ConversationSnapshot', status: 201 },
+  { operation: 'listConversations', method: 'GET', url: '/api/v1/conversations', response: 'ConversationPage', status: 200, paged: true },
   { operation: 'getConversation', method: 'GET', url: '/api/v1/conversations/:conversationId', resource: 'conversationId', response: 'ConversationSnapshot', status: 200, paged: true },
   { operation: 'startRun', method: 'POST', url: '/api/v1/conversations/:conversationId/runs', resource: 'conversationId', body: 'StartRun', response: 'RunAccepted', status: 202 },
   { operation: 'getRun', method: 'GET', url: '/api/v1/runs/:runId', resource: 'runId', response: 'RunSnapshot', status: 200 },

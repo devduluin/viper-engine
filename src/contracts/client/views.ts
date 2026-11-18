@@ -36,6 +36,11 @@ export interface ConnectionView {
   readonly schemaVersion: 1; readonly connectionId: string; readonly serverId: string; readonly revision: number;
   readonly authState: 'ready' | 'authentication_required' | 'revoked'; readonly createdAt: number; readonly updatedAt: number;
 }
+export interface ConversationSummaryView {
+  readonly schemaVersion: 1; readonly conversationId: string; readonly revision: number; readonly title?: string;
+  readonly messageCount: number; readonly createdAt: number; readonly updatedAt: number;
+}
+export interface ConversationPageView { readonly schemaVersion: 1; readonly items: readonly ConversationSummaryView[]; readonly nextCursor?: string }
 export interface ConnectionPageView { readonly schemaVersion: 1; readonly items: readonly ConnectionView[]; readonly nextCursor?: string }
 export interface CapabilitiesView {
   readonly schemaVersion: 1; readonly apiVersion: 'v1';
