@@ -12,6 +12,7 @@ export const REQUEST_SCHEMAS = {
   StartRun: object({ input: ref('UserInput'), context: ref('ContextSelection') }, ['input']),
   SubmitInput: object({ inputId: id, expectedRevision: revision, input: ref('UserInput') }),
   CancelRun: object({}),
+  DeleteConversation: object({}),
   McpToolRef: object({ connectionId: id, serverId: id, name: text,
     definitionVersion: { type: 'string', minLength: 1, maxLength: 256 },
   }),

@@ -15,6 +15,11 @@ export const RESOURCE_PATHS = {
       parameters: [pathId('conversationId'), ...pageParameters],
     },
   },
+  '/api/v1/conversations/{conversationId}/delete': {
+    post: { ...operation('deleteConversation', 'Delete from history (soft); runs and audit records are kept', 'ConversationDeleted'),
+      parameters: [pathId('conversationId')], requestBody: jsonBody('DeleteConversation'),
+    },
+  },
   '/api/v1/approvals/{approvalId}/decision': {
     post: { ...operation('decideApproval', 'Accept/reject an exact server-owned proposal; does not dispatch a tool', 'ApprovalView'),
       parameters: [pathId('approvalId')], requestBody: jsonBody('DecideApproval'),

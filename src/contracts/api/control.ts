@@ -9,7 +9,7 @@ import type { IdempotencyStore } from '../state/idempotency.js';
 import type { StateResult } from '../state/result.js';
 import type { McpConnectionDirectory } from '../mcp/access.js';
 
-export type ApiOperation = 'createConversation' | 'listConversations' | 'getConversation' | 'startRun' | 'getRun' | 'submitInput'
+export type ApiOperation = 'createConversation' | 'listConversations' | 'getConversation' | 'deleteConversation' | 'startRun' | 'getRun' | 'submitInput'
   | 'cancelRun' | 'decideApproval' | 'createConnection' | 'listConnections' | 'disconnectConnection' | 'getCapabilities';
 export interface ApiCall {
   readonly operation: ApiOperation; readonly resourceId?: string; readonly body: JsonObject;
@@ -26,6 +26,8 @@ export interface ApiControlStore {
   listConnections(scope: TrustedScope, afterId: string, limit: number): Promise<readonly JsonObject[]>;
   /** Newest first (updatedAt, then id); `after` is the last row of the previous page. Empty conversations are omitted. */
   listConversations(scope: TrustedScope, after: ConversationPosition | undefined, limit: number): Promise<readonly JsonObject[]>;
+  /** Soft delete; idempotent; INVALID_STATE while a run is active, NOT_FOUND for another owner. */
+  deleteConversation(scope: TrustedScope, id: ConversationId, at: number): Promise<JsonObject>;
   disconnectConnection(scope: TrustedScope, id: string, expectedRevision: number, at: number): Promise<JsonObject>;
 }
 export interface ConversationPosition { readonly updatedAt: number; readonly id: string }

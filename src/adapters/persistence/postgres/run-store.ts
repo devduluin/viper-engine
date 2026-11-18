@@ -36,7 +36,7 @@ export class PostgresConversationStore implements ConversationStore {
   }
 
   async get(scope: TrustedScope, id: ConversationId): Promise<StateResult<ConversationRecord>> {
-    const result = await this.pool.query(`SELECT ${CONVERSATION_COLUMNS} FROM viper_engine.conversations WHERE id = $1`, [id]);
+    const result = await this.pool.query(`SELECT ${CONVERSATION_COLUMNS} FROM viper_engine.conversations WHERE id = $1 AND deleted_at IS NULL`, [id]);
     const row = result.rows[0];
     return owned(row === undefined ? undefined : conversationRecord(row), scope);
   }
@@ -63,7 +63,7 @@ export class PostgresRunStore implements RunStore {
     readonly id: RunId; readonly conversationId: ConversationId; readonly at: number; readonly events: readonly NewRunEvent[];
   }): Promise<StateResult<RunRecord>> {
     return withTransaction(this.pool, async tx => {
-      const parent = await tx.query(`SELECT ${CONVERSATION_COLUMNS} FROM viper_engine.conversations WHERE id = $1 FOR SHARE`,
+      const parent = await tx.query(`SELECT ${CONVERSATION_COLUMNS} FROM viper_engine.conversations WHERE id = $1 AND deleted_at IS NULL FOR SHARE`,
         [input.conversationId]);
       const conversation = owned(parent.rows[0] === undefined ? undefined : conversationRecord(parent.rows[0]), scope);
       if (!conversation.ok) return stateConflict(conversation.error);

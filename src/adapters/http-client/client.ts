@@ -35,6 +35,10 @@ export class EngineHttpClient implements EngineClientPort {
   conversations(options: ClientPage = {}) {
     return this.transport.request(`/api/v1/conversations${page(options)}`, 'ConversationPage', 200, undefined, options);
   }
+  deleteConversation(value: string, options: ClientRead = {}) {
+    return this.transport.request(`/api/v1/conversations/${id(value)}/delete`, 'ConversationDeleted', 200,
+      this.transport.codec.request('DeleteConversation', {}), options);
+  }
   conversation(value: string, options: ClientPage = {}) {
     return this.transport.request(`/api/v1/conversations/${id(value)}${page(options)}`, 'ConversationSnapshot', 200, undefined, options);
   }

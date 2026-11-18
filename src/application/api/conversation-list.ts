@@ -1,6 +1,7 @@
 import type { ApiCall, ConversationPosition } from '../../contracts/api/control.js';
 import { ApiFailure } from '../../contracts/api/failure.js';
 import type { TrustedScope } from '../../contracts/identity/scope.js';
+import { parseId } from '../../contracts/identity/ids.js';
 import type { ApiOptions } from './options.js';
 
 const RESOURCE = 'conversations';
@@ -15,6 +16,12 @@ export async function listConversations(scope: TrustedScope, call: ApiCall, opti
     return { schemaVersion: 1, items, ...(all.length <= limit || typeof id !== 'string' || typeof updatedAt !== 'number' ? {} : {
       nextCursor: options.cursors.issue(scope, 'conversations', RESOURCE, `${updatedAt}:${id}`) }) };
   });
+}
+
+/** Soft delete from the caller's history (POST /api/v1/conversations/{id}/delete). */
+export async function deleteConversation(scope: TrustedScope, call: ApiCall, options: ApiOptions) {
+  const id = parseId('conversation', call.resourceId);
+  return options.database.transaction(stores => stores.control.deleteConversation(scope, id, options.clock.now()));
 }
 
 function position(value: string): ConversationPosition {

@@ -109,6 +109,9 @@ v1 wire bounds fails closed; hosts should retain the default <=32 tool proposals
 messageCount, createdAt, updatedAt; never message content), newest activity first, keyset-paged on
 `(updatedAt, id)` with the `conversations` cursor kind (default 50 per page). Conversations without
 messages are omitted, so a conversation created before a failed start does not appear in history.
+`POST /api/v1/conversations/{id}/delete` is a soft delete (migration 0014 `deleted_at`): the conversation
+leaves the list, reads and new runs answer 404, while runs, tool calls, approvals and events are kept for
+audit. Idempotent; `INVALID_STATE` (409) while a run is active; another owner gets 404.
 
 Signed opaque cursors bind version/kind/owner/app/tenant/resource/position/expiry. Page and event
 tokens are distinct. Use a stable deployment secret across restarts; key changes invalidate old

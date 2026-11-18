@@ -9,6 +9,7 @@ export const HTTP_ROUTES: readonly HttpRoute[] = [
   { operation: 'createConversation', method: 'POST', url: '/api/v1/conversations', body: 'CreateConversation', response: 'ConversationSnapshot', status: 201 },
   { operation: 'listConversations', method: 'GET', url: '/api/v1/conversations', response: 'ConversationPage', status: 200, paged: true },
   { operation: 'getConversation', method: 'GET', url: '/api/v1/conversations/:conversationId', resource: 'conversationId', response: 'ConversationSnapshot', status: 200, paged: true },
+  { operation: 'deleteConversation', method: 'POST', url: '/api/v1/conversations/:conversationId/delete', resource: 'conversationId', body: 'DeleteConversation', response: 'ConversationDeleted', status: 200 },
   { operation: 'startRun', method: 'POST', url: '/api/v1/conversations/:conversationId/runs', resource: 'conversationId', body: 'StartRun', response: 'RunAccepted', status: 202 },
   { operation: 'getRun', method: 'GET', url: '/api/v1/runs/:runId', resource: 'runId', response: 'RunSnapshot', status: 200 },
   { operation: 'submitInput', method: 'POST', url: '/api/v1/runs/:runId/inputs', resource: 'runId', body: 'SubmitInput', response: 'RunAccepted', status: 202 },

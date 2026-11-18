@@ -6,10 +6,11 @@ import { parseJsonObject } from '../../../contracts/messages/json.js';
 import type { JsonObject } from '../../../contracts/messages/json.js';
 import { stateConflict, stateOk } from '../../../contracts/state/result.js';
 import type { ApiControlStore, ConversationPosition } from '../../../contracts/api/control.js';
+import { ApiFailure } from '../../../contracts/api/failure.js';
 import { withSnapshot } from './sql-client.js';
 import type { SqlPool } from './sql-client.js';
 import { lockRun, NOT_FOUND } from './run-lock.js';
-import { conversationRecord, CONVERSATION_COLUMNS, ownerColumns, asRow, text } from './rows.js';
+import { conversationRecord, CONVERSATION_COLUMNS, ownerColumns, asRow, text, MS_PARAM } from './rows.js';
 import { PostgresApiConnections } from './api-connections.js';
 
 export class PostgresApiControl extends PostgresApiConnections implements ApiControlStore {
@@ -17,7 +18,7 @@ export class PostgresApiControl extends PostgresApiConnections implements ApiCon
 
   async lockConversation(scope: TrustedScope, id: ConversationId) {
     const result = await this.pool.query(`SELECT ${CONVERSATION_COLUMNS} FROM viper_engine.conversations
-      WHERE id = $1 AND actor_id = $2 AND app_id = $3 AND tenant_key = $4 FOR UPDATE`, [id, ...ownerColumns(scope)]);
+      WHERE id = $1 AND actor_id = $2 AND app_id = $3 AND tenant_key = $4 AND deleted_at IS NULL FOR UPDATE`, [id, ...ownerColumns(scope)]);
     return result.rows[0] === undefined ? stateConflict<ReturnType<typeof conversationRecord>>(NOT_FOUND) : stateOk(conversationRecord(result.rows[0]));
   }
 
@@ -31,7 +32,7 @@ export class PostgresApiControl extends PostgresApiConnections implements ApiCon
     const result = await this.pool.query(`SELECT id, title, revision, next_message_position,
         floor(extract(epoch FROM created_at) * 1000)::bigint AS created_ms, floor(extract(epoch FROM updated_at) * 1000)::bigint AS updated_ms
       FROM viper_engine.conversations
-      WHERE actor_id = $1 AND app_id = $2 AND tenant_key = $3 AND next_message_position > 0
+      WHERE actor_id = $1 AND app_id = $2 AND tenant_key = $3 AND next_message_position > 0 AND deleted_at IS NULL
         AND ($4::bigint IS NULL OR (floor(extract(epoch FROM updated_at) * 1000)::bigint, id COLLATE "C") < ($4::bigint, $5::text COLLATE "C"))
       ORDER BY updated_at DESC, id COLLATE "C" DESC LIMIT $6`,
     [...ownerColumns(scope), after?.updatedAt ?? null, after?.id ?? '', limit]);
@@ -41,6 +42,19 @@ export class PostgresApiControl extends PostgresApiConnections implements ApiCon
         createdAt: Number(row['created_ms']), updatedAt: Number(row['updated_ms']),
         messageCount: Number(row['next_message_position']), ...(typeof title === 'string' && title !== '' ? { title } : {}) };
     });
+  }
+
+  async deleteConversation(scope: TrustedScope, id: ConversationId, at: number) {
+    const found = await this.pool.query(`SELECT floor(extract(epoch FROM deleted_at) * 1000)::bigint AS deleted_ms
+      FROM viper_engine.conversations WHERE id = $1 AND actor_id = $2 AND app_id = $3 AND tenant_key = $4 FOR UPDATE`,
+    [id, ...ownerColumns(scope)]);
+    const row = found.rows[0] === undefined ? undefined : asRow(found.rows[0]);
+    if (row === undefined) throw new ApiFailure('NOT_FOUND');
+    if (row['deleted_ms'] !== null) return { schemaVersion: 1, conversationId: id, deletedAt: Number(row['deleted_ms']) };
+    if (await this.hasActiveRun(id)) throw new ApiFailure('INVALID_STATE');
+    await this.pool.query(`UPDATE viper_engine.conversations SET deleted_at = ${MS_PARAM(2)}, revision = revision + 1
+      WHERE id = $1`, [id, at]);
+    return { schemaVersion: 1, conversationId: id, deletedAt: at };
   }
 
   async hasActiveRun(id: ConversationId) {

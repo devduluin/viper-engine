@@ -4,14 +4,14 @@ import { parseJsonValue } from '../../contracts/messages/json.js';
 import { EngineClientFailure } from '../../contracts/client/failure.js';
 import type { ClientErrorView } from '../../contracts/client/failure.js';
 import type { ConversationView, CapabilitiesView, RunAcceptedView, RunSnapshotView, ApprovalView,
-  ConnectionView, ConnectionPageView, DurableEventView, ConversationPageView } from '../../contracts/client/views.js';
+  ConnectionView, ConnectionPageView, DurableEventView, ConversationPageView, ConversationDeletedView } from '../../contracts/client/views.js';
 import { futureResponseSchema } from './future-schema.js';
 import type { JsonObject } from '../../contracts/messages/json.js';
 
 export interface Responses {
   ConversationSnapshot: ConversationView; Capabilities: CapabilitiesView; RunAccepted: RunAcceptedView;
   RunSnapshot: RunSnapshotView; ApprovalView: ApprovalView; ConnectionView: ConnectionView;
-  ConnectionPage: ConnectionPageView; ConversationPage: ConversationPageView; DurableEvent: DurableEventView; MessageDelta: JsonObject; ErrorResponse: ClientErrorView;
+  ConnectionPage: ConnectionPageView; ConversationPage: ConversationPageView; ConversationDeleted: ConversationDeletedView; DurableEvent: DurableEventView; MessageDelta: JsonObject; ErrorResponse: ClientErrorView;
 }
 export class ClientCodec {
   private readonly requests = new Ajv2020({ strict: true, logger: false });

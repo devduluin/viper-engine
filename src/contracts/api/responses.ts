@@ -24,6 +24,7 @@ export const RESPONSE_SCHEMAS = {
     title: { type: 'string', minLength: 1, maxLength: 200 }, messageCount: sequence,
   }, ['schemaVersion', 'conversationId', 'revision', 'createdAt', 'updatedAt', 'messageCount']),
   ConversationPage: object({ ...version, items: array(ref('ConversationSummary')), nextCursor: cursor }, ['schemaVersion', 'items']),
+  ConversationDeleted: object({ ...version, conversationId: id, deletedAt: instant }),
   RunAccepted: object({ ...version, runId: id, conversationId: id, status: ref('RunStatus'),
     revision, snapshotUrl: { type: 'string', pattern: '^/api/v1/runs/[^/]+$', maxLength: 512 },
   }),
