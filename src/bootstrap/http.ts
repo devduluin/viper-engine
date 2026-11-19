@@ -15,7 +15,7 @@ import type { RunCheckpoint } from '../contracts/state/checkpoints.js';
 import { eventReplay } from './event-replay.js';
 import type { EventStreamOptions } from './event-replay.js';
 
-export interface EngineHttpOptions extends Pick<ApiOptions, 'authorizeServer' | 'prepareContext' | 'authorizeMedia'> {
+export interface EngineHttpOptions extends Pick<ApiOptions, 'authorizeServer' | 'prepareContext' | 'authorizeMedia' | 'titleConversation'> {
   readonly authenticate: HttpOptions['authenticate'];
   /** Stable deployment secret, separate from bearer/provider credentials. */
   readonly cursorSecret: Uint8Array;
@@ -40,8 +40,7 @@ export function createEngineHttpServer(pool: SqlPool, options: EngineHttpOptions
     idempotencyRetentionSeconds, eventRetentionSeconds,
     cursors, eventReplay: options.stream !== false,
     authorizeServer: (scope, id) => withDeadline(() => options.authorizeServer(scope, id), { operationName: 'server authorization', timeoutMs: 10000 }),
-    ...(options.prepareContext === undefined ? {} : { prepareContext: options.prepareContext }),
-    ...(options.authorizeMedia === undefined ? {} : { authorizeMedia: options.authorizeMedia }),
+    ...optionalHooks(options),
   });
   const app = createHttpServer(api, { requestBytes,
     ...(options.stream === false ? {} : { replay: eventReplay(pool, cursors, clock, eventBytes, eventRetentionSeconds, options.stream) }),
@@ -62,4 +61,13 @@ export function persistedRunInstructions(pool: SqlPool) {
 function bounded(value: number, maximum: number): number {
   if (!Number.isSafeInteger(value) || value < 1 || value > maximum) throw new RangeError('Invalid HTTP bound');
   return value;
+}
+
+/** Host hooks the API only uses when provided (context preparation, media authorization, titles). */
+function optionalHooks(options: EngineHttpOptions): Partial<Pick<EngineHttpOptions, 'prepareContext' | 'authorizeMedia' | 'titleConversation'>> {
+  return {
+    ...(options.prepareContext === undefined ? {} : { prepareContext: options.prepareContext }),
+    ...(options.authorizeMedia === undefined ? {} : { authorizeMedia: options.authorizeMedia }),
+    ...(options.titleConversation === undefined ? {} : { titleConversation: options.titleConversation }),
+  };
 }

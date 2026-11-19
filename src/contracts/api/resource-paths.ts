@@ -15,6 +15,11 @@ export const RESOURCE_PATHS = {
       parameters: [pathId('conversationId'), ...pageParameters],
     },
   },
+  '/api/v1/conversations/{conversationId}/title': {
+    post: { ...operation('titleConversation', 'Rename (with title) or generate a short title from the first exchange (empty body)', 'ConversationTitle'),
+      parameters: [pathId('conversationId')], requestBody: jsonBody('TitleConversation'),
+    },
+  },
   '/api/v1/conversations/{conversationId}/delete': {
     post: { ...operation('deleteConversation', 'Delete from history (soft); runs and audit records are kept', 'ConversationDeleted'),
       parameters: [pathId('conversationId')], requestBody: jsonBody('DeleteConversation'),

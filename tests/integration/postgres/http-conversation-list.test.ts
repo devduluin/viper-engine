@@ -70,3 +70,22 @@ test('start run stores the chosen effort; an unknown effort is rejected by the s
     assert.equal((await db.pool.query('SELECT effort FROM viper_engine.runs WHERE id = $1', [plain['runId']])).rows[0].effort, null);
   } finally { await app.close(); await db.drop(); }
 });
+
+test('title: user rename, generated title from the first exchange, owner-scoped; no generator = 400', async () => {
+  const db = await createDatabase();
+  const seen: { question: string; answer: string }[] = [];
+  const app = http(db.pool, { titleConversation: async (_scope, exchange) => { seen.push(exchange); return '  "Rekap absensi November."  '; } });
+  const plain = http(db.pool);
+  try {
+    const conversation = await newConversation(app); await start(app, conversation, 'key-t');
+    const generated = await request(app, 'POST', `/api/v1/conversations/${conversation}/title`, {}, { status: 200, schema: 'ConversationTitle' });
+    assert.equal(generated['title'], 'Rekap absensi November');
+    assert.equal(seen[0]?.question, 'Perform this task');
+    const renamed = await request(app, 'POST', `/api/v1/conversations/${conversation}/title`, { title: '  Absensi tim CS  ' }, { status: 200 });
+    assert.equal(renamed['title'], 'Absensi tim CS');
+    const listed = await request(app, 'GET', '/api/v1/conversations', undefined, { status: 200 });
+    assert.equal((listed['items'] as { title: string }[])[0]?.title, 'Absensi tim CS');
+    await request(app, 'POST', `/api/v1/conversations/${conversation}/title`, { title: 'x' }, { token: 'other', status: 404 });
+    await request(plain, 'POST', `/api/v1/conversations/${conversation}/title`, {}, { status: 400 });
+  } finally { await app.close(); await plain.close(); await db.drop(); }
+});

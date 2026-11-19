@@ -117,6 +117,13 @@ audit. Idempotent; `INVALID_STATE` (409) while a run is active; another owner ge
 used for that run's Anthropic model calls when the host passes `runEffortFromDatabase(pool)` to
 `createConfiguredModelBinding`; absent = the configured `VIPER_MODEL_EFFORT`. OpenAI keeps its own setting.
 
+`POST /api/v1/conversations/{id}/title` renames with `{title}`; with an empty body it asks the host's
+`titleConversation` hook (e.g. `createModelTitler(model)`) for a 2-6 word title from the first question and
+answer (15 s deadline, outside transactions, not a run model call). Without a hook an empty body is 400.
+
+Run SSE streams also carry provisional `message.delta` frames (no `id`, never replayed, process-local):
+the configured model gateway publishes `text_delta` to an in-process bus; `message.completed` stays final.
+
 Signed opaque cursors bind version/kind/owner/app/tenant/resource/position/expiry. Page and event
 tokens are distinct. Use a stable deployment secret across restarts; key changes invalidate old
 cursors. Event expiry gives 410/fetch_snapshot; invalid/foreign page cursors give 400. Event token

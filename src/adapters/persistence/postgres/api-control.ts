@@ -57,6 +57,15 @@ export class PostgresApiControl extends PostgresApiConnections implements ApiCon
     return { schemaVersion: 1, conversationId: id, deletedAt: at };
   }
 
+  async setConversationTitle(scope: TrustedScope, id: ConversationId, title: string) {
+    const result = await this.pool.query(`UPDATE viper_engine.conversations SET title = $5, revision = revision + 1
+      WHERE id = $1 AND actor_id = $2 AND app_id = $3 AND tenant_key = $4 AND deleted_at IS NULL RETURNING revision`,
+    [id, ...ownerColumns(scope), title]);
+    const row = result.rows[0] === undefined ? undefined : asRow(result.rows[0]);
+    if (row === undefined) throw new ApiFailure('NOT_FOUND');
+    return { schemaVersion: 1, conversationId: id, revision: Number(row['revision']), title };
+  }
+
   async hasActiveRun(id: ConversationId) {
     const result = await this.pool.query(`SELECT id FROM viper_engine.runs WHERE conversation_id = $1
       AND status IN ('queued', 'running', 'waiting_for_input', 'waiting_for_approval') LIMIT 1`, [id]);

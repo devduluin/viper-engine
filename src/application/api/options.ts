@@ -15,4 +15,6 @@ export interface ApiOptions {
   /** Read-only, bounded, application-controlled MCP resource/prompt preparation. */
   readonly prepareContext?: (scope: TrustedScope, selection: JsonObject) => Promise<readonly Message[]>;
   readonly authorizeMedia?: (scope: TrustedScope, source: ReferenceMediaSource) => Promise<boolean>;
+  /** Host-provided short-title generator (e.g. a small model call); absent = only user renames. */
+  readonly titleConversation?: (scope: TrustedScope, exchange: { readonly question: string; readonly answer: string }) => Promise<string>;
 }
