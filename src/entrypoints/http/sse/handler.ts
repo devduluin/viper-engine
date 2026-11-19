@@ -23,10 +23,12 @@ export async function handleEventStream(request: FastifyRequest, reply: FastifyR
     reply.raw.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8',
       'cache-control': 'no-store', 'x-accel-buffering': 'no', connection: 'keep-alive' });
     const write = (frame: string, signal: AbortSignal) => writeFrame(reply.raw, frame, signal, config.options.maxBufferedBytes);
-    // Provisional text (message.delta): no id line, so it never moves Last-Event-ID; dropped when the socket is busy.
+    // Ephemeral frames (message.delta, client_tool.request): no id line, never move Last-Event-ID; dropped when the
+    // socket is busy (client tool requests are re-sent by the broker until answered).
     unsubscribe = processDeltas.subscribe(input.runId, (frame) => {
       if (controller.signal.aborted || reply.raw.destroyed || reply.raw.writableLength > config.options.maxBufferedBytes / 2) return;
-      reply.raw.write(`event: message.delta\ndata: ${JSON.stringify(validator.response('MessageDelta', frame))}\n\n`);
+      const schema = frame.type === 'message.delta' ? 'MessageDelta' : 'ClientToolRequest';
+      reply.raw.write(`event: ${frame.type}\ndata: ${JSON.stringify(validator.response(schema, frame))}\n\n`);
     });
     await streamEvents(config.replay, scope, input.runId, first, {
       reauthorize, connected: signal => write(': connected\n\n', signal), heartbeat: signal => write(': heartbeat\n\n', signal),

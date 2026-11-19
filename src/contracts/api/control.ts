@@ -9,7 +9,7 @@ import type { IdempotencyStore } from '../state/idempotency.js';
 import type { StateResult } from '../state/result.js';
 import type { McpConnectionDirectory } from '../mcp/access.js';
 
-export type ApiOperation = 'createConversation' | 'listConversations' | 'getConversation' | 'deleteConversation' | 'titleConversation' | 'startRun' | 'getRun' | 'submitInput'
+export type ApiOperation = 'createConversation' | 'listConversations' | 'getConversation' | 'deleteConversation' | 'titleConversation' | 'submitClientResult' | 'startRun' | 'getRun' | 'submitInput'
   | 'cancelRun' | 'decideApproval' | 'createConnection' | 'listConnections' | 'disconnectConnection' | 'getCapabilities';
 export interface ApiCall {
   readonly operation: ApiOperation; readonly resourceId?: string; readonly body: JsonObject;

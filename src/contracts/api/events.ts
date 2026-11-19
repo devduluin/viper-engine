@@ -38,6 +38,10 @@ export const DURABLE_EVENT_SCHEMAS = {
 export const EVENT_SCHEMAS = {
   DurableEvent: { oneOf: Object.values(DURABLE_EVENT_SCHEMAS) },
   // Ephemeral frames have no durable ID/sequence and cannot advance a replay cursor.
+  // Ephemeral: the run waits for the client to run a tool (re-sent until answered; answer via client-results).
+  ClientToolRequest: object({ schemaVersion: literal(1), type: literal('client_tool.request'), conversationId: id, runId: id,
+    toolCallId: id, name: { type: 'string', pattern: '^[a-z][a-z0-9_]{0,31}$' }, arguments: { type: 'object' }, expiresAt: instant,
+  }),
   MessageDelta: object({ schemaVersion: literal(1), type: literal('message.delta'),
     conversationId: id, runId: id, stepId: id, modelCallId: id, messageId: id,
     occurredAt: instant, delta: { type: 'string', maxLength: 16_384 },

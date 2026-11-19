@@ -16,5 +16,7 @@ export interface ApiOptions {
   readonly prepareContext?: (scope: TrustedScope, selection: JsonObject) => Promise<readonly Message[]>;
   readonly authorizeMedia?: (scope: TrustedScope, source: ReferenceMediaSource) => Promise<boolean>;
   /** Host-provided short-title generator (e.g. a small model call); absent = only user renames. */
+  /** Rendezvous for client tool answers; default: this process's broker. */
+  readonly clientTools?: import('../streaming/client-tools.js').ClientToolBroker;
   readonly titleConversation?: (scope: TrustedScope, exchange: { readonly question: string; readonly answer: string }) => Promise<string>;
 }

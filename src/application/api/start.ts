@@ -29,8 +29,9 @@ export async function startRun(scope: TrustedScope, call: ApiCall, options: ApiO
     const instructions = await prepareContext(scope, call, options, stores);
     const input = await authorizedUserMessage(scope, call.body, options);
     const at = options.clock.now(); const runId = options.ids.next('run');
-    const effort = runEffort(call.body);
+    const effort = runEffort(call.body); const clientTools = runClientTools(call.body);
     const run = requireState(await stores.runs.create(scope, { id: runId, conversationId: id, at, ...(effort ? { effort } : {}),
+      ...(clientTools.length > 0 ? { clientTools } : {}),
       events: [{ eventId: options.ids.next('run_event'), type: 'run.queued', occurredAt: at, payload: {} }] }));
     requireState(await stores.messages.append(scope, id, { expectedRevision: conversation.revision, at, runId,
       messages: [input] }));
@@ -45,6 +46,13 @@ function runEffort(body: JsonObject): RunEffort | undefined {
   const options = body['options'];
   const value = options !== null && typeof options === 'object' && !Array.isArray(options) ? (options as JsonObject)['effort'] : undefined;
   return RUN_EFFORTS.find(effort => effort === value);
+}
+
+/** `options.clientTools` (schema-validated names); the host offers only the ones it implements. */
+function runClientTools(body: JsonObject): readonly string[] {
+  const options = body['options'];
+  const value = options !== null && typeof options === 'object' && !Array.isArray(options) ? (options as JsonObject)['clientTools'] : undefined;
+  return Array.isArray(value) ? value.filter((name): name is string => typeof name === 'string') : [];
 }
 
 async function prepareContext(scope: TrustedScope, call: ApiCall, options: ApiOptions, stores: ApiStores) {

@@ -3,7 +3,8 @@ import type { Clock, IdGenerator } from '../../contracts/identity/ports.js';
 import type { TrustedScope } from '../../contracts/identity/scope.js';
 import type { Message, ToolCall } from '../../contracts/messages/message.js';
 import type { McpGateway } from '../../contracts/mcp/gateway.js';
-import type { ModelFailure, ModelGateway } from '../../contracts/models/gateway.js';
+import type { ModelFailure, ModelGateway, ModelToolDefinition } from '../../contracts/models/gateway.js';
+import type { JsonObject } from '../../contracts/messages/json.js';
 import type { ModelUsage } from '../../contracts/models/usage.js';
 import type { ScopedHistory } from '../context/assemble.js';
 import type { ExecutionEvent, ToolCallReport } from '../execution/dispatch.js';
@@ -62,14 +63,33 @@ export type RunStopReason =
 export type RuntimeEvent =
   | ExecutionEvent
   | { readonly type: 'tools_discovered'; readonly state: ToolDiscoveryState }
+  /** A step that called client tools: the assistant message and its results, journaled together. */
+  | { readonly type: 'client_tools_completed'; readonly messages: readonly Message[] }
   | { readonly type: 'model_call_started'; readonly stepId: StepId; readonly modelCallId: ModelCallId; readonly contextCheckpoint?: ContextCheckpoint }
   | { readonly type: 'model_call_finished'; readonly modelCallId: ModelCallId; readonly ok: boolean; readonly usage: ModelUsage; readonly failureCode?: ModelFailure['code'] }
   | { readonly type: 'message_appended'; readonly message: Message; readonly decision?: 'final' | 'tool_calls' | 'needs_input' }
   | { readonly type: 'batch_finished' }
   | { readonly type: 'run_stopped'; readonly status: RunLoopStatus; readonly reason: RunStopReason };
 
+export type ClientToolOutcome =
+  | { readonly outcome: 'success'; readonly data: JsonObject }
+  | { readonly outcome: 'error'; readonly message: string };
+
+export interface ClientToolCall {
+  readonly scope: TrustedScope; readonly conversationId: ConversationId; readonly runId: RunId;
+  readonly toolCallId: string; readonly name: string; readonly arguments: JsonObject;
+}
+
+/** Host port for client tools. `invoke` must resolve (an error outcome) when the client cannot answer. */
+export interface ClientToolPort {
+  definitions(runId: RunId): Promise<readonly ModelToolDefinition[]>;
+  invoke(call: ClientToolCall, signal: AbortSignal): Promise<ClientToolOutcome>;
+}
+
 export interface RunLoopDependencies {
   readonly contextEvidence?: ContextEvidenceProvider;
+  /** Tools executed by the user's client (e.g. reading the open web page); absent = none offered. */
+  readonly clientTools?: ClientToolPort;
   readonly model: ModelGateway;
   readonly mcp: McpGateway;
   readonly clock: Clock;

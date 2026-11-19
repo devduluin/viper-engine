@@ -15,6 +15,11 @@ export const RUN_PATHS = {
       parameters: [pathId('runId')], requestBody: jsonBody('SubmitInput'),
     },
   },
+  '/api/v1/runs/{runId}/client-results': {
+    post: { ...operation('submitClientResult', 'Answer a client_tool.request (e.g. the open page); process-local, best effort', 'ClientToolAccepted'),
+      parameters: [pathId('runId')], requestBody: jsonBody('ClientToolResult'),
+    },
+  },
   '/api/v1/runs/{runId}/cancel': {
     post: { ...operation('cancelRun', 'Record idempotent cancellation intent', 'RunSnapshot', 202),
       parameters: [pathId('runId')], requestBody: jsonBody('CancelRun'),

@@ -10,8 +10,10 @@ import { RunInterrupted } from '../policies/control.js';
 import { BudgetExceeded } from '../policies/limits.js';
 import { TOOL_SEARCH_NAME } from '../../contracts/discovery/state.js';
 import { withDiscoveryExchanges } from '../context/transient.js';
+import { isClientToolName } from './client-tools.js';
 
 export type ModelStep =
+  | { readonly kind: 'client'; readonly assistant: AssistantMessage; readonly calls: readonly import('../../contracts/messages/message.js').ToolCall[] }
   | { readonly kind: 'discovery'; readonly assistant: AssistantMessage; readonly call: import('../../contracts/messages/message.js').ToolCall }
   | { readonly kind: 'decision'; readonly decision: ModelDecision; readonly assistant: AssistantMessage }
   | { readonly kind: 'failure'; readonly failure: ModelFailure }
@@ -73,10 +75,19 @@ function normalizeDecision(context: StepContext, value: unknown): ModelStep {
   try { decision = parseModelDecision(value); } catch { return { kind: 'invalid' }; }
   const assistant = assistantMessage(context, decision);
   if (assistant === undefined) return { kind: 'invalid' };
-  if (context.discovery.enabled && decision.kind === 'tool_calls' && decision.calls.some(call => call.name === TOOL_SEARCH_NAME)) {
+  const special = specialStep(context, decision, assistant);
+  if (special !== undefined) return special;
+  if (decision.kind === 'tool_calls') context.budget.propose(decision.calls, context.index);
+  return { kind: 'decision', decision, assistant };
+}
+
+/** Tool search (discovery) or client tools: steps handled outside MCP dispatch. */
+function specialStep(context: StepContext, decision: ModelDecision, assistant: AssistantMessage): ModelStep | undefined {
+  if (decision.kind !== 'tool_calls') return undefined;
+  if (context.discovery.enabled && decision.calls.some(call => call.name === TOOL_SEARCH_NAME)) {
     if (decision.calls.length !== 1 || decision.calls[0]?.name !== TOOL_SEARCH_NAME) return { kind: 'invalid' };
     return { kind: 'discovery', assistant, call: decision.calls[0] };
   }
-  if (decision.kind === 'tool_calls') context.budget.propose(decision.calls, context.index);
-  return { kind: 'decision', decision, assistant };
+  if (decision.calls.some(call => isClientToolName(call.name))) return { kind: 'client', assistant, calls: decision.calls };
+  return undefined;
 }

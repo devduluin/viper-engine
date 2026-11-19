@@ -29,8 +29,17 @@ function eventCommands(session: DurableSession, event: RuntimeEvent): JournalCom
     case 'tool_call_reported': return toolReport(session, event);
     case 'batch_finished': session.state.phase = 'model'; return [];
     case 'tools_discovered': return discoveryFinished(session, event);
+    case 'client_tools_completed': return clientToolsFinished(session, event);
     case 'run_stopped': return finish(session, event);
   }
+}
+
+/** Assistant + client tool results in one commit; no MCP proposals (nothing was dispatched through MCP). */
+function clientToolsFinished(session: DurableSession, event: Extract<RuntimeEvent, { type: 'client_tools_completed' }>): JournalCommand[] {
+  session.state.phase = 'model';
+  if (session.state.stepId === undefined) throw new Error('Client tool step has no step');
+  return [...session.messages(event.messages), { kind: 'step_finish', input: { runId: session.claim.runId,
+    stepId: session.state.stepId, decision: 'tool_calls', at: session.deps.clock.now() } }];
 }
 
 function discoveryFinished(session: DurableSession, event: Extract<RuntimeEvent, { type: 'tools_discovered' }>): JournalCommand[] {

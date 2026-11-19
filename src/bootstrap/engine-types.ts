@@ -14,6 +14,13 @@ import type { ContextBudget } from '../contracts/context/budget.js';
 import type { ContextEvidenceProvider } from '../contracts/context/evidence.js';
 import type { ToolDiscoveryConfig } from '../contracts/discovery/config.js';
 
+export interface ClientToolsConfig {
+  /** Names without prefix (`read_page`); the model sees `client__<name>`. */
+  readonly definitions: readonly { readonly name: string; readonly description: string; readonly inputSchema: import('../contracts/messages/json.js').JsonObject }[];
+  /** How long a run waits for the client (default 20 s). */
+  readonly timeoutMs?: number;
+}
+
 export interface ViperEngineOptions {
   readonly model: EngineModel;
   readonly credentials: McpCredentialPort;
@@ -26,6 +33,8 @@ export interface ViperEngineOptions {
   /** Defaults to the engine's bounded text/byte policy; choose the actual provider window explicitly. */
   readonly context?: Partial<ContextBudget>;
   readonly contextEvidence?: ContextEvidenceProvider;
+  /** Tools the user's client runs (e.g. read_page in the embed panel), offered only to runs that ask for them. */
+  readonly clientTools?: ClientToolsConfig;
   readonly toolDiscovery?: Partial<ToolDiscoveryConfig>;
   readonly clock?: Clock; readonly ids?: IdGenerator;
   readonly connectTimeoutMs?: number; readonly requestTimeoutMs?: number; readonly discoveryTimeoutMs?: number;

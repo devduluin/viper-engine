@@ -3,20 +3,10 @@
  * never persisted, never replayed, never advance a cursor; `message.completed` stays the source of truth.
  * A client connected to another process than the worker simply gets no deltas (no correctness impact).
  */
-export interface MessageDeltaFrame {
-  readonly schemaVersion: 1;
-  readonly type: 'message.delta';
-  readonly conversationId: string;
-  readonly runId: string;
-  readonly stepId: string;
-  readonly modelCallId: string;
-  /** Deltas are grouped per model call; the final message id is only known at message.completed. */
-  readonly messageId: string;
-  readonly occurredAt: number;
-  readonly delta: string;
-}
+import type { EphemeralFrame } from './frames.js';
+export type { EphemeralFrame, MessageDeltaFrame } from './frames.js';
 
-type Listener = (frame: MessageDeltaFrame) => void;
+type Listener = (frame: EphemeralFrame) => void;
 
 export class DeltaBus {
   private readonly listeners = new Map<string, Set<Listener>>();
@@ -32,7 +22,7 @@ export class DeltaBus {
     };
   }
 
-  publish(frame: MessageDeltaFrame): void {
+  publish(frame: EphemeralFrame): void {
     for (const listener of this.listeners.get(frame.runId) ?? []) {
       try { listener(frame); } catch { /* a slow or closed stream never affects the run */ }
     }

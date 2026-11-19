@@ -8,6 +8,7 @@ import { discoverRuntimeTools } from './mcp-tools.js';
 import type { ViperEngineOptions } from './engine-types.js';
 import { engineSettings } from './engine-config.js';
 import { engineLifecycle } from './engine-lifecycle.js';
+import { createClientToolPort } from './client-tools.js';
 
 /** Concrete standalone engine. Host owns DB pool/migrations; engine owns its MCP sessions. */
 export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
@@ -31,6 +32,7 @@ export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
     ...(options.approvalTtlMs === undefined ? {} : { approvalTtlMs: options.approvalTtlMs }),
     ...(options.onEvent === undefined ? {} : { onEvent: options.onEvent }),
     ...(options.contextEvidence === undefined ? {} : { contextEvidence: options.contextEvidence }),
+    ...(options.clientTools === undefined ? {} : { clientTools: createClientToolPort(pool, options.clientTools) }),
     ...(options.onDeliveryFailure === undefined ? {} : { onDeliveryFailure: options.onDeliveryFailure }),
   });
   return engineLifecycle(driver, () => connections.closeAll());

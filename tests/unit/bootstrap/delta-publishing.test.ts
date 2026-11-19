@@ -21,8 +21,8 @@ function fakeGateway(streaming: boolean, seen: ModelCallOptions[]): ModelGateway
 
 test('deltas reach subscribers of that run only; the model result and the caller observer are unchanged', async () => {
   const bus = new DeltaBus(); const frames: MessageDeltaFrame[] = []; const other: MessageDeltaFrame[] = []; const observed: string[] = [];
-  const stop = bus.subscribe('run-1', frame => frames.push(frame));
-  bus.subscribe('run-2', frame => other.push(frame));
+  const stop = bus.subscribe('run-1', frame => { if (frame.type === 'message.delta') frames.push(frame); });
+  bus.subscribe('run-2', frame => { if (frame.type === 'message.delta') other.push(frame); });
   const gateway = withDeltaPublishing(fakeGateway(true, []), bus, { now: () => 42 });
   const answer = await gateway.generate(request, { onEvent: event => { if (event.type === 'text_delta') observed.push(event.text); } });
   assert.equal(answer, result);

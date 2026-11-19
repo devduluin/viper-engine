@@ -1,6 +1,7 @@
 import { assembleContext } from '../context/assemble.js';
 import { prepareContext } from '../context/prepare.js';
 import type { StepContext } from './types.js';
+import { clientToolDefinitions } from './client-tools.js';
 import type { ModelCallId, StepId } from '../../contracts/identity/ids.js';
 
 export async function prepareModelContext(context: StepContext, stepId: StepId, modelCallId: ModelCallId) {
@@ -9,7 +10,8 @@ export async function prepareModelContext(context: StepContext, stepId: StepId, 
   const evidence = provider === undefined ? [] : await context.control.call(signal => provider(
     { scope: input.scope, conversationId: input.conversationId, runId: input.runId }, { signal }));
   const source = { scope: input.scope, conversationId: input.conversationId, runId: input.runId, stepId, modelCallId,
-    model: input.model, maxOutputTokens: input.maxOutputTokens, tools: context.index.modelTools,
+    model: input.model, maxOutputTokens: input.maxOutputTokens,
+    tools: [...context.index.modelTools, ...await clientToolDefinitions(context)],
     history: { ...input.history, messages: state.history }, instructions: input.instructions ?? [], evidence,
     discoveryExchanges: context.discovery.exchanges, deadlineAt: context.control.deadlineAt };
   if (input.context === undefined) return assembleContext(source, deps.model.capabilities, deps.clock.now());

@@ -124,6 +124,16 @@ answer (15 s deadline, outside transactions, not a run model call). Without a ho
 Run SSE streams also carry provisional `message.delta` frames (no `id`, never replayed, process-local):
 the configured model gateway publishes `text_delta` to an in-process bus; `message.completed` stays final.
 
+Client tools (e.g. `read_page` in the embed panel): the host configures `ViperEngineOptions.clientTools`
+(definitions, timeout). A run asks for them with `StartRun.options.clientTools` (stored as `runs.client_tools`,
+migration 0016); only those configured names are offered to the model, as `client__<name>`. When the model calls
+one, the run keeps `running` and waits (default 20 s) while the SSE stream carries an ephemeral
+`client_tool.request` frame (re-sent every 3 s, no id). The client answers with
+`POST /api/v1/runs/{id}/client-results` `{toolCallId, outcome, data | message}` (owner only, ≤ 48 KB,
+`accepted: false` when nothing waits). No answer → an error result and the model continues. The step is journaled
+as assistant + tool result (`client_tools_completed`), never as MCP proposals or approvals. Process-local: the
+answering API and the waiting worker must be the same process (viper-host: one replica).
+
 Signed opaque cursors bind version/kind/owner/app/tenant/resource/position/expiry. Page and event
 tokens are distinct. Use a stable deployment secret across restarts; key changes invalidate old
 cursors. Event expiry gives 410/fetch_snapshot; invalid/foreign page cursors give 400. Event token

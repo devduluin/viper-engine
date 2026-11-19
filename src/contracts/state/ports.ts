@@ -36,6 +36,8 @@ export interface RunStore {
     readonly events: readonly NewRunEvent[];
     /** User-chosen reasoning effort for this run's model calls; absent = host default. */
     readonly effort?: RunEffort;
+    /** Client tools this run may use (names; the host decides which ones exist). */
+    readonly clientTools?: readonly string[];
   }): Promise<StateResult<RunRecord>>;
   get(scope: TrustedScope, id: RunId): Promise<StateResult<RunRecord>>;
   /** Reads tool-call statuses inside the same transaction; `request.toolCalls` is advisory input. */

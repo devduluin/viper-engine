@@ -10,6 +10,7 @@ import { conversation, getRun, cancelRun } from './queries.js';
 import { createConnection, listConnections, disconnectConnection } from './connections.js';
 import { deleteConversation, listConversations } from './conversation-list.js';
 import { titleConversation } from './conversation-title.js';
+import { submitClientResult } from './client-results.js';
 
 export class EngineApi implements ApiHandler {
   constructor(private readonly options: ApiOptions) {}
@@ -20,6 +21,7 @@ export class EngineApi implements ApiHandler {
       listConversations: () => listConversations(scope, call, this.options),
       deleteConversation: () => deleteConversation(scope, call, this.options),
       titleConversation: () => titleConversation(scope, call, this.options),
+      submitClientResult: () => submitClientResult(scope, call, this.options),
       getConversation: () => conversation(scope, call, this.options), startRun: () => startRun(scope, call, this.options),
       getRun: () => getRun(scope, call, this.options), submitInput: () => submitInput(scope, call, this.options),
       cancelRun: () => cancelRun(scope, call, this.options), decideApproval: () => decideApproval(scope, call, this.options),
