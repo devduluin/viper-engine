@@ -50,7 +50,7 @@ bindings and approval snapshots in the same repeatable-read transaction as the e
 | input required | Original question message + transition revision, not the latest conversation turn |
 | approval required | Original proposal ID/revision, immutable args/binding, historical pending status |
 | run completed | Confirmed final assistant message ID; unknown effects cannot produce completion |
-| partial/failed | Fixed safe reason code/message; no raw provider/SQL diagnostic |
+| partial/failed | Fixed safe reason code/message; no raw provider/SQL diagnostic. Optional `finalMessageId` when the run still ended with an answer (assistant text, no pending calls): clients show it instead of an error |
 
 Approval-required events commit **with** the waiting transition, so immediate HTTP decisions
 see an actionable state. A later accept/consume does not rewrite the earlier pending view.

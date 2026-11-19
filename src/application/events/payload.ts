@@ -35,6 +35,12 @@ function terminalReason(item: ReplayItem): JsonObject {
   return { code: 'INVALID_STATE', message: 'Execution did not complete; inspect the run snapshot and messages' };
 }
 
+/** The answer a partial/failed run still ended with (assistant text, no pending tool calls); else nothing. */
+function finalAnswer(item: ReplayItem): JsonObject {
+  const m = item.message;
+  return m !== undefined && m.role === 'assistant' && m.toolCalls === undefined ? { finalMessageId: m.id } : {};
+}
+
 export function eventPayload(item: ReplayItem): JsonObject {
   const e = item.event;
   const run = (status: string): JsonObject => ({ status, revision: positive(e.payload['revision']) });
@@ -55,8 +61,8 @@ export function eventPayload(item: ReplayItem): JsonObject {
       if (m.role !== 'assistant' || m.toolCalls !== undefined) throw new Error('Missing confirmed final message');
       return { ...run('completed'), finalMessageId: m.id };
     },
-    'run.partial': () => ({ ...run('partial'), reason: terminalReason(item) }),
-    'run.failed': () => ({ ...run('failed'), reason: terminalReason(item) }),
+    'run.partial': () => ({ ...run('partial'), reason: terminalReason(item), ...finalAnswer(item) }),
+    'run.failed': () => ({ ...run('failed'), reason: terminalReason(item), ...finalAnswer(item) }),
   };
   return handlers[e.type]();
 }

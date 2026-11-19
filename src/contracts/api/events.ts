@@ -30,8 +30,10 @@ export const DURABLE_EVENT_SCHEMAS = {
   'approval.required': event('approval.required', object({ approval: ref('ApprovalView') }), ['stepId', 'toolCallId']),
   'message.completed': event('message.completed', object({ message: ref('PublicMessage') })),
   'run.completed': event('run.completed', object({ status: literal('completed'), revision, finalMessageId: id })),
-  'run.partial': event('run.partial', object({ status: literal('partial'), revision, reason: failure })),
-  'run.failed': event('run.failed', object({ status: literal('failed'), revision, reason: failure })),
+  // finalMessageId: present when the run still ended with an answer to the user (e.g. a tool failed and the
+  // answer explains it); clients then show that answer instead of a generic error.
+  'run.partial': event('run.partial', object({ status: literal('partial'), revision, reason: failure, finalMessageId: id }, ['status', 'revision', 'reason'])),
+  'run.failed': event('run.failed', object({ status: literal('failed'), revision, reason: failure, finalMessageId: id }, ['status', 'revision', 'reason'])),
   'run.cancelled': event('run.cancelled', runPayload('cancelled')),
 } as const;
 

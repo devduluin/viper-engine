@@ -67,6 +67,9 @@ test('failed and cancelled terminal events retain typed outcomes without claimin
     assert.equal(response.statusCode, 200, response.body); const frames = parseFrames(response.body);
     assert.equal(frames.at(-1)?.event['type'], 'run.failed'); assert.ok(frames.some(frame => frame.event['type'] === 'tool.failed'));
     assert.ok(!frames.some(frame => frame.event['type'] === 'run.completed'));
+    // The run still ended with an answer ('Not found'): the terminal event names it, so clients show it, not an error.
+    const answer = frames.filter(frame => frame.event['type'] === 'message.completed').at(-1)?.event['payload'] as { message: { id: string } };
+    assert.equal((frames.at(-1)?.event['payload'] as { finalMessageId?: string }).finalMessageId, answer.message.id);
     const cancelled = field(await start(app, await newConversation(app)), 'runId');
     await request(app, 'POST', `/api/v1/runs/${cancelled}/cancel`, {}, { status: 202 });
     const second = await driver(db.pool, []); await second.driver.runOnce('sse-cancelled');

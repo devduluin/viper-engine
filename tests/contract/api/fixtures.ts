@@ -42,7 +42,7 @@ export const eventPayloads = {
   'run.input_required': { question: 'Which item?', revision: 3 }, 'approval.required': { approval },
   'message.completed': { message: finalMessage },
   'run.completed': { status: 'completed', revision: 4, finalMessageId: 'message-final' },
-  'run.partial': { status: 'partial', revision: 4, reason },
+  'run.partial': { status: 'partial', revision: 4, reason, finalMessageId: 'message-final' },
   'run.failed': { status: 'failed', revision: 4, reason }, 'run.cancelled': { status: 'cancelled', revision: 4 },
 };
 
