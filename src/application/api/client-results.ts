@@ -12,6 +12,7 @@ const MAX_RESULT_BYTES = 48 * 1024;
 /**
  * POST /api/v1/runs/{id}/client-results: the caller's answer to a client_tool.request of its own run.
  * Only the run owner may answer; the waiting run (same process) receives it, else `accepted: false`.
+ * `code` (optional, error answers) says why the client could not run the tool; it is logged, not shown to the model.
  */
 export async function submitClientResult(scope: TrustedScope, call: ApiCall, options: ApiOptions) {
   const runId = parseId('run', call.resourceId);
@@ -21,6 +22,8 @@ export async function submitClientResult(scope: TrustedScope, call: ApiCall, opt
     ? { outcome: 'success' as const, data: (call.body['data'] ?? {}) as JsonObject }
     : { outcome: 'error' as const, message: typeof call.body['message'] === 'string' ? call.body['message'] : 'The client could not run the tool.' };
   if (Buffer.byteLength(JSON.stringify(outcome)) > MAX_RESULT_BYTES) throw new ApiFailure('PAYLOAD_TOO_LARGE');
-  const accepted = run.status === 'running' && (options.clientTools ?? processClientTools).reply(run.id, toolCallId, outcome);
+  const code = typeof call.body['code'] === 'string' ? call.body['code'] : undefined;
+  // Always offered to the broker, also after the run ended, so late answers are logged (as late, never delivered).
+  const accepted = (options.clientTools ?? processClientTools).reply(run.id, toolCallId, outcome, code === undefined ? {} : { code });
   return { schemaVersion: 1, accepted };
 }

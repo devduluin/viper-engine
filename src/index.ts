@@ -40,6 +40,7 @@ export { parseConfiguredModelConfig, createConfiguredModelBinding } from './boot
 export { runEffortFromDatabase } from './bootstrap/model.js';
 export type { RunEffortLookup } from './bootstrap/model.js';
 export { createModelTitler } from './bootstrap/conversation-titles.js';
+export type { ClientToolRecord } from './bootstrap/engine-types.js';
 export type { EngineModel, ConfiguredModel } from './bootstrap/configured-model.js';
 export { EngineSetupError } from './bootstrap/mcp-tools.js';
 export type { ConnectionBinding } from './bootstrap/mcp-tools.js';

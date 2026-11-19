@@ -1,3 +1,5 @@
+import type { ClientToolRecord } from '../application/streaming/client-tools.js';
+export type { ClientToolRecord } from '../application/streaming/client-tools.js';
 import type { Clock, IdGenerator } from '../contracts/identity/ports.js';
 import type { TrustedScope } from '../contracts/identity/scope.js';
 import type { RunCheckpoint } from '../contracts/state/checkpoints.js';
@@ -19,6 +21,12 @@ export interface ClientToolsConfig {
   readonly definitions: readonly { readonly name: string; readonly description: string; readonly inputSchema: import('../contracts/messages/json.js').JsonObject }[];
   /** How long a run waits for the client (default 20 s). */
   readonly timeoutMs?: number;
+  /**
+   * One record per client tool request and per unexpected reply (late, duplicate, unmatched), for logs.
+   * Carries ids, result, the client's reason code, duration and size, never the tool's data.
+   * Exceptions are swallowed.
+   */
+  readonly onResult?: (record: ClientToolRecord) => void;
 }
 
 export interface ViperEngineOptions {

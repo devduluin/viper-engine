@@ -17,6 +17,7 @@ test('durable run: a client tool step is journaled as assistant + result without
     const run = await setupRun(db.pool, 'client-tool');
     await db.pool.query(`UPDATE viper_engine.runs SET client_tools = ARRAY['read_page'] WHERE id = $1`, [run.runId]);
     const bus = new DeltaBus(); const broker = new ClientToolBroker(bus, Date.now, 50);
+    const records: unknown[] = []; broker.observe(record => records.push(record));
     bus.subscribe(run.runId, frame => {
       if (frame.type === 'client_tool.request') broker.reply(frame.runId, frame.toolCallId, { outcome: 'success', data: { title: 'Daftar Karyawan' } });
     });
@@ -30,6 +31,8 @@ test('durable run: a client tool step is journaled as assistant + result without
       [['assistant', null, null], ['tool', 'p1', 'success'], ['assistant', null, null]]);
     const proposals = await db.pool.query('SELECT count(*)::int AS n FROM viper_engine.tool_calls WHERE run_id = $1', [run.runId]);
     assert.equal(proposals.rows[0].n, 0, 'client tools never create MCP tool call records');
+    assert.deepEqual(records, [{ name: 'read_page', runId: run.runId, toolCallId: 'p1', result: 'success', durationMs: (records[0] as { durationMs: number }).durationMs,
+      bytes: Buffer.byteLength(JSON.stringify({ outcome: 'success', data: { title: 'Daftar Karyawan' } })) }]);
   } finally { await db.drop(); }
 });
 
@@ -59,5 +62,9 @@ test('start run stores clientTools; client-results is owner-only, bounded, and r
     assert.equal(answer['accepted'], false, 'nothing waiting (run not running here)');
     await request(app, 'POST', url, { toolCallId: 'p1', outcome: 'error', message: 'Tidak bisa' }, { token: 'other', status: 404 });
     await request(app, 'POST', url, { toolCallId: 'p1', outcome: 'success', data: { text: 'x'.repeat(60_000) } }, { status: 413 });
+    // reason code (logged only): accepted when well-formed, refused otherwise
+    await request(app, 'POST', url, { toolCallId: 'p1', outcome: 'error', message: 'Tidak bisa', code: 'loader_outdated' }, { status: 200, schema: 'ClientToolAccepted' });
+    await request(app, 'POST', url, { toolCallId: 'p1', outcome: 'error', message: 'Tidak bisa', code: 'Bad-Code' }, { status: 400 });
+    await request(app, 'POST', url, { toolCallId: 'p1', outcome: 'error', message: 'Tidak bisa', code: 'x'.repeat(33) }, { status: 400 });
   } finally { await app.close(); await db.drop(); }
 });

@@ -14,7 +14,9 @@ export const REQUEST_SCHEMAS = {
       clientTools: { type: 'array', maxItems: 8, uniqueItems: true, items: { type: 'string', pattern: '^[a-z][a-z0-9_]{0,31}$' } },
     }, []) }, ['input']),
   ClientToolResult: object({ toolCallId: id, outcome: { enum: ['success', 'error'] }, data: { type: 'object' },
-    message: { type: 'string', minLength: 1, maxLength: 500 } }, ['toolCallId', 'outcome']),
+    message: { type: 'string', minLength: 1, maxLength: 500 },
+    // Why the client could not run the tool (e.g. not_allowed, timeout); logged, never shown to the model.
+    code: { type: 'string', pattern: '^[a-z_]{1,32}$' } }, ['toolCallId', 'outcome']),
   SubmitInput: object({ inputId: id, expectedRevision: revision, input: ref('UserInput') }),
   CancelRun: object({}),
   DeleteConversation: object({}),

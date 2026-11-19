@@ -129,8 +129,11 @@ Client tools (e.g. `read_page` in the embed panel): the host configures `ViperEn
 migration 0016); only those configured names are offered to the model, as `client__<name>`. When the model calls
 one, the run keeps `running` and waits (default 20 s) while the SSE stream carries an ephemeral
 `client_tool.request` frame (re-sent every 3 s, no id). The client answers with
-`POST /api/v1/runs/{id}/client-results` `{toolCallId, outcome, data | message}` (owner only, ≤ 48 KB,
-`accepted: false` when nothing waits). No answer → an error result and the model continues. The step is journaled
+`POST /api/v1/runs/{id}/client-results` `{toolCallId, outcome, data | message, code?}` (owner only, ≤ 48 KB,
+`accepted: false` when nothing waits). `code` (`^[a-z_]{1,32}$`, e.g. `not_allowed`, `loader_outdated`, `timeout`)
+says why an error answer happened; it is logged, never shown to the model. `clientTools.onResult` receives one
+record per request (`success | error | timeout | cancelled`) and per unexpected answer (`late`, `duplicate`,
+`unmatched`: unmatched usually means a second replica or a restart) with ids, code, duration and size, never data. No answer → an error result and the model continues. The step is journaled
 as assistant + tool result (`client_tools_completed`), never as MCP proposals or approvals. Process-local: the
 answering API and the waiting worker must be the same process (viper-host: one replica).
 
