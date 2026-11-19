@@ -4,8 +4,9 @@ import { loadMigrations, migrate, schemaStatus } from '../adapters/persistence/p
 import type { MigrationReport, SchemaStatus } from '../adapters/persistence/postgres/migrate.js';
 import type { SqlPool } from '../adapters/persistence/postgres/sql-client.js';
 import type { DatabaseConfig } from './database-config.js';
+import { assertMigrationVersion } from './schema-version.js';
 
-/** Source-tree migrations; a packaged build must copy them or pass another directory. */
+/** Build copies SQL assets beside the compiled adapters; callers may pass another directory. */
 export const MIGRATIONS_DIRECTORY = fileURLToPath(new URL('../adapters/persistence/postgres/migrations/', import.meta.url));
 
 export type DatabasePool = pg.Pool & SqlPool;
@@ -16,12 +17,19 @@ export function createDatabasePool(config: DatabaseConfig): DatabasePool {
     ...(config.password === undefined ? {} : { password: config.password }),
     ...(config.ssl ? { ssl: { rejectUnauthorized: true } } : {}),
     max: config.maxConnections,
+    connectionTimeoutMillis: 5000,
     application_name: 'viper-engine',
   });
 }
 
 export async function migrateDatabase(pool: SqlPool, directory = MIGRATIONS_DIRECTORY): Promise<MigrationReport> {
-  return migrate(pool, await loadMigrations(directory));
+  return migrate(pool, await engineMigrations(directory));
+}
+
+async function engineMigrations(directory: string) {
+  const migrations = await loadMigrations(directory);
+  assertMigrationVersion(migrations.at(-1)?.version);
+  return migrations;
 }
 
 /** The engine's database is missing migrations or does not match this build. Message says what to do. */
@@ -40,11 +48,11 @@ function schemaMessage(status: SchemaStatus): string {
 }
 
 /**
- * Startup guard for hosts (worker/HTTP). Read-only. If this build's migration files cannot be read
- * (packaged without them), only "the database was migrated at all" is required.
+ * Startup guard for hosts (worker/HTTP). Read-only and fail closed when migration assets are missing
+ * or unreadable: a ledger alone cannot establish compatibility with the current build.
  */
 export async function assertSchemaReady(pool: SqlPool, directory = MIGRATIONS_DIRECTORY): Promise<SchemaStatus> {
-  const migrations = await loadMigrations(directory).catch(() => undefined);
+  const migrations = await engineMigrations(directory);
   const status = await schemaStatus(pool, migrations);
   if (!status.ready) throw new SchemaNotReadyError(status);
   return status;

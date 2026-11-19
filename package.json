@@ -1,7 +1,7 @@
 {
-  "name": "viper-engine",
+  "name": "@devduluin/viper-engine",
   "version": "0.1.0",
-  "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "description": "MCP-first Viper engine: modular foundation",
   "engines": {
@@ -11,8 +11,13 @@
     ".": "./dist/index.js"
   },
   "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "publishConfig": { "registry": "https://npm.pkg.github.com" },
+  "repository": { "type": "git", "url": "git+https://github.com/devduluin/viper-engine.git" },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && node scripts/copy-migrations.mjs",
+    "package:check": "node scripts/verify-package.mjs",
+    "prepack": "npm run build && npm run package:check",
     "api:export": "npm run build && node scripts/export-openapi.mjs",
     "example:headless": "node --env-file-if-exists=.env --import tsx examples/fixture-demo.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -29,20 +34,26 @@
     "eval:manifest": "node evals/create-manifest.mjs",
     "tasks:ready": "node scripts/tasks-ready.mjs",
     "context:report": "node --import tsx examples/context-report.ts",
+    "discovery:report": "node --import tsx examples/tool-discovery-report.ts",
     "example:recall": "node --import tsx examples/recall-demo.ts",
     "example:learning": "node --import tsx examples/learning-demo.ts",
-    "planning:report": "node --import tsx examples/planning-report.ts"
+    "planning:report": "node --import tsx examples/planning-report.ts",
+    "eval:offline": "node --import tsx examples/regression.ts offline",
+    "eval:regression": "node --import tsx examples/regression.ts postgres",
+    "eval:compare": "node --import tsx examples/compare.ts",
+    "start:local": "node --env-file-if-exists=.env --import tsx examples/standalone.ts",
+    "ops:check": "node --env-file-if-exists=.env --import tsx src/bootstrap/operations/check-cli.ts"
   },
   "devDependencies": {
     "@types/node": "22.20.0",
     "@types/pg": "8.23.1",
-    "tsx": "4.21.0",
+    "tsx": "4.23.15",
     "typescript": "5.9.3"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.3.0",
     "@modelcontextprotocol/sdk": "1.32.2",
-    "ajv": "8.17.1",
+    "ajv": "8.18.0",
     "ajv-formats": "3.0.1",
     "fastify": "5.12.8",
     "openai": "7.47.0",

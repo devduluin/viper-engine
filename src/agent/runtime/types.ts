@@ -19,15 +19,20 @@ import type { ToolIndex } from '../execution/tool-catalog.js';
 import type { RunBudget } from '../policies/budget.js';
 import type { RunControl } from '../policies/control.js';
 import type { ContextEvidenceProvider } from '../../contracts/context/evidence.js';
+import type { ToolDiscoveryConfig } from '../../contracts/discovery/config.js';
+import type { ToolDiscoveryState } from '../../contracts/discovery/state.js';
+import type { ToolDiscovery } from '../discovery/controller.js';
 
 export interface StepContext {
   readonly input: RunLoopInput; readonly deps: RunLoopDependencies; readonly index: ToolIndex;
   readonly state: LoopState; readonly emit: Emit; readonly budget: RunBudget; readonly control: RunControl;
+  readonly discovery: ToolDiscovery;
 }
 
 export interface RunLoopInput {
   /** Trusted persisted execution state, validated by the application; never request JSON. */
-  readonly resume?: { readonly budget: BudgetState; readonly modelCalls: number; readonly reports: readonly ToolCallReport[]; readonly contextCheckpoint?: ContextCheckpoint };
+  readonly resume?: { readonly budget: BudgetState; readonly modelCalls: number; readonly reports: readonly ToolCallReport[]; readonly contextCheckpoint?: ContextCheckpoint; readonly toolDiscovery?: ToolDiscoveryState };
+  readonly toolDiscovery?: Partial<ToolDiscoveryConfig>;
   readonly context?: Partial<ContextBudget>;
   /** Earliest current-run message, supplied by trusted storage; no active work may be compressed. */
   readonly contextStartMessageId?: MessageId;
@@ -56,6 +61,7 @@ export type RunStopReason =
 
 export type RuntimeEvent =
   | ExecutionEvent
+  | { readonly type: 'tools_discovered'; readonly state: ToolDiscoveryState }
   | { readonly type: 'model_call_started'; readonly stepId: StepId; readonly modelCallId: ModelCallId; readonly contextCheckpoint?: ContextCheckpoint }
   | { readonly type: 'model_call_finished'; readonly modelCallId: ModelCallId; readonly ok: boolean; readonly usage: ModelUsage; readonly failureCode?: ModelFailure['code'] }
   | { readonly type: 'message_appended'; readonly message: Message; readonly decision?: 'final' | 'tool_calls' | 'needs_input' }

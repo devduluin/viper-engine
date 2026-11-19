@@ -11,16 +11,20 @@ owns isolated PostgreSQL configuration; P05-04 adds actual SDK/local MCP integra
 Node 22.16.x / npm; dependency versions are pinned in package.json and package-lock.json.
 From this project root run `npm ci --ignore-scripts --no-audit`, `npm run check`, `npm run build`.
 PowerShell with script restrictions can use `npm.cmd` instead of `npm`.
-No `.env` is auto-loaded. `parseFoundationConfig(env)` reads an injected map, ignores unrelated
+Library factories never load `.env`; explicitly named executable commands may load the project's
+optional file. `parseFoundationConfig(env)` reads an injected map, ignores unrelated
 variables and returns only foundation env/host/port/log-level configuration. It opens no port.
 
 ## Implemented commands
 
 | Command | Behavior |
 | --- | --- |
-| `npm run build` | Compile source to dist + declarations |
+| `npm run build` | Compile source/declarations and package migration SQL assets in dist |
 | `npm run api:export` | Build and export API v1 OpenAPI data to artifacts/openapi/v1.json |
 | `npm run example:headless` | Local fixture demo; optional .env for VIPER_TEST_DB_*, scripted provider |
+| `npm run start:local` | Single-owner loopback HTTP/worker starter; optional .env, explicit DB/provider config, no auto-migration |
+| `npm run ops:check` | Read-only DB/schema check, optional .env; safe codes, no provider request |
+| `npm run db:migrate` | Apply new engine DB migrations; optional .env, explicit VIPER_DB_* |
 | `npm run context:report` | Offline context ablation report to artifacts/context/p07-01.json; no .env/key/DB |
 | `npm run example:recall` | Explicit isolated DB recall/note lifecycle + scripted SDK/MCP demo, no .env/key |
 | `npm run example:learning` | Isolated feedback/proposal/review/retirement demo with scripted SDK/MCP, no .env/key |
@@ -31,16 +35,22 @@ variables and returns only foundation env/host/port/log-level configuration. It 
 | `npm run check:docs` | Markdown size/links/fences, task/DAG/checklist consistency |
 | `npm run test:unit` | Tooling, contracts/state, utilities, context and bounded runtime tests |
 | `npm run test:contract` | API/model/MCP schemas and deterministic fake-runtime traces |
-| `npm run test:integration` | Explicit isolated PostgreSQL tests; separate from offline check |
+| `npm run test:integration` | Explicit isolated PostgreSQL tests; build first for compiled operations smoke; separate from offline check |
 | `npm run eval:validate` | Schema/references/dataset hash validation; no agent score |
 | `npm run eval:manifest` | Explicit reviewed dataset/source snapshot capture |
+| `npm run eval:offline` | Unit/contract execution with pinned manifest/raw TAP report; DB/engine cold-warm NOT_RUN |
+| `npm run eval:regression` | All deterministic suites +60 real engine/SDK/MCP/SQL synthetic cold-warm trials, explicit loopback test DB |
+| `npm run eval:compare -- <capture-dir> ...` | Verified data-only engine comparison/coverage; inconclusive is nonzero, no live execution |
 | `npm run check` | All current offline validation gates and tests |
+| `npm run package:check` | Compiled package entries and exact packaged SQL hashes; no provider/DB I/O |
+| `npm run discovery:report` | Synthetic400/1000/3000-tool schema sizes and exact-alias discovery; no live quality/billing |
 | `npm run tasks:ready` | Task-DAG readiness; ownership still checked in progress/handoffs |
 
-`eval:offline` and `eval:compare` are future commands; deterministic runtime fixtures currently
-run in test:contract. The fixture validator is not an execution/scoring command. Test runners
+`eval:compare` accepts captures; it does not install or execute external engines. Regression reports run scripted deterministic fixtures;
+the fixture validator is not an execution/scoring command. Test runners
 fail if the selected suite has no tests. PostgreSQL tests follow P04-01 isolated configuration;
 their success is separate evidence and is never inferred from npm run check.
+See [standalone setup](standalone-operations.md) and [operations runbook](operations-runbook.md).
 
 ## AST policy
 

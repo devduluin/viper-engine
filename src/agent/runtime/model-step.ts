@@ -8,8 +8,11 @@ import { prepareModelContext } from './prepare-model.js';
 import type { StepContext } from './types.js';
 import { RunInterrupted } from '../policies/control.js';
 import { BudgetExceeded } from '../policies/limits.js';
+import { TOOL_SEARCH_NAME } from '../../contracts/discovery/state.js';
+import { withDiscoveryExchanges } from '../context/transient.js';
 
 export type ModelStep =
+  | { readonly kind: 'discovery'; readonly assistant: AssistantMessage; readonly call: import('../../contracts/messages/message.js').ToolCall }
   | { readonly kind: 'decision'; readonly decision: ModelDecision; readonly assistant: AssistantMessage }
   | { readonly kind: 'failure'; readonly failure: ModelFailure }
   | { readonly kind: 'invalid' }
@@ -24,7 +27,7 @@ function knownCallIds(history: readonly Message[]): Set<string> {
 /** Assistant message for the decision, or undefined when it reuses a call ID already in history. */
 function assistantMessage(context: StepContext, decision: ModelDecision): AssistantMessage | undefined {
   if (decision.kind === 'tool_calls') {
-    const known = knownCallIds(context.state.history);
+    const known = knownCallIds(withDiscoveryExchanges(context.state.history, context.discovery.exchanges));
     if (decision.calls.some(call => known.has(call.id))) return undefined;
   }
   const content = decision.kind === 'needs_input' ? [{ type: 'text', text: decision.question }] : decision.content;
@@ -70,6 +73,10 @@ function normalizeDecision(context: StepContext, value: unknown): ModelStep {
   try { decision = parseModelDecision(value); } catch { return { kind: 'invalid' }; }
   const assistant = assistantMessage(context, decision);
   if (assistant === undefined) return { kind: 'invalid' };
+  if (context.discovery.enabled && decision.kind === 'tool_calls' && decision.calls.some(call => call.name === TOOL_SEARCH_NAME)) {
+    if (decision.calls.length !== 1 || decision.calls[0]?.name !== TOOL_SEARCH_NAME) return { kind: 'invalid' };
+    return { kind: 'discovery', assistant, call: decision.calls[0] };
+  }
   if (decision.kind === 'tool_calls') context.budget.propose(decision.calls, context.index);
   return { kind: 'decision', decision, assistant };
 }

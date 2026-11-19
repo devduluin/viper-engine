@@ -60,7 +60,7 @@ export class McpConnectionPool {
     const key = poolKey(scope, id);
     const record = await this.options.directory.get(scope, id);
     if (this.closed) return fail('connection_unavailable');
-    if (!record.ok) return fail('not_found');
+    if (!record.ok) { await this.releaseKey(key); return fail('not_found'); }
     const blocked = admission(record.value);
     if (blocked !== undefined) {
       await this.releaseKey(key);

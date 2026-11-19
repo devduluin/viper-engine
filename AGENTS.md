@@ -3,8 +3,8 @@
 ## Scope and current state
 
 This directory is a standalone backend project beside `../ai-intent-api-v2`.
-P00/P01/P02/P03/P04/P05/P06 and P07-01/P07-02/P07-03 are DONE (31/36).
-Anthropic/OpenAI and MCP access adapters are reviewed; OpenAI live smoke awaits configured access.
+P00-P08 are DONE (36/36); release decision: READY_FOR_CONTROLLED_PILOT, not a production certification.
+Anthropic/OpenAI and MCP access adapters are reviewed; live OpenAI is not release-verification evidence.
 P04-04 includes reviewed persistence, atomic journal and durable application driver with restart tests.
 Read progress and P04-02/03 review notes before durable work: fenced writes, explicit wake,
 idempotency claimId and database-time expiry are required. P05-04 real adapter E2E is complete;
@@ -12,12 +12,26 @@ P06-01 provides authenticated HTTP controls; P06-03 provides the bounded durable
 P06-02 provides public durable SSE/replay; P06-04 provides headless HTTP/SSE integration and usage.
 P07-01 provides bounded context and verified extractive checkpoints. P07-02 provides scoped recall/
 explicit user notes and fresh user-role evidence. P07-03 provides reviewed outcome proposals,
-exact user confirmation and atomic feedback retirement. P07-04 bounded planning is next. Read
-P07-01/02/03 handoffs before touching context/notes/proposals/checkpoints. Workin live handoff is triaged
+exact user confirmation and atomic feedback retirement. P07-04 provides experimental scoped
+checklist evidence, default off; automatic planning is deferred after scripted ablation found
+input overhead with live semantic benefit unmeasured. P08-01 provides pinned regression manifests,
+raw suite/trial evidence and local cold/warm fixtures. P08-02 provides the comparison runner/report;
+actual V4/Hermes captures remain NOT_MEASURED. P08-03 provides standalone setup/operations,
+packaged SQL, schema-before-polling startup and authenticated probes. Read its handoff/setup/runbook;
+ship the full dist assets. P08-04 audit is complete: read docs/release-review.md, its findings/report
+and handoff before follow-up. Five code defects fixed; patched dependency pins and0 advisory snapshot.
+PostgreSQL owns lease claim/renewal duration; approval proposals require live fencing. New migrations
+must update ENGINE_SCHEMA_VERSION. No active R2.1 DAG task remains. Local MCP tool discovery is a
+post-roadmap extension: read docs/tool-discovery.md and docs/handoffs/TOOL-DISCOVERY.md before
+changing catalog visibility, runtime/private context, refresh or checkpoint state. Env is explicitly
+injected by hosts; discovery never grants access or bypasses exact MCP approval. Read evaluation
+requirements before claiming any model/engine superiority. Read
+P07-01/02/03/04 handoffs before touching context/notes/proposals/checkpoints. Workin live handoff is triaged
 in docs/reviews/WORKIN-LIVE.md. The separate user-declined approval fix is DONE; read
 docs/handoffs/WORKIN-REJECTION.md for exact binding, sticky denial and report-code compatibility.
 MCP HTTP404 session retirement/resource -32002 handling is DONE; read WORKIN-MCP-SESSION handoff.
-Host setup diagnostics and live Workin revalidation remain pending. Learning requires migration0012;
+Host setup diagnostics and live Workin revalidation remain pending. Current schema includes migration0013
+for Claude's cache usage support; learning requires migration0012. Read engine-extensions-plan.md;
 never promote assistant/tool answers directly into user notes or bypass their source/owner FK.
 Work only on the task authorized by the user; a roadmap is not permission to deploy,
 change production data, access credentials, or implement every phase in one turn.

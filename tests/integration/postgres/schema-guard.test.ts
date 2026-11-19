@@ -18,6 +18,7 @@ test('schema status: unmigrated, partially migrated, current and drifted databas
     assert.deepEqual(await schemaStatus(migrated.pool, migrations), { ready: true, current: latest, expected: latest });
     assert.deepEqual(await schemaStatus(migrated.pool), { ready: true, current: latest });
     assert.deepEqual(await assertSchemaReady(migrated.pool), { ready: true, current: latest, expected: latest });
+    await assert.rejects(assertSchemaReady(migrated.pool, 'artifacts/nonexistent-migration-assets'), /ENOENT/);
     await assert.rejects(assertSchemaReady(empty.pool), (error: unknown) => error instanceof SchemaNotReadyError
       && /not migrated .*needs version \d+.*npm run db:migrate/.test(error.message));
     await migrated.pool.query('DELETE FROM viper_engine.schema_migrations WHERE version = $1', [latest]);

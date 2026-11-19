@@ -34,7 +34,12 @@ export async function seedEngineConnection(pool: SqlPool, endpoint: string, suff
 
 export function engine(pool: SqlPool, connectionId: ReturnType<typeof parseId<'mcp_connection'>>, model: EngineModel,
   overrides: Partial<ViperEngineOptions> = {}) {
-  return createViperEngine(pool, {
+  return createViperEngine(pool, engineOptions(connectionId, model, overrides));
+}
+
+export function engineOptions(connectionId: ReturnType<typeof parseId<'mcp_connection'>>, model: EngineModel,
+  overrides: Partial<ViperEngineOptions> = {}): ViperEngineOptions {
+  return {
     model, credentials: { resolve: async () => ({ ok: true, credential: { kind: 'none' } }),
       refresh: async () => ({ ok: false, code: 'authentication_required' }) },
     resolveEndpoint: server => ({ kind: 'streamable_http', url: server.endpointRef }),
@@ -42,7 +47,7 @@ export function engine(pool: SqlPool, connectionId: ReturnType<typeof parseId<'m
     policy: { decide: tool => tool.definition.ref.name === 'record_write' ? 'requires_approval' : 'execute' },
     requestTimeoutMs: 5000, discoveryTimeoutMs: 15000, leaseMs: 3000, heartbeatMs: 300,
     limits: { maxDurationMs: 30000 }, ...overrides,
-  });
+  };
 }
 
 export function anthropic(replies: readonly FakeReply[]) {

@@ -10,7 +10,8 @@ export async function prepareModelContext(context: StepContext, stepId: StepId, 
     { scope: input.scope, conversationId: input.conversationId, runId: input.runId }, { signal }));
   const source = { scope: input.scope, conversationId: input.conversationId, runId: input.runId, stepId, modelCallId,
     model: input.model, maxOutputTokens: input.maxOutputTokens, tools: context.index.modelTools,
-    history: { ...input.history, messages: state.history }, instructions: input.instructions ?? [], evidence, deadlineAt: context.control.deadlineAt };
+    history: { ...input.history, messages: state.history }, instructions: input.instructions ?? [], evidence,
+    discoveryExchanges: context.discovery.exchanges, deadlineAt: context.control.deadlineAt };
   if (input.context === undefined) return assembleContext(source, deps.model.capabilities, deps.clock.now());
   const prepared = prepareContext(source, deps.model.capabilities, deps.clock.now(), input.context,
     state.contextCheckpoint, input.contextStartMessageId);

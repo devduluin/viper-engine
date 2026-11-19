@@ -41,7 +41,7 @@ export interface RunClaim {
  * write that was in flight during a crash stays `unknown` until reconciled.
  */
 export interface RunLeaseStore {
-  /** Queued/running or a waiting run with cancellation intent, unleased/expired; concurrent-safe. */
+  /** Queued/running or cancelling waiting run; PostgreSQL owns expiry/duration time, not worker `at`. */
   claimNext(workerId: string, at: number, leaseMs: number): Promise<RunClaim | undefined>;
   renew(runId: RunId, lease: LeaseToken, at: number, leaseMs: number): Promise<StateResult<{ readonly expiresAt: number }>>;
   release(runId: RunId, lease: LeaseToken, at: number): Promise<StateResult<{ readonly released: true }>>;

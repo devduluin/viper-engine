@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "references": [
+    {
+      "engine": "viper-engine",
+      "version": "pinned-by-each-execution-capture",
+      "reason": "No compatible Viper capture supplied",
+      "source": "docs/reports/P08-01-regression.md"
+    },
+    {
+      "engine": "viper-v4",
+      "version": "e98b60181f6069bfe72fdc070d31984b5238a8c6",
+      "reason": "Local V4 inspected; its smoke expects a running application server. No equivalent isolated capture supplied; capabilities NOT_MEASURED, not unsupported.",
+      "source": "../ai-intent-api-v2/scripts/dev-plan-v3/v4-regression-smoke.ts"
+    },
+    {
+      "engine": "hermes",
+      "version": "27e389359263b7294e2788fee048953fc34b82d1",
+      "reason": "Public source reference pinned; Hermes is not installed/configured for the shared fixture harness here. No execution capture supplied; capabilities NOT_MEASURED.",
+      "source": "https://github.com/NousResearch/hermes-agent/tree/27e389359263b7294e2788fee048953fc34b82d1"
+    }
+  ],
+  "inspection": {
+    "date": "2026-11-17",
+    "v4Scope": "32 loop modules plus package.json and regression smoke; partial source inspection, no runtime execution or whole-tree clean-commit assertion",
+    "v4SourceAggregateSha256": "699e1865eb518930f1a007fa36045fd320670c9479f683864b278a6c237aeb69",
+    "hermesPyprojectSha256": "6cb17aeeb63c8ecd78b748990598d05a8fe87e74f89fb2013a344d378a55bf1a",
+    "hermesPyprojectUrl": "https://raw.githubusercontent.com/NousResearch/hermes-agent/27e389359263b7294e2788fee048953fc34b82d1/pyproject.toml",
+    "localPython": "3.13.5",
+    "localPythonOpenaiAndMcpPackages": "not_installed",
+    "externalInstallOrLiveAccess": "none"
+  }
+}

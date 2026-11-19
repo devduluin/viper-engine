@@ -54,14 +54,16 @@ test('provider failure is observable as failed with unknown usage, never a succe
 });
 
 test('write timeout after the MCP effect exposes unknown and resuming observation never repeats it', async () => {
-  const f = await headlessFixture([toolTurn('record_write', { count: 5 }), done], { requestTimeoutMs: 100, writeDelayMs: 500 });
+  // This deadline also covers catalog discovery; allow setup before forcing a timeout after the write effect.
+  const f = await headlessFixture([toolTurn('record_write', { count: 5 }), done], { requestTimeoutMs: 1500, writeDelayMs: 5000 });
   const outcomes: unknown[] = [];
   try {
     const result = await runHeadlessTask(f.client, { input, idempotencyKey: 'headless-unknown', onUpdate: async update => {
       if (update.kind === 'snapshot' && update.snapshot.status === 'queued') f.host.start();
       if (update.kind === 'event' && update.event.type === 'tool.failed') outcomes.push(update.event.payload['outcome']);
     }, decide: async () => 'accept' });
-    assert.equal(result.status, 'partial'); assert.deepEqual(outcomes, ['unknown']); assert.equal(f.effects.writes(), 1);
+    assert.equal(result.status, 'partial', JSON.stringify({ result, modelCalls: f.api.bodies.length, writes: f.effects.writes(), outcomes }));
+    assert.deepEqual(outcomes, ['unknown']); assert.equal(f.effects.writes(), 1);
     const history = await f.client.conversation(result.conversationId);
     assert.ok(history.messages.some(message => message.role === 'tool' && message.outcome === 'unknown'));
     const attempts = f.api.bodies.length; assert.equal(attempts, 2);

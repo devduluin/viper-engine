@@ -1,27 +1,37 @@
 import type { WorkerHandle, WorkerStatus } from '../../application/worker/types.js';
 
-/**
- * Runs the schema check when the worker starts. Loops start immediately (no change on a healthy
- * database); if the check fails the worker stops, `status().phase` is `failed` and `done`/`stop()`
- * reject with the check's error (e.g. SchemaNotReadyError: "run `npm run db:migrate`").
- */
+/** No claims, maintenance or provider setup may begin before the asynchronous schema check passes. */
 export function guardWorkerSchema(host: WorkerHandle, check: () => Promise<unknown>): WorkerHandle {
-  let failure: unknown;
-  const failIfChecked = () => { if (failure !== undefined) throw failure; };
-  // On an unmigrated database the loops may also fail ("Worker shutdown failed"); the schema error is the cause.
-  const preferChecked = (error: unknown) => { failIfChecked(); throw error; };
-  const done = host.done.then(failIfChecked, preferChecked);
-  void done.catch(() => undefined); // Observable through done/stop, never an unhandled rejection.
+  let phase: WorkerStatus['phase'] = 'idle'; let stopped = false; let failure: unknown;
+  let closing: Promise<void> | undefined;
+  let resolveDone!: () => void; let rejectDone!: (error: unknown) => void;
+  const done = new Promise<void>((resolve, reject) => { resolveDone = resolve; rejectDone = reject; });
+  void done.catch(() => undefined);
+  void host.done.then(resolveDone, rejectDone);
+  const stop = (): Promise<void> => {
+    if (closing !== undefined) return closing;
+    stopped = true;
+    closing = (async () => {
+      await host.stop().catch((error: unknown) => { if (failure !== undefined) throw failure; throw error; });
+      if (failure !== undefined) throw failure;
+    })();
+    return closing;
+  };
   const start = () => {
-    const first = host.status().phase === 'idle';
-    host.start();
-    if (!first) return;
-    void check().catch((error: unknown) => {
-      failure = error;
-      void host.stop().catch(() => undefined);
+    if (phase === 'running' && !stopped) return;
+    if (phase !== 'idle' || stopped) throw new Error('A stopped worker cannot restart; construct a new host');
+    phase = 'running';
+    void Promise.resolve().then(() => stopped ? undefined : check()).then(() => { if (!stopped) host.start(); }).catch(async (error: unknown) => {
+      if (stopped) return;
+      failure = error; phase = 'failed';
+      rejectDone(error);
+      await host.stop().catch(() => undefined);
     });
   };
-  const status = (): WorkerStatus => (failure === undefined ? host.status() : { ...host.status(), phase: 'failed' });
-  const stop = async () => { await host.stop().then(failIfChecked, preferChecked); };
+  const status = (): WorkerStatus => {
+    if (failure !== undefined) return { ...host.status(), phase: 'failed' };
+    if (host.status().phase === 'idle' && phase === 'running') return { ...host.status(), phase: stopped ? 'stopping' : 'running' };
+    return host.status();
+  };
   return Object.freeze({ start, stop, done, status });
 }

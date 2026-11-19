@@ -5,6 +5,8 @@ import { estimateContextText } from '../../../src/agent/context/estimate.js';
 import { createPlanEvidence } from '../../../src/bootstrap/planning.js';
 import { harness, StubMcp } from '../../unit/runtime/harness.js';
 import type { PlanningCase } from './scenarios.js';
+import { resolveContextBudget } from '../../../src/contracts/context/budget.js';
+import { resolveRunLimits } from '../../../src/agent/policies/limits.js';
 
 async function trial(scenario: PlanningCase, planned: boolean) {
   const mcp = new StubMcp(() => scenario.outcome);
@@ -17,6 +19,8 @@ async function trial(scenario: PlanningCase, planned: boolean) {
   const calls = mcp.calls.map(call => ({ tool: call.tool.name, arguments: call.arguments }));
   const requests = h.model.requests;
   return { status: result.status, final: result.messages.at(-1)?.content, calls, modelCalls: requests.length, toolCalls: mcp.calls.length,
+    configuration: { model: h.input.model, maxModelCalls: h.input.maxModelCalls, maxOutputTokens: h.input.maxOutputTokens,
+      context: resolveContextBudget(h.input.context), limits: resolveRunLimits(h.input.limits) },
     inputBytes: requests.reduce((sum, request) => sum + new TextEncoder().encode(JSON.stringify(request)).byteLength, 0),
     estimatedInputTextTokens: requests.reduce((sum, request) => sum + estimateContextText(request).tokens, 0), localMs, requests };
 }

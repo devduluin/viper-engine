@@ -1,11 +1,12 @@
 import type { FixtureOptions } from './fixture-server.js';
 
 /** Opt-in side-effect/content fixtures; defaults used by earlier contract suites stay unchanged. */
-export function engineFixture(): FixtureOptions & { readonly writes: () => number; readonly calls: readonly string[] } {
+export function engineFixture(): FixtureOptions & { readonly writes: () => number; readonly calls: readonly string[]; readonly reset: () => void } {
   let writes = 0;
   const calls: string[] = [];
   return {
     writes: () => writes,
+    reset: () => { writes = 0; calls.length = 0; },
     calls, onCall: name => { calls.push(name); },
     extraTools: [
       { name: 'record_write', description: 'Record the approved amount', annotations: { destructiveHint: true },

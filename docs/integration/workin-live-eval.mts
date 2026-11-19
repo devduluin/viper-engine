@@ -24,6 +24,7 @@ const { worker } = await load('tests/integration/postgres/worker-fixtures.ts');
 const { seedEngineConnection } = await load('tests/integration/postgres/engine-fixtures.ts');
 const { createEngineClient } = await load('src/bootstrap/client.ts');
 const { parseConfiguredModelConfig, createConfiguredModelBinding } = await load('src/bootstrap/configured-model.ts');
+const { parseToolDiscoveryConfig } = await load('src/bootstrap/tool-discovery-config.ts');
 const { parseMessage } = await load('src/contracts/messages/parse-message.ts');
 const { buildManifest } = await load('docs/integration/workin-live-manifest.mts');
 const { grade } = await load('docs/integration/workin-live-grade.mts');
@@ -45,6 +46,7 @@ const token = readFileSync(String(process.env.WORKIN_TOKEN_FILE), 'utf8').trim()
 const gatewayUrl = process.env.WORKIN_GATEWAY_URL ?? 'http://127.0.0.1:9996/api/v2/mcp';
 const clock = { now: () => Date.now() };
 const modelConfig = parseConfiguredModelConfig(process.env);
+const toolDiscovery = parseToolDiscoveryConfig(process.env);
 // Trusted host instruction (engine option `instructions`): role, today's date, timezone, language.
 // Deliberately neutral: it must not contain dataset answers or tool hints beyond the role.
 const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
@@ -68,7 +70,7 @@ const host = worker(db.pool, createConfiguredModelBinding(modelConfig, clock), {
   policy: { decide: (tool: { definition: { annotations?: { readOnlyHint?: boolean }; ref: { name: string } } }) =>
     (tool.definition.annotations?.readOnlyHint === false ? 'requires_approval' : 'execute') },
   requestTimeoutMs: 60000, discoveryTimeoutMs: 30000, leaseMs: 60000, heartbeatMs: 5000, limits: { maxDurationMs: 240000 },
-  instructions,
+  instructions, toolDiscovery,
   ...(variants.includes('checklist') ? { contextEvidence: switchableChecklist(createPlanEvidence, () => checklistActive) } : {}),
 });
 const baseUrl = await app.listen({ host: '127.0.0.1', port: 0 });
@@ -133,7 +135,7 @@ async function runCase(item: Case, started: number, approvals: string[], events:
 
 const modelInfo = { provider: modelConfig.provider ?? process.env.VIPER_MODEL_PROVIDER, model: process.env.VIPER_MODEL, effort: process.env.VIPER_MODEL_EFFORT,
   promptCache: modelConfig.promptCache ?? null };
-const manifest = await buildManifest({ root: ROOT, gatewayUrl, token, hostInstruction: HOST_INSTRUCTION, model: modelInfo, trials, caseIds: cases.map((c) => c.id) });
+const manifest = await buildManifest({ root: ROOT, gatewayUrl, token, hostInstruction: HOST_INSTRUCTION, model: modelInfo, toolDiscovery, trials, caseIds: cases.map((c) => c.id) });
 const results: Row[] = [];
 try {
   for (let trial = 1; trial <= trials; trial += 1) for (const item of cases) for (const variant of variantOrder(variants, trial)) {

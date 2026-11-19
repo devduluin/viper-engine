@@ -28,8 +28,16 @@ function eventCommands(session: DurableSession, event: RuntimeEvent): JournalCom
     case 'tool_call_dispatching': return dispatchCommands(session, event.toolCallId);
     case 'tool_call_reported': return toolReport(session, event);
     case 'batch_finished': session.state.phase = 'model'; return [];
+    case 'tools_discovered': return discoveryFinished(session, event);
     case 'run_stopped': return finish(session, event);
   }
+}
+
+function discoveryFinished(session: DurableSession, event: Extract<RuntimeEvent, { type: 'tools_discovered' }>): JournalCommand[] {
+  session.state.toolDiscovery = event.state; session.state.phase = 'model';
+  if (session.state.stepId === undefined) throw new Error('Discovery has no step');
+  return [{ kind: 'step_finish', input: { runId: session.claim.runId, stepId: session.state.stepId,
+    decision: 'tool_calls', at: session.deps.clock.now() } }];
 }
 
 function modelFinish(session: DurableSession, event: Extract<RuntimeEvent, { type: 'model_call_finished' }>): JournalCommand[] {

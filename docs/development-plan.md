@@ -167,6 +167,10 @@ Validate API/event/driver integration and engine smoke report. No desktop accept
   membutuhkannya; baseline simple loop tetap default. Acceptance: ablation quality/usage report,
   no legacy executable skill taxonomy; fitur tanpa manfaat terukur deferred/default off.
 
+P07-04 decision: opt-in advisory checklist only, default off. Scripted paired preservation/usage
+report available in [ablation](reports/P07-04-ablation.md); live semantic benefit NOT MEASURED,
+automatic planning deferred. This does not claim a model-quality improvement or release readiness.
+
 Validate context/recall ownership and ablations. No autonomous subagents or desktop work.
 
 ## P08: evaluation and engine release

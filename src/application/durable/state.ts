@@ -12,8 +12,11 @@ import { parseToolFailureCode } from '../../contracts/state/tool-rejection.js';
 import { savedContext } from './context-state.js';
 import type { DurableContextState } from './context-state.js';
 import { resolveContextBudget } from '../../contracts/context/budget.js';
+import { parseToolDiscoveryState } from '../../contracts/discovery/state.js';
+import type { ToolDiscoveryState } from '../../contracts/discovery/state.js';
 
 export interface DurableState extends DurableContextState {
+  toolDiscovery?: ToolDiscoveryState;
   version: 1;
   phase: 'model' | 'calls' | 'correction' | 'input' | 'final';
   model: string; maxModelCalls: number; maxOutputTokens: number; limits: RunLimits; deadlineAt: number;
@@ -70,6 +73,7 @@ export function decodeState(value: JsonObject): DurableState {
     stepIndex: number(value['stepIndex']), modelPending: value['modelPending'],
     ...(value['stepId'] === undefined ? {} : { stepId: parseId('step', value['stepId']) }),
     ...(value['modelCallId'] === undefined ? {} : { modelCallId: parseId('model_call', value['modelCallId']) }), ...savedContext(value),
+    ...(value['toolDiscovery'] === undefined ? {} : { toolDiscovery: parseToolDiscoveryState(value['toolDiscovery']) }),
   };
 }
 

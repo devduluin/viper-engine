@@ -6,7 +6,9 @@ import { PostgresRunLeaseStore } from '../../../src/adapters/persistence/postgre
 import { parseId } from '../../../src/contracts/identity/ids.js';
 import { createDatabase } from './database.js';
 import type { IsolatedDatabase } from './database.js';
-import { AT, digest, other, owner, seedConnection, seedRun, stores } from './fixtures.js';
+import { digest, other, owner, seedConnection, seedRun, stores } from './fixtures.js';
+
+const AT = Date.now();
 
 let db: IsolatedDatabase;
 before(async () => { db = await createDatabase(); });
@@ -42,6 +44,7 @@ test('a lapsed lease cannot be released even before takeover', async () => {
   const leases = new PostgresRunLeaseStore(db.pool);
   const claim = await leases.claimNext('review-worker', AT, 1000);
   assert.ok(claim && claim.runId === runId);
+  await db.pool.query("UPDATE viper_engine.runs SET lease_expires_at = clock_timestamp() - interval '1 second' WHERE id = $1", [runId]);
   const result = await leases.release(runId, claim.lease, AT + 1000);
   assert.ok(!result.ok && result.error.code === 'lease_lost');
 });

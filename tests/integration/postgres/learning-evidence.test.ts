@@ -9,12 +9,12 @@ import { appendStatement } from './learning-fixtures.js';
 
 test('failed provider, failed tool and unknown tool trajectories cannot become proposals despite positive feedback', async () => {
   const cases = [
-    { replies: [{ status: 401, errorType: 'authentication_error' }], status: 'failed' },
-    { replies: [toolTurn('lookup_item', { id: 'missing' }), done], status: 'failed' },
-    { replies: [toolTurn('hang'), done], status: 'partial' },
+    { replies: [{ status: 401, errorType: 'authentication_error' }], status: 'failed', requestTimeoutMs: 5000 },
+    { replies: [toolTurn('lookup_item', { id: 'missing' }), done], status: 'failed', requestTimeoutMs: 5000 },
+    { replies: [toolTurn('hang'), done], status: 'partial', requestTimeoutMs: 1500 },
   ];
   for (const scenario of cases) {
-    const f = await learningFixture(scenario.replies, { requestTimeoutMs: 150 });
+    const f = await learningFixture(scenario.replies, { requestTimeoutMs: scenario.requestTimeoutMs });
     try {
       assert.equal((await f.client.run(f.run.runId)).status, scenario.status);
       const source = await f.statement('feedback', 'Pengguna menyatakan berhasil.');

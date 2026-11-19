@@ -6,7 +6,9 @@ import { parseId } from '../../../src/contracts/identity/ids.js';
 import type { RunId } from '../../../src/contracts/identity/ids.js';
 import { createDatabase } from './database.js';
 import type { IsolatedDatabase } from './database.js';
-import { AT, digest, overlappingPool, owner, seedConnection, seedRun, stores } from './fixtures.js';
+import { digest, overlappingPool, owner, seedConnection, seedRun, stores } from './fixtures.js';
+
+const AT = Date.now();
 
 let db: IsolatedDatabase;
 before(async () => { db = await createDatabase(); });
@@ -34,7 +36,7 @@ test('concurrent workers never claim the same run; each claim raises the fence',
   const claimed = claims.filter(claim => claim !== undefined);
   assert.equal(claimed.length, 3);
   assert.deepEqual(new Set(claimed.map(claim => claim!.runId)), new Set(runs));
-  assert.ok(claimed.every(claim => claim!.lease.fence === 1 && claim!.expiresAt === AT + LEASE && claim!.owner.actorId === 'actor-a'));
+  assert.ok(claimed.every(claim => claim!.lease.fence === 1 && claim!.expiresAt > AT + LEASE && claim!.owner.actorId === 'actor-a'));
   assert.equal(await leases.claimNext('w6', AT + 1_000, LEASE), undefined);
 });
 
@@ -46,11 +48,12 @@ test('an expired lease is taken over with a higher fence; the stale worker can n
   assert.ok(first);
   assert.equal(await leases.claimNext('w-new', AT + LEASE - 1, LEASE), undefined);
   // Expired but not yet taken over: the holder must still stop writing.
-  const lapsed = await s.runs.transition(owner, runId, { to: 'completed', expectedRevision: 2, at: AT + LEASE, events: [], lease: first.lease });
+  await db.pool.query("UPDATE viper_engine.runs SET lease_expires_at = clock_timestamp() - interval '1 second' WHERE id = $1", [runId]);
+  const lapsed = await s.runs.transition(owner, runId, { to: 'completed', expectedRevision: 2, at: Date.now(), events: [], lease: first.lease });
   assert.equal(code(lapsed), 'lease_lost');
   const second = await leases.claimNext('w-new', AT + LEASE, LEASE);
   assert.ok(second && second.runId === runId && second.lease.fence === first.lease.fence + 1);
-  const at = AT + LEASE + 1;
+  const at = Date.now();
   assert.equal(code(await s.runs.transition(owner, runId, { to: 'completed', expectedRevision: 2, at, events: [], lease: first.lease })), 'lease_lost');
   assert.equal(code(await leases.renew(runId, first.lease, at, LEASE)), 'lease_lost');
   assert.equal(code(await leases.release(runId, first.lease, at)), 'lease_lost');
@@ -70,10 +73,11 @@ test('crash window: a dispatching call is reported in flight, can only be reconc
   assert.ok((await s.calls.transition(owner, runId, callId, { to: 'ready', expectedRevision: 1, at: AT, events: [], lease: dead.lease })).ok);
   assert.ok((await s.calls.transition(owner, runId, callId, { to: 'dispatching', expectedRevision: 2, at: AT + 1, events: [], lease: dead.lease })).ok);
   // w-dead crashes here: the remote side effect may or may not have happened.
+  await db.pool.query("UPDATE viper_engine.runs SET lease_expires_at = clock_timestamp() - interval '1 second' WHERE id = $1", [runId]);
   const heir = await leases.claimNext('w-heir', AT + LEASE + 5, LEASE);
   assert.ok(heir && heir.runId === runId);
   assert.deepEqual(heir.inFlightToolCalls, [callId]);
-  const at = AT + LEASE + 6;
+  const at = Date.now();
   assert.equal(code(await s.calls.transition(owner, runId, callId, { to: 'succeeded', expectedRevision: 3, at, events: [], lease: dead.lease })), 'lease_lost');
   assert.equal(code(await s.calls.transition(owner, runId, callId, { to: 'dispatching', expectedRevision: 3, at, events: [], lease: heir.lease })), 'invalid_transition');
   assert.equal(code(await s.calls.transition(owner, runId, callId, { to: 'unknown', expectedRevision: 3, at, events: [], lease: heir.lease })), 'ok');

@@ -94,6 +94,8 @@ adapter dapat menambah schema sendiri melalui migrations baru tanpa mengubah cor
 
 Migration runner hanya menyentuh database/schema baru yang dikonfigurasi. Dilarang menebak
 connection string lama. Development DB harus isolated; destructive reset tidak mengenai legacy DB.
+Append a new SQL migration and update ENGINE_SCHEMA_VERSION in src/bootstrap/schema-version.ts
+together; build/migrate/readiness enforce that reviewed version. Never edit applied SQL/checksums.
 Integration tests memeriksa fresh install, constraints, concurrency, stale revisions, restart,
 cross-scope access, event cursor consistency dan rollback/schema upgrade path yang dipilih.
 

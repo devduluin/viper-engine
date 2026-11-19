@@ -12,6 +12,7 @@ import { historyTurns } from './turns.js';
 import { prefixDigest, summarizedPrefix } from './summary.js';
 import { assertContextCheckpoint } from './checkpoint.js';
 import { assertMessageHistory } from '../../contracts/messages/history.js';
+import { withDiscoveryExchanges } from './transient.js';
 
 interface Selection { readonly request: ModelRequest; readonly covered: number; readonly digest: string; readonly excerpt: string }
 const bytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).byteLength;
@@ -27,8 +28,9 @@ function anchor(input: ContextInput, previous?: ContextCheckpoint, start?: Messa
 function candidate(input: ContextInput, full: ModelRequest, covered: number, budget: ContextBudget): Selection {
   const prefix = input.history.messages.slice(0, covered);
   const summary = summarizedPrefix(input, prefix, budget.maxSummaryBytes);
-  const instructions = full.messages.length - input.history.messages.length;
-  const messages: readonly Message[] = Object.freeze([...full.messages.slice(0, instructions), summary.message, ...full.messages.slice(instructions + covered)]);
+  const instructions = (input.instructions?.length ?? 0) + (input.evidence?.length ?? 0);
+  const messages: readonly Message[] = withDiscoveryExchanges([...full.messages.slice(0, instructions), summary.message,
+    ...input.history.messages.slice(covered)], input.discoveryExchanges);
   assertMessageHistory(messages, { allowPendingToolCalls: false });
   return { request: { ...full, messages }, covered, digest: summary.digest, excerpt: summary.excerpt };
 }

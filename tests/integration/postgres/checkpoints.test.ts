@@ -6,7 +6,9 @@ import { PostgresRunLeaseStore } from '../../../src/adapters/persistence/postgre
 import { parseMessage } from '../../../src/contracts/messages/parse-message.js';
 import { createDatabase } from './database.js';
 import type { IsolatedDatabase } from './database.js';
-import { AT, event, other, overlappingPool, owner, seedRun, stores } from './fixtures.js';
+import { event, other, overlappingPool, owner, seedRun, stores } from './fixtures.js';
+
+const AT = Date.now();
 
 let db: IsolatedDatabase;
 before(async () => { db = await createDatabase(); });

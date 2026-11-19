@@ -1,0 +1,28 @@
+name: publish-engine
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: npm
+          registry-url: https://npm.pkg.github.com
+          scope: '@devduluin'
+      - name: Require a matching release tag
+        run: node -e "const v=require('./package.json').version; if(process.env.GITHUB_REF !== 'refs/tags/v'+v) process.exit(1)"
+      - run: npm ci --ignore-scripts --no-audit
+      - run: npm run check
+      - run: npm pack --json --pack-destination .
+      - name: Publish the verified artifact
+        run: npm publish devduluin-viper-engine-*.tgz --registry=https://npm.pkg.github.com --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

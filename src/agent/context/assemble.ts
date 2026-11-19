@@ -8,6 +8,8 @@ import type { ModelCapabilities, ModelRequest } from '../../contracts/models/gat
 import { assertModelRequest } from '../../contracts/models/request-validation.js';
 import { estimateContextText } from './estimate.js';
 import type { ContextTextEstimate } from './estimate.js';
+import type { DiscoveryExchange } from '../../contracts/discovery/state.js';
+import { withDiscoveryExchanges } from './transient.js';
 
 /** Loaded by trusted application storage; never authenticate an ingress history with this type. */
 export interface ScopedHistory {
@@ -22,6 +24,7 @@ export interface ContextInput extends Omit<ModelRequest, 'messages'> {
   readonly instructions?: readonly Message[];
   /** Retrieved data is user-role evidence, never host instructions or persisted conversation history. */
   readonly evidence?: readonly Message[];
+  readonly discoveryExchanges?: readonly DiscoveryExchange[];
 }
 
 export interface AssembledContext {
@@ -38,7 +41,8 @@ export function assembleContext(input: ContextInput, capabilities: ModelCapabili
   if (input.history.messages.some(message => message.role === 'system')) {
     throw new Error('History cannot supply system instructions');
   }
-  const messages = parseMessageHistory([...instructions, ...evidence(input.evidence ?? []), ...input.history.messages], { allowPendingToolCalls: false });
+  const canonical = parseMessageHistory([...instructions, ...evidence(input.evidence ?? []), ...input.history.messages], { allowPendingToolCalls: false });
+  const messages = withDiscoveryExchanges(canonical, input.discoveryExchanges);
   const tools = Object.freeze(input.tools.map(tool => Object.freeze({
     name: tool.name, inputSchema: parseJsonObject(tool.inputSchema),
     ...(tool.description === undefined ? {} : { description: tool.description }),

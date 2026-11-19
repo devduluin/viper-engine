@@ -8,6 +8,7 @@ import type { CallToolResult, Tool } from '@modelcontextprotocol/sdk/types.js';
 export interface FixtureOptions {
   readonly missingResource?: boolean;
   readonly onCall?: (name: string) => void;
+  readonly onListTools?: () => void;
   readonly extraTools?: readonly Tool[];
   readonly handlers?: Readonly<Record<string, (args: Record<string, unknown>) => CallToolResult | Promise<CallToolResult>>>;
   readonly toolsOnly?: boolean;
@@ -33,6 +34,13 @@ function baseTools(): Tool[] {
   ];
 }
 
+/** Same initial catalog used by the server and pinned by regression manifests. */
+export function fixtureTools(options: FixtureOptions = {}): Tool[] {
+  const tools = [...baseTools(), ...(options.extraTools ?? [])];
+  if (options.envProbe === true) tools.push({ name: 'env_probe', description: 'Credential env check', inputSchema: object({}) });
+  return tools;
+}
+
 function text(value: unknown, isError = false): CallToolResult {
   return {
     content: [{ type: 'text', text: JSON.stringify(value) }],
@@ -46,8 +54,7 @@ function text(value: unknown, isError = false): CallToolResult {
  * Not a production server and not a copy of any legacy tool.
  */
 export function createFixtureServer(options: FixtureOptions = {}): Server {
-  const tools = [...baseTools(), ...(options.extraTools ?? [])];
-  if (options.envProbe === true) tools.push({ name: 'env_probe', description: 'Credential env check', inputSchema: object({}) });
+  const tools = fixtureTools(options);
   const calls: string[] = [];
   const capabilities = options.toolsOnly === true
     ? { tools: { listChanged: true } }
@@ -55,6 +62,7 @@ export function createFixtureServer(options: FixtureOptions = {}): Server {
   const server = new Server({ name: 'viper-fixture', version: '1.0.0' }, { capabilities });
 
   server.setRequestHandler(ListToolsRequestSchema, request => {
+    options.onListTools?.();
     const start = Number(request.params?.cursor ?? '0');
     const next = start + PAGE_SIZE;
     return { tools: tools.slice(start, next), ...(next < tools.length ? { nextCursor: String(next) } : {}) };

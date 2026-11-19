@@ -12,6 +12,7 @@ import type { EngineModel } from './configured-model.js';
 import type { RunClaim } from '../contracts/state/leases.js';
 import type { ContextBudget } from '../contracts/context/budget.js';
 import type { ContextEvidenceProvider } from '../contracts/context/evidence.js';
+import type { ToolDiscoveryConfig } from '../contracts/discovery/config.js';
 
 export interface ViperEngineOptions {
   readonly model: EngineModel;
@@ -25,6 +26,7 @@ export interface ViperEngineOptions {
   /** Defaults to the engine's bounded text/byte policy; choose the actual provider window explicitly. */
   readonly context?: Partial<ContextBudget>;
   readonly contextEvidence?: ContextEvidenceProvider;
+  readonly toolDiscovery?: Partial<ToolDiscoveryConfig>;
   readonly clock?: Clock; readonly ids?: IdGenerator;
   readonly connectTimeoutMs?: number; readonly requestTimeoutMs?: number; readonly discoveryTimeoutMs?: number;
   readonly maxConnections?: number; readonly maxPages?: number; readonly maxTools?: number;

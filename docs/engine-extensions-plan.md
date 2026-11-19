@@ -1,5 +1,10 @@
 # Engine extensions plan: prompt caching, time anchor, tool catalog
 
+Update18 November2026: X06 local discovery telah diimplementasikan atas izin user, dengan
+default `auto` berbasis threshold dan env on/off. [Guide](tool-discovery.md) menjadi acuan aktual
+untuk extension ini; aturan default-off prompt experiments dan fakta17 November di bawah adalah
+baseline rencana sebelumnya. X05 live semantic eval tetap pending; tidak ada klaim kualitas live.
+
 Status: PLAN (Claude, 17 November 2026). Bukan bagian dari DAG P00–P08 dan tidak mengubah checklist.
 Sumber: review usulan Gemini (`v4-feature-porting-plan*.md`). Dipilih tiga hal yang buktinya ada di repo ini;
 yang lain ditunda (lihat [Tidak termasuk](#tidak-termasuk)).
@@ -13,7 +18,8 @@ Pembaca: agen dan developer yang mengerjakan engine (GPT/Codex, Claude, Gemini).
 2. **Default off sampai terbukti.** Fitur yang mengubah prompt baru menyala default setelah eval live
    berpasangan menunjukkan tidak ada regresi kualitas, seperti P07-04.
 3. **Provider-neutral di engine, spesifik di adapter.** Kontrak engine tidak tahu `cache_control` atau
-   tool search. Itu urusan `src/adapters/models/{anthropic,openai}`.
+   provider-native tool search. Itu urusan `src/adapters/models/{anthropic,openai}`. Kontrol discovery
+   lokal bersifat provider-neutral dan berada di agent core.
 4. **Tidak melonggarkan otorisasi.** Caching, header waktu, dan katalog tool tidak menambah tool, grant,
    atau approval. Policy dan approval tetap berlaku per call.
 
@@ -191,6 +197,12 @@ lain dan Margin masuk.
 - Output: kurva yang menentukan ambang aktivasi X06. Tidak ada perubahan engine.
 
 ## X06: Strategi skala katalog (desain final setelah data X05)
+
+Update18 November2026: user mengizinkan implementasi discovery lokal dengan env auto/on/off.
+Lapis scope dan provider-neutral activation tersedia untuk kedua adapter, dengan threshold jumlah
+OR estimasi token. Baca [guide](tool-discovery.md) dan [handoff](handoffs/TOOL-DISCOVERY.md).
+X05 live semantic stress tetap pending; pengukuran sintetis400/1000/3000 hanya membuktikan ukuran
+schema. Core/deferred tagging dan provider-native search di bawah ini tetap usulan, belum diterapkan.
 
 Berlapis, dari yang paling murah:
 

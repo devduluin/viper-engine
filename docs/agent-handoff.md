@@ -11,8 +11,9 @@ Tidak meminta spawn subagents. Kerjakan scope pengguna, bukan seluruh roadmap se
 4. Pilih task NOT STARTED dengan dependency DONE, catat ownership/next step.
 5. Gunakan plan R2.1, 36 tasks dengan task-level DAG dan parallel path ownership.
 
-P00-P06 dan P07-01/02/03 DONE; runtime/database/HTTP/worker/context/recall/proposals tersedia. Ambil task ready dari
-`npm run tasks:ready` sesuai [lane ownership](parallel-development.md) dan klaim di progress.
+P00-P08 DONE (36/36); controlled-pilot [release review](release-review.md) dan [audit](reviews/P08-04.md) tersedia.
+V4/Hermes captures NOT_MEASURED; comparison INCONCLUSIVE. Tidak ada next R2.1 DAG task.
+Ambil follow-up hanya sesuai assignment pengguna, baca [handoff P08-04](handoffs/P08-04.md), lalu klaim scope di progress.
 Workers menulis docs/handoffs/<task>.md; integration owner mengubah shared checklist/progress.
 
 ## Scope reminders

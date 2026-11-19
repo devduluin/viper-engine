@@ -1,6 +1,8 @@
 # Evaluation plan R2: engine quality
 
-Status: target/metode, belum ada baseline/benchmark. Fokus engine MCP-first; desktop dan
+Status: deterministic regression/local cold-warm fixtures tersedia pada P08-01; comparison
+runner/report tersedia pada P08-02. Actual V4/Hermes comparison INCONCLUSIVE, external captures
+NOT_MEASURED. Fokus engine MCP-first; desktop dan
 migrasi/parity legacy tidak masuk release gate. Target melampaui V4/Hermes tetap harus dibuktikan.
 
 ## Apa yang diukur
@@ -103,3 +105,17 @@ framework atau desktop untuk membuktikan loop engine yang lebih andal.
 Target paths: `evals/datasets/`, `evals/fixtures/`, `evals/manifests/`,
 `artifacts/evals/<report-id>/`. Raw reports, metric calculations dan exclusions disimpan terpisah
 runtime source. Artifact access/redaction/retention ditetapkan sebelum live measurements.
+
+P08-01 implements [regression runner](engine-regression.md) and [measured local fixture report](reports/P08-01-regression.md).
+All deterministic suite output and60 cold/warm trials retain manifests/raw evidence. Scripted
+fixture token counters and local lifecycle timings are explicitly separate from live quality/billing.
+
+P08-02 implements the [comparison runner](engine-comparison.md), [capture protocol](../evals/comparison/README.md)
+and [actual inconclusive report](reports/P08-02-comparison.md). Checksums and strict conditions/repeat
+pairing keep missing baselines explicit; live intervals resample independent task clusters. Scripted
+fixtures receive no semantic CI. Unknown costs are not zero; superiority still requires actual gates/review.
+
+P08-04 [release review](release-review.md) closes engineering acceptance after audit fixes,471 offline/
+182 PostgreSQL tests and60/60 scripted engine trials. The [actual release evidence](reports/P08-04-release.md)
+retains final source/pin/clean-install verification; it does not convert scripted fixtures or missing
+external captures into live quality/superiority results.

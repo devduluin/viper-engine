@@ -6,8 +6,9 @@ journal and fenced PostgreSQL leases. It does not replace the agent loop or requ
 
 ## Host composition
 
-Apply migrations through **0010** to the explicitly configured engine database before running
-the current stack. Migration 0009 adds run_deliveries; 0010 keeps event allocation replay-safe after pruning.
+Apply migrations through **0013** to the explicitly configured engine database before running
+the current stack. Migration0009 adds run_deliveries;0010 keeps event allocation replay-safe after pruning.
+Startup checks the full packaged migration set before polling; missing SQL assets fail closed.
 The host owns the database pool/migrations, model binding, credentials, connection selection
 and execution policy. The worker owns its engine/MCP sessions. No factory auto-loads `.env`,
 listens for HTTP, starts polling, installs process listeners or creates credentials on import.
@@ -63,7 +64,8 @@ status() includes phase, active/maxActive, settled/yielded/idle/failure counts, 
 failures, observer failures, last activity time and shutdown timeout state. Optional onEvent gets
 delivery, safe failure code or maintenance count. It receives no raw SDK/SQL error, credential,
 owner identity or tool arguments. Observer errors/timeouts do not retry completed work.
-Detailed operations logging/metrics export and release health endpoints remain P08.
+[P08-03 operations](standalone-operations.md) adds authenticated health/readiness for the combined
+host. Separate worker processes expose status() to their own host monitoring; no metrics exporter is provided.
 
 ## Durable retries and fairness
 

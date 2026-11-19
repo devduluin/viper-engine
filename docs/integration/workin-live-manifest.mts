@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
+import type { ToolDiscoveryConfig } from '../../src/contracts/discovery/config.js';
 
 type Row = Record<string, unknown>;
 const sha256 = (data: string | Buffer) => createHash('sha256').update(data).digest('hex');
@@ -38,7 +39,7 @@ export function repoState(dir: string): Row {
 }
 
 /**
- * X04: input tokens the tool catalog adds to every request, measured with the provider's token counter
+ * X04: full catalog token baseline, measured with the provider's token counter (not active request schemas).
  * (same request with and without tools). Needs ANTHROPIC_API_KEY and VIPER_MODEL; otherwise NOT_MEASURED.
  */
 async function catalogTokens(definitions: Row[]): Promise<Row> {
@@ -79,7 +80,8 @@ export async function toolCatalog(gatewayUrl: string, token: string): Promise<Ro
     } while (cursor !== undefined);
     tools.sort((a, b) => (String(a.name) < String(b.name) ? -1 : 1));
     const schemaBytes = tools.reduce((sum, tool) => sum + Number(tool.bytes), 0);
-    return { count: tools.length, schemaBytes, sha256: sha256(JSON.stringify(tools)), tools, tokens: await catalogTokens(definitions) };
+    return { count: tools.length, schemaBytes, sha256: sha256(JSON.stringify(tools)), tools, tokens: await catalogTokens(definitions),
+      measurement: 'full authorized catalog baseline; not per-request active schemas' };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   } finally {
@@ -90,6 +92,7 @@ export async function toolCatalog(gatewayUrl: string, token: string): Promise<Ro
 export interface ManifestInput {
   readonly root: string; readonly gatewayUrl: string; readonly token: string; readonly hostInstruction: string;
   readonly model: Row; readonly trials: number; readonly caseIds: readonly string[];
+  readonly toolDiscovery?: ToolDiscoveryConfig;
 }
 
 export async function buildManifest(input: ManifestInput): Promise<Row> {
@@ -102,6 +105,7 @@ export async function buildManifest(input: ManifestInput): Promise<Row> {
     createdAt: new Date().toISOString(),
     engine: { version: pkg.version, src: treeHash(at('src')), node: process.version, mcpSdk: sdk.version, anthropicSdk: anthropic },
     model: input.model,
+    toolDiscovery: input.toolDiscovery,
     hostInstruction: { text: input.hostInstruction, sha256: sha256(input.hostInstruction) },
     dataset: { file: 'evals/datasets/workin-live/cases.json', sha256: fileHash(at('evals/datasets/workin-live/cases.json')), cases: input.caseIds, trials: input.trials },
     runner: { sha256: fileHash(at('docs/integration/workin-live-eval.mts')) },

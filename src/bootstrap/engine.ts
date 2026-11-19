@@ -25,7 +25,7 @@ export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
       tools: await discoverRuntimeTools(scope, await options.connections(scope, checkpoint), directory, mcp, settings),
       ...(options.instructions === undefined ? {} : { instructions: typeof options.instructions === 'function'
         ? await options.instructions(scope, checkpoint) : options.instructions }),
-      limits: settings.limits, context: settings.context }),
+      limits: settings.limits, context: settings.context, toolDiscovery: settings.toolDiscovery }),
     ...(options.leaseMs === undefined ? {} : { leaseMs: options.leaseMs }),
     ...(options.heartbeatMs === undefined ? {} : { heartbeatMs: options.heartbeatMs }),
     ...(options.approvalTtlMs === undefined ? {} : { approvalTtlMs: options.approvalTtlMs }),

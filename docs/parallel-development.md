@@ -61,6 +61,11 @@ follow the DAG rather than assuming every task in the previous phase must be com
 | Y | P07-01 DONE (Codex) | contracts/context, bounded context/runtime preparation, durable checkpoints, report and regressions |
 | Z | P07-02 DONE (Codex) | contracts/recall, application/recall, PostgreSQL notes/search/migration0011, context evidence and tests |
 | AA | P07-03 DONE (GPT) | contracts/application/learning, scoped feedback/proposals/review, migration0012, atomic notes/audit/retirement and tests |
+| AB | P07-04 DONE (GPT) | contracts/application/planning, opt-in scoped checklist evidence, paired ablation/manifest/report and tests |
+| AC | P08-01 DONE (GPT) | Regression CLI/manifests/raw suites/cold-warm fixtures/grading/metrics, shared evaluation snapshots and tests |
+| AD | P08-02 DONE (GPT) | Comparison CLI/protocol/verified imports, strict pairing/task statistics, coverage/report and tests; external captures unmeasured |
+| AE | P08-03 DONE (GPT) | Bootstrap operations host/readiness/signals, starter/config, packaged SQL/schema guard and clean install/DB evidence |
+| AF | P08-04 DONE (GPT) | Audit/fixes lease/proposal/assets/MCP/model, patched dependencies, release/extension/desktop boundary evidence |
 
 Each also owns its docs/handoffs/<task>.md. Consult P01-01 and P02-01 handoffs before coding.
 Lanes C/D consume frozen identity/messages. Shared lanes E/F remain independent of contracts:
@@ -70,8 +75,10 @@ domain Clock type into shared. Do not edit another lane's files or the root expo
 E/F integration completed with 130 tests/build passing; the overflow
 [review note](reviews/P02-03.md) is resolved. P03-01 uses frozen model/MCP contracts and P02
 helpers. Test history fixtures do not create competing production store ports while lane D
-was under review. P00-P06 and P07-01/02/03 are DONE. P07-04 bounded planning is dependency-ready,
-unclaimed; read context/runtime/durable and P07-01/02/03 handoffs. Context/recall/proposals/client/server lanes are complete.
+was under review. P00-P08 are DONE (36/36). No R2.1 DAG task remains; select a new scope only from
+the user's assignment and [release follow-up evidence](release-review.md). Read P08-04 handoff/report.
+Actual V4/Hermes comparison remains INCONCLUSIVE with captures
+NOT_MEASURED. Planning remains experimental/default off.
 Reuse createViperEngine and the P04-04 driver/journal; coordinate bootstrap/http.ts, server route
 registration, shared cursor changes and root exports with integration owner. P07 follows the task DAG.
 Read P03-03/04 handoffs before changing runtime/workflow: final admission, dispatchState and

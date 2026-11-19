@@ -17,7 +17,7 @@ export const DEFAULT_RUN_LIMITS: RunLimits = Object.freeze({
 });
 
 export type BudgetReason = 'step_limit' | 'tool_call_limit' | 'model_output_limit'
-  | 'tool_output_limit' | 'total_output_limit' | 'repetition_limit' | 'correction_limit' | 'context_input_limit';
+  | 'tool_output_limit' | 'total_output_limit' | 'repetition_limit' | 'correction_limit' | 'context_input_limit' | 'tool_search_limit';
 export type ExecutionStopReason = BudgetReason | 'cancelled' | 'deadline_exceeded' | 'unknown_outcome';
 
 export class BudgetExceeded extends Error {

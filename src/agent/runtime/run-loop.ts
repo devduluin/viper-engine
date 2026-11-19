@@ -10,6 +10,7 @@ import { createLoopContext } from './context.js';
 import { guardedStop } from './stops.js';
 import type { RunLoopDependencies, RunLoopInput, RunLoopResult, RunStop } from './types.js';
 import type { ToolCallReport } from '../execution/dispatch.js';
+import { discoverTools } from './discovery.js';
 
 /**
  * Model -> validated MCP calls -> normalized results -> model, until a final answer, a pause,
@@ -67,6 +68,7 @@ async function runStep(context: StepContext): Promise<RunStop | undefined> {
   context.state.modelCalls += 1;
   const step = await requestDecision(context);
   switch (step.kind) {
+    case 'discovery': await discoverTools(context, step.assistant, step.call); return undefined;
     case 'cancelled': return { status: 'cancelled', reason: 'cancelled' };
     case 'failure': return { status: 'failed', reason: 'model_failure', modelFailure: step.failure };
     case 'invalid': return { status: 'failed', reason: 'invalid_model_response' };

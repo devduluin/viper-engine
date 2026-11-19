@@ -46,6 +46,8 @@ export class PostgresApprovalStore implements ApprovalStore {
       return await withTransaction(this.pool, async tx => {
         const run = await lockRun(tx, scope, input.binding.runId);
         if (!run.ok) return stateConflict(run.error);
+        const lost = leaseConflict(run.value, input.lease, input.at);
+        if (lost !== undefined) return stateConflict(lost);
         const at = Math.max(input.at, run.value.leaseCheckedAt ?? input.at);
         if (input.expiresAt <= at) return stateConflict({ code: 'approval_expired', message: 'Approval proposal has expired' });
         const call = await lockToolCall(tx, input.binding.runId, input.binding.toolCallId);

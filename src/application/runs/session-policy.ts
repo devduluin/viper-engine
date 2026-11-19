@@ -1,7 +1,7 @@
 import { checkApprovalBinding } from '../../contracts/state/approval-state.js';
 import { applyApprovalTransition, consumeApproval } from '../../contracts/state/transitions.js';
 import { mcpToolKey } from '../../contracts/mcp/identity.js';
-import { indexTools } from '../../agent/execution/tool-catalog.js';
+import { refreshSessionCatalog } from './session-catalog.js';
 import type { ToolCallPolicy } from '../../agent/execution/plan-call.js';
 import type { CallRejection } from '../../agent/execution/plan-call.js';
 import type { RuntimeTool } from '../../agent/execution/tool-catalog.js';
@@ -72,9 +72,8 @@ export async function emitSessionEvent(state: SessionState, event: RuntimeEvent)
 
 /** Returns false after invalidating a changed/expired proposal; never silently grants new tools. */
 export async function refreshPending(state: SessionState): Promise<boolean> {
-  const index = indexTools(await state.deps.refreshTools(state.context.input.scope), state.context.input.scope);
+  const index = await refreshSessionCatalog(state);
   let valid = true;
-  state.context = { ...state.context, index };
   for (const held of state.pending.values()) {
     const tool = index.find(held.call.name);
     const changed = tool === undefined || mcpToolKey(tool.definition.ref) !== mcpToolKey(held.tool);

@@ -52,6 +52,9 @@ export function interpretMessage(message: BetaMessage): Interpretation {
   const content = message.content.flatMap(block => (block.type === 'text' ? [{ type: 'text' as const, text: block.text }] : []));
   const calls = message.content.flatMap(block => (block.type === 'tool_use'
     ? [{ id: block.id, name: block.name, arguments: block.input }] : []));
+  if ((calls.length > 0) !== (message.stop_reason === 'tool_use')) {
+    return failed('invalid_response', 'Model completion reason and tool calls disagree');
+  }
   try {
     const decision = calls.length > 0
       ? parseModelDecision({ kind: 'tool_calls', calls, content })

@@ -8,7 +8,7 @@ test('configured HTTP exposes all 12 operations; explicit stream disable preserv
   const unexpected = () => { throw new Error('Database not needed for capabilities'); };
   for (const enabled of [true, false]) {
     const app = createEngineHttpServer({ query: unexpected, connect: unexpected }, { cursorSecret: Buffer.alloc(32),
-      authorizeServer: async () => false, authenticate: async () => testScope(), ...(enabled ? {} : { stream: false }) });
+      authorizeServer: async () => false, authenticate: async () => testScope(), schemaCheck: false, ...(enabled ? {} : { stream: false }) });
     try {
       const result = await app.inject({ method: 'GET', url: '/api/v1/capabilities', headers: { authorization: 'Bearer owner' } });
       assert.equal(result.statusCode, 200); assertValid('Capabilities', result.json());

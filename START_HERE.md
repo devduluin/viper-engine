@@ -1,9 +1,13 @@
 # Mulai dari sini: Viper Engine
 
-Revision R2.1, 17 November 2026. P00-P06 dan P07-01/02/03 DONE (31/36).
-Workspace check/build/export lulus (427 unit/contract tests); PostgreSQL integration 167/167 PASS.
-OpenAI extension juga reviewed; live smoke belum dijalankan karena key/model belum terisi.
-HTTP, worker, SSE/reconnect, context, scoped recall dan reviewed proposals tersedia. P07-04 bounded planning adalah next task.
+Revision R2.1,18 November2026. P00-P08 DONE (36/36).
+Workspace check lulus (486 unit/contract tests); PostgreSQL integration185/185 dan60/60 engine trials PASS.
+OpenAI extension reviewed; live OpenAI belum menjadi bukti verifikasi rilis ini.
+HTTP/worker/SSE, context/recall/proposals, optional checklist dan regression/comparison runner tersedia.
+P08-04 audit/release review selesai: READY_FOR_CONTROLLED_PILOT; actual V4/Hermes comparison INCONCLUSIVE.
+Extension terbaru: [local tool discovery](docs/tool-discovery.md), env auto/on/off dan batas katalog
+model; [handoff](docs/handoffs/TOOL-DISCOVERY.md) mencatat validasi aktual setelah snapshot P08-04.
+Distribusi ke host: [packaging/env](docs/packaging.md), [handoff](docs/handoffs/PACKAGING.md).
 
 ## Keputusan pemilik
 
@@ -36,7 +40,7 @@ Tidak perlu membaca seluruh proyek lama. Pilih referensi sesuai task:
 Node 22.16.x, pinned dependencies via `npm ci --ignore-scripts --no-audit`.
 `npm run check` dan `npm run build` adalah baseline gates. PowerShell bisa menggunakan npm.cmd.
 PostgreSQL integration mempunyai command terpisah; ikuti handoff P04-01 dan gunakan DB isolated.
-Real-model/comparison evaluation belum tersedia; unit/contract checks tidak mengakses live provider.
+Comparison runner tersedia; real-model dan capture V4/Hermes belum diukur. Unit/contract checks tidak mengakses live provider.
 
 ## Status dan prioritas berikut
 
@@ -88,7 +92,24 @@ Real-model/comparison evaluation belum tersedia; unit/contract checks tidak meng
   Recall membutuhkan migration0011; learning membutuhkan migration0012 (21 engine tables plus ledger).
 - **P07-03 DONE**: [guide](docs/outcome-proposals.md), [handoff](docs/handoffs/P07-03.md) dan
   [review](docs/reviews/P07-03.md): verified outcome/feedback, exact review, atomic note/audit/retirement.
-- **P07-04 READY**: optional bounded planning; default off and requires measured ablation benefit.
+- **P07-04 DONE**: [guide](docs/bounded-planning.md), [handoff](docs/handoffs/P07-04.md),
+  [ablation](docs/reports/P07-04-ablation.md): scoped advisory checklist opt-in/default off;
+  automatic planning deferred, live semantic benefit unmeasured. No additional runtime authority.
+- **P08-01 DONE**: [guide](docs/engine-regression.md), [handoff](docs/handoffs/P08-01.md),
+  [report](docs/reports/P08-01-regression.md): pinned manifests/raw TAP,60 local cold/warm trials;
+  usage explicitly scripted/unavailable, semantic/provider billing/comparison unmeasured.
+- **P08-02 DONE (runner/report)**: [guide](docs/engine-comparison.md), [handoff](docs/handoffs/P08-02.md),
+  [report](docs/reports/P08-02-comparison.md): common subset vs coverage, verified inputs dan explicit exclusions.
+  Actual comparison INCONCLUSIVE; V4/Hermes NOT_MEASURED, superiority NOT_ESTABLISHED.
+- **Cache extensions Claude**: [plan](docs/engine-extensions-plan.md), migration0013,21 engine tables plus ledger.
+  Combined tree validated; comparison tidak menambah migration atau runtime/API behavior.
+- **P08-03 DONE**: [setup](docs/standalone-operations.md), [runbook](docs/operations-runbook.md),
+  [handoff](docs/handoffs/P08-03.md), [report](docs/reports/P08-03-operations.md): clean install/build/DB,
+  packaged SQL, schema-before-polling, authenticated health/readiness dan shutdown/recovery teruji.
+- **P08-04 DONE**: [release review](docs/release-review.md), [findings](docs/reviews/P08-04.md),
+  [handoff](docs/handoffs/P08-04.md), [evidence](docs/reports/P08-04-release.md). Lima bug kode diperbaiki,
+  dependency patched/pinned dan audit registry0 advisory; clean install/build/DB teruji.
+  Tidak ada task R2.1 tersisa. Live quality/comparison, load/restore dan deployment perlu scope berikutnya.
 - **Workin user-declined fix DONE**: [handoff](docs/handoffs/WORKIN-REJECTION.md), [review](docs/reviews/WORKIN-LIVE.md).
   [MCP session/resource fix DONE](docs/handoffs/WORKIN-MCP-SESSION.md); host diagnostics dan live rerun masih pending.
 
@@ -103,14 +124,14 @@ Workers hanya menulis path miliknya serta task-specific handoff; jangan ubah sha
 ## Prompt untuk agen berikutnya
 
 ```text
-Kerjakan P07-04 di D:\Development\App\viper-engine sesuai assignment pengguna.
-Baca START_HERE.md, AGENTS.md, handoff P07-01/P07-02/P07-03 dan development plan P07.
-Fokus optional bounded planning/playbook dengan ablation quality/usage report; baseline loop default.
-Default off/defer fitur tanpa manfaat terukur. Pertahankan exact review dan user-note source guard.
+Bekerja di D:\Development\App\viper-engine hanya pada follow-up yang dipilih pengguna.
+Baca START_HERE.md, AGENTS.md, release review dan handoff/report P08-04.
+Roadmap R2.1 sudah36/36 DONE; jangan mengulang foundation atau menganggap scope baru otomatis disetujui.
+Gunakan daftar remaining evidence untuk live pilot/load/restore bila sesuai assignment; desktop tetap deferred.
 Pertahankan complete tool exchanges, approval binding, immutable history dan budget lintas resume.
-Reuse context/token helpers yang ada; jangan membuat loop/authority atau legacy taxonomy baru.
+Pertahankan baseline loop dan default-off planning; jangan membuat authority atau legacy taxonomy baru.
 Gunakan DB isolated dan fixture SDK/MCP tanpa live key atau database aplikasi.
-Koordinasikan context/runtime contracts dan root exports dengan owner.
+Pertahankan cache support, schema-version pin, DB-time leases, proposal fencing dan startup guards.
 Catat finding/perbaikan/validation/limitations; integration owner memperbarui checklist/progress.
 ```
 

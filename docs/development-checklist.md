@@ -1,23 +1,25 @@
 # Development checklist R2.1
 
-Active scope: engine MCP-first, DB baru. 31 tasks DONE; durable/model/MCP E2E, HTTP/worker/SSE/context/recall/proposals verified.
+Active scope: engine MCP-first, DB baru.36/36 tasks DONE; controlled-pilot engineering acceptance, planning experimental/default off.
 R2 menggantikan 52-task R1 sebelum coding. Tracker aktif berisi 9 phases/36 tasks.
 Acceptance: [development plan](development-plan.md). Dependencies: [task DAG](task-dependencies.json). Status: [progress](progress.md).
 
 ## Cross-phase engine gates
 
-- [ ] Source <=300, loop <=180, function <=60, complexity <=10 enforced.
-- [ ] Strict TS, dependency directions dan cycle checks lulus.
-- [ ] Reused helpers punya provenance/behavior evidence; tidak membawa legacy categories.
-- [ ] Fresh schema/install tidak bergantung database V4.
-- [ ] MCP discovery/tools/resources/prompts sesuai capabilities dan connection ownership.
-- [ ] Context/model/tool-result loop dan clarification teruji.
-- [ ] Approval snapshot, revision, unknown outcomes dan restart recovery teruji.
-- [ ] API/events idempotency/replay berjalan tanpa client/desktop dependency.
-- [ ] Usage/quality/latency reports menyebut unmeasured/unsupported secara jujur.
-- [ ] Relevant checks/integration/evals dan standalone setup lulus.
+- [x] Source <=300, loop <=180, function <=60, complexity <=10 enforced.
+- [x] Strict TS, dependency directions dan cycle checks lulus.
+- [x] Reused helpers punya provenance/behavior evidence; tidak membawa legacy categories.
+- [x] Fresh schema/install tidak bergantung database V4.
+- [x] MCP discovery/tools/resources/prompts sesuai capabilities dan connection ownership.
+- [x] Context/model/tool-result loop dan clarification teruji.
+- [x] Approval snapshot, revision, unknown outcomes dan restart recovery teruji.
+- [x] API/events idempotency/replay berjalan tanpa client/desktop dependency.
+- [x] Usage/quality/latency reports menyebut unmeasured/unsupported secara jujur.
+- [x] Relevant checks/integration/evals dan standalone setup lulus.
 
 Desktop, device companion, multi-agent, V4 data migration dan old-UI gateway bukan gates.
+Checked engineering gates are supported by [release evidence](reports/P08-04-release.md);
+live superiority/production rollout are separate from these deterministic checks.
 
 ## P00: foundation
 
@@ -84,21 +86,21 @@ Status phase: DONE (4/4). HTTP/worker/SSE/headless input/approval/usage/outcomes
 
 ## P07: context and measured autonomy
 
-Status phase: IN PROGRESS (3/4 DONE). Context, recall/user notes, reviewed proposals/retirement and recovery verified.
+Status phase: DONE (4/4). Context/recall/proposals verified; optional checklist default off, ablation reported, automatic planning deferred.
 
 - [x] **P07-01** - Context budgeting and compression
 - [x] **P07-02** - Scoped recall and notes
 - [x] **P07-03** - Outcome learning and maintenance
-- [ ] **P07-04** - Bounded planning extensions
+- [x] **P07-04** - Bounded planning extensions
 
 ## P08: evaluation and engine release
 
-Status phase: NOT STARTED. Evidence wajib sebelum task dicentang.
+Status phase: DONE (4/4). Audit fixes/engineering evidence and controlled-pilot review complete; actual V4/Hermes comparison INCONCLUSIVE, external captures unmeasured. Production validation remains deployment-owned.
 
-- [ ] **P08-01** - Engine regression suite
-- [ ] **P08-02** - V4 Hermes comparison
-- [ ] **P08-03** - Standalone setup and operations
-- [ ] **P08-04** - Release evidence and extension review
+- [x] **P08-01** - Engine regression suite
+- [x] **P08-02** - V4 Hermes comparison runner/report; external measurements NOT_MEASURED
+- [x] **P08-03** - Standalone setup and operations
+- [x] **P08-04** - Release evidence and extension review
 
 ## Completion records
 

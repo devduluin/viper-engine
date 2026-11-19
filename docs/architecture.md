@@ -1,6 +1,6 @@
 # Viper Engine architecture
 
-Revision R2. Target desain, belum implementasi. Current scope: engine MCP-first dan DB baru.
+Revision R2. Architecture reference: engine MCP-first dan DB baru; actual implemented scope in progress.
 [START_HERE](../START_HERE.md) menjelaskan keputusan pemilik dan jalur baca.
 
 ## Prinsip
@@ -138,6 +138,9 @@ Begin with conversation history and tool outcomes. Preserve call/result pairing 
 unresolved work during compression. Add scoped notes/recall on P07; use basic DB search before
 requiring a vector stack. Generated answers are not automatically user facts.
 Procedural instructions may become an optional context source, not a mandatory catalog category.
+P07-04 supplies a bounded scoped advisory checklist via existing user-role evidence, explicitly
+opt-in/default off. It does not execute dependencies or persist a plan cursor; host owns versions.
+See [planning decision and ablation](bounded-planning.md) before enabling a workload.
 
 ## Scaling and future clients
 
@@ -151,4 +154,6 @@ No desktop companion, device pairing or local shell executor is built in P00-P08
 
 A working engine is the release target: MCP multi-step execution, input/approval pause,
 recovery, API/events, context management and measured evaluation. Read [development plan](development-plan.md).
+P08-03 [standalone host/setup](standalone-operations.md) composes HTTP/worker with caller-owned DB,
+packaged SQL, schema-gated polling and authenticated local health. Runtime core stays transport-neutral.
 Desktop, multi-agent, old-UI compatibility and data import are future work, not engine blockers.

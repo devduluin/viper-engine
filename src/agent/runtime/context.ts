@@ -1,5 +1,5 @@
 import { parseMessageHistory } from '../../contracts/messages/history.js';
-import { indexTools } from '../execution/tool-catalog.js';
+import { ToolDiscovery } from '../discovery/controller.js';
 import { RunBudget } from '../policies/budget.js';
 import { RunControl } from '../policies/control.js';
 import { resolveRunLimits } from '../policies/limits.js';
@@ -18,6 +18,13 @@ function contextState(input: RunLoopInput) {
   return { contextCheckpoint: checkpoint };
 }
 
+function discoveryFor(input: RunLoopInput) {
+  const legacy = input.resume !== undefined && input.resume.modelCalls > 0 && input.resume.toolDiscovery === undefined;
+  const discovery = new ToolDiscovery(input.tools, input.scope, input.runId, legacy ? { mode: 'off' } : input.toolDiscovery, input.resume?.toolDiscovery);
+  if (discovery.exchanges.some(exchange => !input.history.messages.some(message => message.id === exchange.afterMessageId))) throw new Error('Discovery anchor missing');
+  return discovery;
+}
+
 /** Server-owned working context; never reconstruct this object from client JSON. */
 export function createLoopContext(input: RunLoopInput, deps: RunLoopDependencies): StepContext {
   if (!Number.isSafeInteger(input.maxModelCalls) || input.maxModelCalls < 1) {
@@ -28,10 +35,10 @@ export function createLoopContext(input: RunLoopInput, deps: RunLoopDependencies
   }), instructions: parseMessageHistory(input.instructions ?? []),
     ...(input.context === undefined ? {} : { context: resolveContextBudget(input.context) }) });
   const limits = resolveRunLimits(input.limits);
-  const index = indexTools(input.tools, input.scope);
+  const discovery = discoveryFor(input);
   const context = contextState(input);
   return {
-    input, deps, index,
+    input, deps, index: discovery.index, discovery,
     control: new RunControl(deps.clock, limits.maxDurationMs, input.deadlineAt, input.signal),
     state: { history: [...input.history.messages], appended: [], reports: [...(input.resume?.reports ?? [])], modelCalls: input.resume?.modelCalls ?? 0,
       ...context },

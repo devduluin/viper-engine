@@ -28,6 +28,7 @@ export class DurableSession {
     if (this.context !== undefined) {
       this.state.budget = this.context.budget.exportState();
       this.state.modelCalls = this.context.state.modelCalls;
+      this.state.toolDiscovery = this.context.discovery.snapshot();
     }
     const result = await this.deps.journal.commit(this.scope, this.claim.runId, { lease: this.claim.lease,
       at: this.deps.clock.now(), expectedRevision: this.checkpoint.execution?.revision ?? 0,
@@ -75,6 +76,7 @@ export class DurableSession {
     this.checkpoint = checkpoint;
     const state = decodeState(checkpoint.execution.state);
     delete this.state.stepId; delete this.state.modelCallId; delete this.state.contextCheckpoint; delete this.state.contextBudget;
+    delete this.state.toolDiscovery;
     Object.assign(this.state, state);
     if (this.context === undefined) return;
     const previous = this.context;

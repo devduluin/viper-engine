@@ -5,7 +5,7 @@ import { checklist } from '../../support/planning/plan.js';
 
 test('plans reject execution/grant/completion fields, unsupported versions and malformed JSON containers', () => {
   const plan = checklist();
-  for (const extra of [{ executable: true }, { approved: true }, { actorId: 'other' }, { schemaVersion: 2 }, { revision: 0 }]) {
+  for (const extra of [{ executable: true }, { approved: true }, { actorId: 'other' }, { schemaVersion: 2 }, { revision: 0 }, { planId: '\uD800' }]) {
     assert.throws(() => parseContextPlan({ ...plan, ...extra }));
   }
   assert.throws(() => parseContextPlan({ ...plan, steps: [{ ...plan.steps[0], status: 'completed' }] }));

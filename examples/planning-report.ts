@@ -1,20 +1,19 @@
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import os from 'node:os';
-import { join, sep } from 'node:path';
 import { planningCases } from '../tests/support/planning/scenarios.js';
 import { pairedTrial } from '../tests/support/planning/ablation.js';
+import { planningSourceHashes } from '../tests/support/planning/manifest.js';
 
 // Predeclared synthetic scripts; model responses do NOT adapt to checklist presence.
 // This measures invariants and context overhead, never live-model quality or billing.
+const hashes = planningSourceHashes();
 const cases = planningCases(); const trials: (Awaited<ReturnType<typeof pairedTrial>> & { readonly repeat: number })[] = [];
 for (const scenario of cases) {
   for (let repeat = 0; repeat < 3; repeat++) trials.push({ repeat, ...await pairedTrial(scenario, repeat % 2 === 1) });
 }
-const files = [...['src', 'tests/support'].flatMap(root => readdirSync(root, { recursive: true, withFileTypes: true })
-  .filter(entry => entry.isFile()).map(entry => join(entry.parentPath, entry.name))), 'examples/planning-report.ts',
-  'tests/unit/runtime/harness.ts', 'package.json', 'package-lock.json'].sort();
-const hashes = Object.fromEntries(files.map(file => [file.split(sep).join('/'), createHash('sha256').update(readFileSync(file)).digest('hex')]));
+assert.deepEqual(planningSourceHashes(), hashes, 'Source changed during ablation; rerun on a stable tree');
 const raw = JSON.stringify(trials, null, 2);
 const totals = (key: 'baseline' | 'planned') => trials.reduce((sum, trial) => ({ modelCalls: sum.modelCalls + trial[key].modelCalls,
   toolCalls: sum.toolCalls + trial[key].toolCalls, inputBytes: sum.inputBytes + trial[key].inputBytes,
@@ -22,6 +21,7 @@ const totals = (key: 'baseline' | 'planned') => trials.reduce((sum, trial) => ({
 { modelCalls: 0, toolCalls: 0, inputBytes: 0, estimatedInputTextTokens: 0 });
 const report = { schemaVersion: 1, task: 'P07-04', mode: 'offline-scripted-ablation', createdAt: new Date().toISOString(),
   environment: { node: process.version, platform: process.platform, arch: process.arch, cpu: os.cpus()[0]?.model },
+  configuration: { provider: 'in-process-scripted', runtime: trials[0]?.baseline.configuration, helpers: { plannerModelCalls: 0, externalIO: 0 } },
   design: { uniqueCases: cases.length, pairs: trials.length, variantsPerPair: 2, repeatsPerCase: 3, order: 'baseline/planned alternated',
     responses: 'Fixed independently of plan presence; repeated pairs are not independent tasks',
     latency: 'localMs records local scripted runtime only; no provider/network latency or cold/warm claim',

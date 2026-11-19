@@ -12,7 +12,7 @@ function closed(value: unknown, keys: readonly string[]): JsonObject {
 }
 function planId(value: unknown): string {
   const id = parseId('context_plan', value);
-  if (id.length > 64) throw new Error('Plan identifier exceeds 64 characters');
+  if (id.length > 64 || /[\uD800-\uDFFF]/u.test(id)) throw new Error('Invalid plan identifier');
   return id;
 }
 function planText(value: unknown): string {

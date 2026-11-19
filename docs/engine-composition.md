@@ -83,7 +83,7 @@ than repeatedly polling the same unauthorized connection. No silent empty-catalo
 
 ## Validation, approvals and evidence
 
-Production validator uses pinned Ajv 8.17.1 and ajv-formats 3.0.1. Default dialect is 2020-12;
+Production validator uses pinned Ajv 8.18.0 and ajv-formats 3.0.1. Default dialect is 2020-12;
 explicit draft-07 schemas are supported. No argument coercion, defaults, key removal, remote
 schema fetch, async schemas or custom executable keywords. Unsupported/invalid schemas reject
 the call before dispatch. Cache capacity defaults to 256; compilers and `$id` registries are
@@ -113,6 +113,16 @@ P05-04 uses actual Anthropic/OpenAI SDKs over scripted fetch, actual HTTP/stdio 
 isolated PostgreSQL databases. No live key or external mutation is required. This verifies
 composition and durability, not provider/model availability, intelligence or a Hermes/V4 win.
 The engine owns MCP sessions; the host owns DB migrations/pool, model binding and auth policy.
-HTTP/public event/action projection, daemon hosting, desktop and delegated agents remain later tasks.
+HTTP/public events, worker hosting and [standalone operations](standalone-operations.md) now compose
+these boundaries. Desktop and delegated agents remain deferred.
 
 Read [P05-04 handoff](handoffs/P05-04.md) before P06 work; its tests are executable examples.
+
+## Bounded model catalog
+
+[Local discovery](tool-discovery.md) now separates full authorized MCP discovery from active model
+schemas. `toolDiscovery` config applies to library factories and durable run configuration;
+standalone explicitly injects `parseToolDiscoveryConfig(process.env)`. Mode auto uses count OR
+estimated schema tokens, on forces discovery, off retains eager mode. These settings and effective
+mode persist per run, including input/approval/catalog refresh. Search never bypasses the actual
+MCP argument validator, policy or exact approval and creates no executable MCP ledger record.
