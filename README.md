@@ -1,105 +1,192 @@
 # Viper Engine
 
-Backend agentic MCP-first baru dengan TypeScript/Node.js dan database baru.
-**P00-P08 DONE (36/36). Check:486 tests; PostgreSQL:184 tests; engine trials:60 PASS.**
-Build dan OpenAPI export lulus; lihat [progress](docs/progress.md).
-[Release review](docs/release-review.md): **siap pilot terkontrol**. Lima bug terkonfirmasi diperbaiki;
-dependency dipin ulang, audit registry0 advisory. [Temuan](docs/reviews/P08-04.md) dan
-[bukti aktual](docs/reports/P08-04-release.md) mencatat hasil serta batas validasi.
-Offline loop/input/approval, reviewed PostgreSQL policy stores dan Anthropic/OpenAI/MCP adapters tersedia.
-Durable claim/restore/approval/cancel dan restart proses tersedia. Model/MCP E2E composition
-tersedia melalui createViperEngine. createEngineHttpServer menyediakan 12 operasi HTTP/SSE dengan auth,
-revision dan idempotency. createEngineWorker menjalankan bounded polling/durable retry terpisah
-dari HTTP. SSE mendukung durable replay/reconnect dengan cursor scoped dan bounded backpressure.
-createEngineClient dan contoh headless menyediakan input/approval, read-only reconnect serta usage/outcomes.
-Budget konteks menjaga active work/pairing, dengan bounded extractive checkpoint dan report API.
-createEngineRecall menyediakan scoped search/user notes dan evidence segar sebelum model call.
-createEngineLearning menyediakan [reviewed proposals](docs/outcome-proposals.md), konfirmasi pengguna dan retirement saat feedback direvisi.
-createPlanEvidence menyediakan [checklist opsional](docs/bounded-planning.md), experimental/default off dengan [ablation report](docs/reports/P07-04-ablation.md).
-[Regression runner](docs/engine-regression.md) merekam manifest/raw evidence dan local cold/warm usage/latency; semantic quality/comparison belum diukur.
-[Comparison runner](docs/engine-comparison.md) tersedia; [hasil aktual](docs/reports/P08-02-comparison.md)
-INCONCLUSIVE karena capture V4/Hermes belum tersedia. Cache support Claude dipertahankan (migration0013).
-[Standalone setup](docs/standalone-operations.md) menyediakan HTTP/worker starter, packaged SQL,
-authenticated health/readiness dan [runbook](docs/operations-runbook.md); clean install/DB teruji.
-Live OpenAI belum diuji. Lihat [HTTP](docs/http-api.md), [SSE](docs/event-stream.md),
-[worker](docs/worker-host.md), [headless client](docs/headless-client.md),
-[composition](docs/engine-composition.md), [context](docs/context-budgeting.md) dan [driver](docs/durable-driver.md).
+> **@devduluin/viper-engine** — Core Agentic Engine berbasis protokol Model Context Protocol (MCP) untuk ekosistem AI Duluin.
 
-Mulai dari [START_HERE](START_HERE.md). Pembagian agen: [parallel development](docs/parallel-development.md).
+Viper Engine adalah library runtime agen modular yang menangani orkestrasi model AI (Anthropic Claude & OpenAI), eksekusi tool MCP secara aman, alur persetujuan manusia (*human-in-the-loop*), manajemen memori percakapan, serta streaming event real-time (SSE) dengan persistensi PostgreSQL.
 
-## Setup dan checks
+Engine ini dirancang **domain-agnostic** (bebas dari logika bisnis spesifik), sehingga dapat digunakan oleh host runner seperti `viper-host` untuk memberdayakan berbagai asisten AI di seluruh aplikasi Duluin.
 
-Node 22.16.x. Dari root project:
+---
+
+## Arsitektur & Cara Kerja
 
 ```text
-npm ci --ignore-scripts --no-audit
-npm run check
-npm run build
-npm run api:export
+┌─────────────────────────────────────────────────────────────────┐
+│                          Host App                               │
+│              (misalnya: viper-host, CLI, Runner)                │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │ createViperEngine(...)
+┌───────────────────────────────▼─────────────────────────────────┐
+│                         Viper Engine                            │
+│                                                                 │
+│   ┌────────────────────┐   ┌────────────────────────────────┐   │
+│   │   Agent Runtime    │   │      Context Budgeting         │   │
+│   │  (Loop, Planning)  │   │  (Token Window, Compression)   │   │
+│   └─────────┬──────────┘   └────────────────┬───────────────┘   │
+│             │                               │                   │
+│   ┌─────────▼──────────┐   ┌────────────────▼───────────────┐   │
+│   │   Model Adapters   │   │      MCP Client Transport      │   │
+│   │ (Anthropic/OpenAI) │   │ (Streamable HTTP, Pool Access) │   │
+│   └────────────────────┘   └────────────────┬───────────────┘   │
+│                                             │                   │
+│   ┌─────────────────────────────────────────▼───────────────┐   │
+│   │      State, Checkpoint & Approval Store (PostgreSQL)    │   │
+│   └─────────────────────────────────────────────────────────┘   │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │ HTTP / SSE
+┌───────────────────────────────▼─────────────────────────────────┐
+│                          MCP Gateway                            │
+│                 (Workin, Invoice, Payroll, dll)                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-PowerShell dengan execution policy ketat dapat memakai `npm.cmd`.
-`build` menghasilkan library di dist; `api:export` menulis artifacts/openapi/v1.json.
-Keduanya tidak membuka server/port atau memakai API key.
-`parseFoundationConfig(env)` menerima environment map yang diinjeksi, tanpa auto-load .env.
+### Fitur Utama
 
-P00 menyediakan strict compilation, AST engineering gates, docs/task-DAG checks, unit/contract
-runner, JSON Schemas, fake MCP fixture service dan 9 scenario definitions. Detail commands
-ada di [tooling](docs/tooling.md). CI workflow disediakan untuk project sebagai repository root.
+1. **MCP-First Architecture**:
+   Engine berkomunikasi dengan backend eksternal menggunakan standar resmi **Model Context Protocol (MCP)** melalui Streamable HTTP. Seluruh tool diekspos secara otomatis ke model AI.
+2. **Human-in-the-Loop Approval Workflow**:
+   Tool yang bersifat mengubah data (*write/mutative actions*) otomatis ditahan dalam status `waiting_for_approval`. Sistem menghasilkan kartu persetujuan dan hanya mengeksekusi aksi setelah pengguna memberikan keputusan eksplisit.
+3. **Dynamic Tool Discovery**:
+   Mampu menangani katalog puluhan hingga ribuan tool tanpa membuat context window model meluap. Engine memuat schema tool secara terarah (*just-in-time / search-based*).
+4. **Durable & Stateful Persistence**:
+   Semua percakapan, event, langkah eksekusi, token usage, dan status approval tersimpan secara transaksional di PostgreSQL dengan mekanisme *checkpoint* dan *lease recovery*.
+5. **Real-Time SSE Event Streaming**:
+   Menyediakan streaming Server-Sent Events (SSE) untuk kata per kata, indikator proses berpikir agen (*agent thinking/planning*), dan status eksekusi tool dengan dukungan *reconnect & cursor replay*.
 
-## Fokus engine
+---
 
-Context -> model -> MCP action -> result -> model -> final/pause. Durable conversation/run,
-approval, ownership, budgets dan recovery. Resources/prompts mengikuti protocol semantics;
-tidak membawa taxonomy tools/knowledges/skill, intent pipeline atau schema V4.
+## Persyaratan Sistem
 
-Acuan prinsip: [Hermes Agent](https://github.com/NousResearch/hermes-agent). Keunggulan atas
-Hermes/V4 belum diukur; fixture validation tidak menjadi benchmark score.
+* **Node.js**: `>= 22.16.0 < 23`
+* **PostgreSQL**: `16+` (direkomendasikan PostgreSQL 18)
 
-## Stack dan maintenance
+---
 
-TypeScript/Node.js, Fastify HTTP/SSE, PostgreSQL melalui persistence port.
-Redis opsional bila dibutuhkan; model/MCP SDK terisolasi di adapters. Utility V4 boleh dicopy
-secara selektif dengan provenance/tests, tanpa source import atau credential/DB reuse.
+## Instalasi & Perintah Utama
 
-Source <=300 lines, seluruh agent/runtime modules <=180, functions <=60, complexity <=10.
-Komponen satu tanggung jawab, dependency injection, dan dependency cycles ditolak.
-Desktop/UI/delegation/data import V4 ditunda; API/adapter boundaries menjaga extensibility.
+Install dependensi menggunakan `npm ci`:
 
-## Dokumentasi
+```bash
+npm ci --ignore-scripts --no-audit
+```
 
-- [START_HERE](START_HERE.md), [AGENTS](AGENTS.md), [parallel lanes](docs/parallel-development.md).
-- [Architecture](docs/architecture.md), [MCP design](docs/mcp-first-design.md).
-- [Database design](docs/database-design.md), [API contract](docs/api-contract.md).
-- [Plan](docs/development-plan.md), [task graph](docs/task-dependencies.json), [checklist](docs/development-checklist.md).
-- [Engineering standards](docs/engineering-standards.md), [tooling](docs/tooling.md).
-- [Reuse](docs/reuse-inventory.md), [evaluation](docs/evaluation-plan.md), [fixture rubric](evals/rubric.md).
-- [Progress](docs/progress.md), [handoff](docs/agent-handoff.md), [future desktop](docs/desktop-backend-contract.md).
+### Script Development
 
-R2.1 mempertahankan 36 task dan mengizinkan task independen berjalan paralel melalui DAG.
-Identity/messages, model/MCP contracts, utilities, context dan deterministic offline fixtures
-tersedia. [API guide](docs/api/README.md) dan [P01-04 handoff](docs/handoffs/P01-04.md)
-menjadi acuan HTTP/events berikutnya. [Workflow handoff](docs/handoffs/P03-04.md) dan
-[PostgreSQL review](docs/reviews/P04-02.md) serta [approval review](docs/reviews/P04-03.md)
-menjadi dasar durable restore/cancel. Baca [P04-04 handoff](docs/handoffs/P04-04.md)
-untuk atomic journal/restart evidence, serta [P05-04 handoff](docs/handoffs/P05-04.md)
-untuk E2E wiring; [P06-01 handoff](docs/handoffs/P06-01.md) menjelaskan HTTP dan
-[P06-03 handoff](docs/handoffs/P06-03.md) menjelaskan worker; [P06-02 handoff](docs/handoffs/P06-02.md)
-menjelaskan SSE/replay. [P06-04 handoff](docs/handoffs/P06-04.md) mencakup headless examples.
-[P07-01 handoff](docs/handoffs/P07-01.md) mencakup context budgeting/compression;
-[P07-02 handoff](docs/handoffs/P07-02.md) mencakup scoped recall/notes (migration0011).
-[P07-03 handoff](docs/handoffs/P07-03.md) mencakup outcome proposals dan atomic retirement (migration0012).
-[P07-04 handoff](docs/handoffs/P07-04.md) mencakup optional checklist/ablation; automatic planning deferred.
-[P08-01 handoff](docs/handoffs/P08-01.md) mencakup pinned regression suite dan [hasil](docs/reports/P08-01-regression.md).
-[P08-02 handoff](docs/handoffs/P08-02.md) mencakup comparison protocol/runner dan batas bukti.
-[P08-03 handoff](docs/handoffs/P08-03.md) dan [hasil setup](docs/reports/P08-03-operations.md) tersedia.
-[P08-04 handoff](docs/handoffs/P08-04.md) menutup roadmap R2.1; tidak ada next DAG task.
-Follow-up dipilih sebagai scope baru: live acceptance/pilot dan validasi deployment; rollout terpisah.
-[Workin follow-up](docs/handoffs/WORKIN-REJECTION.md) membedakan approval ditolak pengguna dari
-penolakan izin; perbaikan teruji offline/integrasi, live Workin revalidation masih pending.
-[MCP session/resource follow-up](docs/handoffs/WORKIN-MCP-SESSION.md) juga selesai tanpa replay otomatis.
+| Perintah | Deskripsi |
+| :--- | :--- |
+| `npm run check` | Menjalankan seluruh verifikasi: typecheck, linting AST, arsitektur, dan evaluasi skema. |
+| `npm run build` | Mengompilasi TypeScript ke direktori `./dist` dan menyalin file migrasi SQL PostgreSQL. |
+| `npm run typecheck` | Menjalankan validasi TypeScript tanpa emit (`tsc --noEmit`). |
+| `npm run lint` | Memeriksa aturan penulisan kode, batas baris, dan kompleksitas fungsi AST. |
+| `npm run test:unit` | Menjalankan unit test lokal berbasis runner bawaan Node.js test. |
+| `npm run test:contract` | Menjalankan kontrak API, validasi schema, dan skenario offline. |
+| `npm run api:export` | Mengekspor spesifikasi OpenAPI ke `artifacts/openapi/v1.json`. |
 
-[Local tool discovery](docs/tool-discovery.md) memisahkan katalog MCP backend dari schema model.
-Env `VIPER_TOOL_DISCOVERY_MODE=auto|on|off` mengatur aktivasi; ambang jumlah dan estimasi token
-bisa disetel. Standalone menginjeksi env; custom hosts memakai `parseToolDiscoveryConfig`.
-`npm run discovery:report` mengukur ukuran schema katalog sintetis400/1000/3000 tool, tanpa live I/O.
+---
+
+## Cara Penggunaan (Quick Start)
+
+Viper Engine biasanya diimpor sebagai dependensi pustaka oleh host server (seperti `viper-host`):
+
+```typescript
+import {
+  createViperEngine,
+  createEngineHttpServer,
+  parseConfiguredModelConfig,
+  parseId,
+} from "@devduluin/viper-engine";
+
+// 1. Inisialisasi Model AI (Anthropic Claude atau OpenAI)
+const model = parseConfiguredModelConfig(process.env);
+
+// 2. Buat instance Viper Engine
+const engine = createViperEngine({
+  model,
+  // Port kredensial SSO user
+  credentials: {
+    resolve: async (scope) => ({
+      ok: true,
+      credential: { kind: "bearer", token: getUserToken(scope.actorId) },
+    }),
+  },
+  // Mapping endpoint MCP gateway
+  resolveEndpoint: (server) => ({
+    kind: "streamable_http",
+    url: server.endpointRef,
+  }),
+  // Menghubungkan koneksi MCP per user
+  connections: async (scope) => [
+    { id: parseId("mcp_connection", "conn-workin"), namespace: "workin" },
+  ],
+  // Kebijakan eksekusi tool: read-only langsung jalan, aksi tulis butuh persetujuan
+  policy: {
+    decide: (tool) =>
+      tool.definition.annotations?.readOnlyHint === true
+        ? "execute"
+        : "requires_approval",
+  },
+});
+
+// 3. Pasang ke HTTP & SSE Server
+const server = await createEngineHttpServer(engine, {
+  cursorSecret: Buffer.from(process.env.VIPER_CURSOR_SECRET!, "hex"),
+  authenticate: async (request) => verifyAuthToken(request),
+});
+
+await server.listen({ host: "0.0.0.0", port: 4300 });
+console.log("Viper Engine siap melayani di port 4300");
+```
+
+---
+
+## Konfigurasi Environment Variables
+
+Berikut variabel lingkungan utama yang didukung engine:
+
+### 1. Model Provider & API Keys
+* `VIPER_MODEL_PROVIDER`: Provider utama (`anthropic` atau `openai`). Default: `anthropic`.
+* `ANTHROPIC_API_KEY`: API Key Anthropic jika menggunakan model Claude.
+* `VIPER_MODEL`: Nama model Claude (misal `claude-sonnet-4-6` atau `claude-3-5-sonnet-latest`).
+* `OPENAI_API_KEY`: API Key OpenAI jika menggunakan provider OpenAI.
+* `VIPER_OPENAI_MODEL`: Nama model OpenAI (misal `gpt-4o`).
+
+### 2. Database PostgreSQL
+* `VIPER_DB_HOST`: Host database PostgreSQL.
+* `VIPER_DB_PORT`: Port database (default `5432`).
+* `VIPER_DB_NAME`: Nama database.
+* `VIPER_DB_USER`: Username database.
+* `VIPER_DB_PASSWORD`: Password database.
+* `VIPER_DB_POOL_MAX`: Kapasitas koneksi pool (default `10`).
+
+### 3. Tool Discovery
+* `VIPER_TOOL_DISCOVERY_MODE`: Mode katalog tool (`auto`, `on`, atau `off`). Default: `auto`.
+* `VIPER_TOOL_EAGER_MAX_COUNT`: Batas maksimal tool yang dimuat langsung ke schema model (default `30`).
+
+---
+
+## Struktur Direktori
+
+Kode sumber di dalam folder `src/` disusun dengan arsitektur berlapis (*layered architecture*):
+
+```text
+src/
+├── contracts/       # Definisi tipe, interface ID, pesan, skema event, dan error code
+├── agent/           # Logika inti agen: loop runtime, context budgeting, memory, dan planning
+├── adapters/        # Implementasi port eksternal:
+│   ├── models/      # Adapter ke SDK Anthropic dan OpenAI
+│   ├── mcp/         # Klien HTTP transport MCP dan connection pooling
+│   └── persistence/ # Driver database PostgreSQL transaksional
+├── bootstrap/       # Factory builder (createViperEngine, createEngineHttpServer, dll.)
+└── entrypoints/     # HTTP endpoint Fastify dan background worker loop
+```
+
+---
+
+## Standar Kualitas & Batas Kode (*Engineering Standards*)
+
+Repositori ini menerapkan aturan kualitas kode yang ketat yang diverifikasi otomatis pada saat `npm run check`:
+* Tidak ada `any` eksplisit (strict TypeScript).
+* Ukuran maksimal file: $\le 300$ baris (runtime loop $\le 180$ baris).
+* Ukuran maksimal fungsi: $\le 60$ baris.
+* Kompleksitas siklomatis AST per fungsi: $\le 10$.
+* Bebas dependensi melingkar (*no circular dependencies*).
