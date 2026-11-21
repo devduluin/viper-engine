@@ -13,8 +13,11 @@ import { apiCall, singleHeader } from './request.js';
 import type { HttpReplay } from './sse/types.js';
 import { StreamSessions } from './sse/sessions.js';
 import { handleEventStream } from './sse/handler.js';
+import { registerMemoryRoutes } from './memory.js';
+import type { UserMemoryPort } from '../../contracts/recall/user-memory.js';
 
 export interface HttpOptions {
+  readonly userMemory?: UserMemoryPort;
   readonly authenticate: (bearerToken: string) => Promise<AuthenticatedIdentity | undefined>;
   readonly requestBytes: number;
   readonly replay?: HttpReplay;
@@ -41,6 +44,11 @@ export function createHttpServer(handler: ApiHandler, options: HttpOptions) {
     return reply.code(status).send(validator.response('ErrorResponse', response));
   });
   app.setNotFoundHandler(async () => { throw new ApiFailure('NOT_FOUND'); });
+  if (options.userMemory !== undefined) registerMemoryRoutes(app, options.userMemory, request => {
+    const scope = scopes.get(request);
+    if (scope === undefined) throw new ApiFailure('AUTHENTICATION_REQUIRED');
+    return scope;
+  }, validator);
   if (streams !== undefined && options.replay !== undefined) {
     const replay = options.replay;
     app.get('/api/v1/runs/:runId/events', async (request, reply) => {

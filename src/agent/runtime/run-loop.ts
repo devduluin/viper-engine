@@ -12,6 +12,8 @@ import type { RunLoopDependencies, RunLoopInput, RunLoopResult, RunStop } from '
 import type { ToolCallReport } from '../execution/dispatch.js';
 import { discoverTools } from './discovery.js';
 import { runClientTools } from './client-tools.js';
+import { runMemoryTools } from './memory-tools.js';
+import { parseMessage } from '../../contracts/messages/parse-message.js';
 
 /**
  * Model -> validated MCP calls -> normalized results -> model, until a final answer, a pause,
@@ -41,6 +43,10 @@ export function snapshotLoopResult(context: StepContext, stop: RunStop): RunLoop
 
 async function guardedStep(context: StepContext): Promise<RunStop | undefined> {
   try { return await runStep(context); } catch (error) {
+    if (error instanceof BudgetExceeded && error.reason === 'token_limit') {
+      await appendRuntimeMessages(context, [parseMessage({ id: context.deps.ids.next('message'), role: 'assistant',
+        content: [{ type: 'text', text: 'Pekerjaan dihentikan karena batas token. Hasil yang sudah diperoleh tetap tersimpan; pekerjaan ini belum dipastikan selesai.' }] })]);
+    }
     if (error instanceof BudgetExceeded || error instanceof RunInterrupted) return guardedStop(error.reason, context.state.reports);
     throw error;
   }
@@ -69,6 +75,7 @@ async function runStep(context: StepContext): Promise<RunStop | undefined> {
   context.state.modelCalls += 1;
   const step = await requestDecision(context);
   switch (step.kind) {
+    case 'memory': await runMemoryTools(context, step.assistant, step.calls); return undefined;
     case 'discovery': await discoverTools(context, step.assistant, step.call); return undefined;
     case 'client': await runClientTools(context, step.assistant, step.calls); return undefined;
     case 'cancelled': return { status: 'cancelled', reason: 'cancelled' };

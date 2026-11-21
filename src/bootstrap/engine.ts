@@ -10,11 +10,14 @@ import { engineSettings } from './engine-config.js';
 import { engineLifecycle } from './engine-lifecycle.js';
 import { createClientToolPort } from './client-tools.js';
 import { processClientTools } from '../application/streaming/client-tools.js';
+import { runBudgetSelector } from './run-budget.js';
+import { userMemoryOptions } from './user-memory.js';
 
 /** Concrete standalone engine. Host owns DB pool/migrations; engine owns its MCP sessions. */
 export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
   options = Object.freeze({ ...options });
   const settings = engineSettings(options);
+  const modeSettings = runBudgetSelector(pool, options, settings.limits);
   const { clock, ids, connectTimeoutMs, requestTimeoutMs } = settings;
   const directory = new PostgresMcpConnectionStore(pool);
   const connections = new McpConnectionPool({ directory, credentials: options.credentials, resolveEndpoint: options.resolveEndpoint,
@@ -27,12 +30,13 @@ export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
       tools: await discoverRuntimeTools(scope, await options.connections(scope, checkpoint), directory, mcp, settings),
       ...(options.instructions === undefined ? {} : { instructions: typeof options.instructions === 'function'
         ? await options.instructions(scope, checkpoint) : options.instructions }),
-      limits: settings.limits, context: settings.context, toolDiscovery: settings.toolDiscovery }),
+      limits: settings.limits, context: settings.context, toolDiscovery: settings.toolDiscovery, ...await modeSettings(checkpoint.run.id) }),
     ...(options.leaseMs === undefined ? {} : { leaseMs: options.leaseMs }),
     ...(options.heartbeatMs === undefined ? {} : { heartbeatMs: options.heartbeatMs }),
     ...(options.approvalTtlMs === undefined ? {} : { approvalTtlMs: options.approvalTtlMs }),
     ...(options.onEvent === undefined ? {} : { onEvent: options.onEvent }),
     ...(options.contextEvidence === undefined ? {} : { contextEvidence: options.contextEvidence }),
+    ...userMemoryOptions(pool, options.userMemory),
     ...(options.clientTools === undefined ? {} : { clientTools: createClientToolPort(pool, options.clientTools) }),
     ...(options.onDeliveryFailure === undefined ? {} : { onDeliveryFailure: options.onDeliveryFailure }),
   });

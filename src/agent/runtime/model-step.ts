@@ -11,8 +11,10 @@ import { BudgetExceeded } from '../policies/limits.js';
 import { TOOL_SEARCH_NAME } from '../../contracts/discovery/state.js';
 import { withDiscoveryExchanges } from '../context/transient.js';
 import { isClientToolName } from './client-tools.js';
+import { isMemoryTool } from './memory-definitions.js';
 
 export type ModelStep =
+  | { readonly kind: 'memory'; readonly assistant: AssistantMessage; readonly calls: readonly import('../../contracts/messages/message.js').ToolCall[] }
   | { readonly kind: 'client'; readonly assistant: AssistantMessage; readonly calls: readonly import('../../contracts/messages/message.js').ToolCall[] }
   | { readonly kind: 'discovery'; readonly assistant: AssistantMessage; readonly call: import('../../contracts/messages/message.js').ToolCall }
   | { readonly kind: 'decision'; readonly decision: ModelDecision; readonly assistant: AssistantMessage }
@@ -53,17 +55,21 @@ export async function requestDecision(context: StepContext): Promise<ModelStep> 
   const stepId = deps.ids.next('step');
   const modelCallId = deps.ids.next('model_call');
   const prepared = await prepareModelContext(context, stepId, modelCallId);
+  const reservation = context.budget.tokens.reserve(prepared.estimate.tokens, input.maxOutputTokens, prepared.estimate.hasUnpricedMedia);
+  const request = Object.freeze({ ...prepared.request, maxOutputTokens: reservation.output });
   await context.emit({ type: 'model_call_started', stepId, modelCallId,
     ...(state.contextCheckpoint === undefined ? {} : { contextCheckpoint: state.contextCheckpoint }) });
-  const result = await generate(context, prepared.request);
+  const result = await generate(context, request);
   const limit = context.budget.output('model', result);
   const usage = parseModelUsage(result.usage);
+  context.budget.tokens.settle(reservation.reserved, usage);
   await context.emit({ type: 'model_call_finished', modelCallId, ok: result.ok, usage,
     ...(result.ok ? {} : { failureCode: result.error.code }) });
   const stopped = context.control.check();
   if (stopped !== undefined) throw new RunInterrupted(stopped);
   if (limit !== undefined) throw new BudgetExceeded(limit);
-  if (usage.source === 'provider' && usage.outputTokens !== null && usage.outputTokens > input.maxOutputTokens) {
+  context.budget.tokens.assertAvailable();
+  if (usage.source === 'provider' && usage.outputTokens !== null && usage.outputTokens > reservation.output) {
     throw new BudgetExceeded('model_output_limit');
   }
   if (!result.ok) return { kind: 'failure', failure: result.error };
@@ -84,6 +90,10 @@ function normalizeDecision(context: StepContext, value: unknown): ModelStep {
 /** Tool search (discovery) or client tools: steps handled outside MCP dispatch. */
 function specialStep(context: StepContext, decision: ModelDecision, assistant: AssistantMessage): ModelStep | undefined {
   if (decision.kind !== 'tool_calls') return undefined;
+  if (decision.calls.some(call => isMemoryTool(call.name))) {
+    context.budget.propose(decision.calls, context.index);
+    return { kind: 'memory', assistant, calls: decision.calls };
+  }
   if (context.discovery.enabled && decision.calls.some(call => call.name === TOOL_SEARCH_NAME)) {
     if (decision.calls.length !== 1 || decision.calls[0]?.name !== TOOL_SEARCH_NAME) return { kind: 'invalid' };
     return { kind: 'discovery', assistant, call: decision.calls[0] };

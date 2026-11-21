@@ -30,6 +30,9 @@ export interface ClientToolsConfig {
 }
 
 export interface ViperEngineOptions {
+  readonly userMemory?: boolean;
+  readonly budgetProfiles?: import('../contracts/models/budget-profiles.js').BudgetProfiles;
+  readonly defaultBudgetMode?: import('../contracts/models/budget-profiles.js').BudgetMode;
   readonly model: EngineModel;
   readonly credentials: McpCredentialPort;
   readonly resolveEndpoint: (server: McpServerEndpoint) => McpTransportConfig;

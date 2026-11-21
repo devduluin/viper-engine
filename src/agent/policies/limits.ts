@@ -1,4 +1,5 @@
 export interface RunLimits {
+  readonly maxTotalTokens: number;
   readonly maxSteps: number;
   /** Counts proposed calls, including validation/policy rejections; dispatches cannot exceed it. */
   readonly maxToolCalls: number;
@@ -11,13 +12,14 @@ export interface RunLimits {
 }
 
 export const DEFAULT_RUN_LIMITS: RunLimits = Object.freeze({
+  maxTotalTokens: Number.MAX_SAFE_INTEGER,
   maxSteps: 32, maxToolCalls: 32, maxDurationMs: 120_000,
   maxModelOutputBytes: 262_144, maxToolOutputBytes: 262_144,
   maxTotalOutputBytes: 1_048_576, maxRepeatedToolCalls: 3, maxCorrections: 2,
 });
 
 export type BudgetReason = 'step_limit' | 'tool_call_limit' | 'model_output_limit'
-  | 'tool_output_limit' | 'total_output_limit' | 'repetition_limit' | 'correction_limit' | 'context_input_limit' | 'tool_search_limit';
+  | 'tool_output_limit' | 'total_output_limit' | 'repetition_limit' | 'correction_limit' | 'context_input_limit' | 'tool_search_limit' | 'token_limit';
 export type ExecutionStopReason = BudgetReason | 'cancelled' | 'deadline_exceeded' | 'unknown_outcome';
 
 export class BudgetExceeded extends Error {

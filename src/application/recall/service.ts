@@ -7,6 +7,8 @@ import { recallLimit, searchQuery, noteQuery, noteSource } from '../../contracts
 import { parseId } from '../../contracts/identity/ids.js';
 import { parseRevision } from '../../contracts/state/result.js';
 import { recallEvidence } from './evidence.js';
+import { relevantNotes } from './relevance.js';
+import type { RelevantNoteQuery } from './relevance.js';
 
 export class EngineRecall {
   constructor(private readonly store: RecallStore, private readonly clock: Clock, private readonly ids: IdGenerator) {}
@@ -15,6 +17,10 @@ export class EngineRecall {
   }
   notes(scope: TrustedScope, input: Partial<NoteQuery> = {}) {
     assertTrustedScope(scope); return this.store.notes(scope, noteQuery({ ...input, limit: recallLimit(input.limit) }));
+  }
+  /** Bounded relevant explicit notes, requested by a trusted host; no automatic prompt injection. */
+  relevantNotes(scope: TrustedScope, input: RelevantNoteQuery) {
+    assertTrustedScope(scope); return relevantNotes(this.store, scope, input);
   }
   async getNote(scope: TrustedScope, id: string) {
     assertTrustedScope(scope); return requireState(await this.store.get(scope, parseId('note', id)));

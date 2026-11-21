@@ -3,6 +3,7 @@ import { parseId } from '../../contracts/identity/ids.js';
 import { parseJsonObject } from '../../contracts/messages/json.js';
 
 export interface BudgetState {
+  readonly chargedTokens?: number;
   readonly steps: number; readonly toolCalls: number; readonly corrections: number;
   readonly modelOutputBytes: number; readonly toolOutputBytes: number;
   readonly repeated: readonly (readonly [string, number])[];
@@ -29,6 +30,7 @@ export function parseBudgetState(value: unknown): BudgetState {
   const input = parseJsonObject(value);
   if (!Array.isArray(input['uncertain'])) throw new Error('Invalid uncertain calls');
   return Object.freeze({ steps: count(input['steps']), toolCalls: count(input['toolCalls']), corrections: count(input['corrections']),
+    ...(input['chargedTokens'] === undefined ? {} : { chargedTokens: count(input['chargedTokens']) }),
     modelOutputBytes: count(input['modelOutputBytes']), toolOutputBytes: count(input['toolOutputBytes']),
     repeated: Object.freeze(entries(input['repeated']).map(([key, number]) => Object.freeze([hash(key), count(number)] as const))),
     calls: Object.freeze(entries(input['calls']).map(([id, key]) => Object.freeze([parseId('tool_call', id), hash(key)] as const))),

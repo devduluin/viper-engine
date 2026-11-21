@@ -7,7 +7,7 @@ import type { AnthropicModelConfig } from './model-config.js';
 export type RunEffortLookup = (runId: string) => Promise<'low' | 'medium' | 'high' | undefined>;
 
 /** Reads runs.effort; hosts pass it to createConfiguredModelBinding so the composer's choice reaches the model. */
-export function runEffortFromDatabase(pool: { query(text: string, values?: unknown[]): Promise<{ rows: unknown[] }> }): RunEffortLookup {
+export function runEffortFromDatabase(pool: { query(text: string, values?: unknown[]): Promise<{ rows: readonly unknown[] }> }): RunEffortLookup {
   return async (runId) => {
     const result = await pool.query('SELECT effort FROM viper_engine.runs WHERE id = $1', [runId]);
     const value = (result.rows[0] as { effort?: unknown } | undefined)?.effort;

@@ -9,7 +9,8 @@ import type { ToolDiscoveryState, DiscoveryExchange } from '../../contracts/disc
 import type { RuntimeTool, ToolIndex } from '../execution/tool-catalog.js';
 import { createFingerprint } from '../../shared/fingerprints/fingerprint.js';
 import { discoveryCatalog, schemaTokens } from './catalog.js';
-import { searchCatalog } from './search.js';
+import { searchAlternatives } from './fusion.js';
+import type { SearchDocument } from './search.js';
 import { searchDefinition } from './definition.js';
 import { searchArguments } from './arguments.js';
 
@@ -47,14 +48,14 @@ export class ToolDiscovery {
     this.state = { ...this.state, searches: this.state.searches + 1 };
     const input = searchArguments(args);
     if (input === undefined) return { code: 'invalid_query', loaded: [], matches: [] };
-    const matches = searchCatalog(this.catalog.documents, input.query, input.source, this.state.settings.searchTopK);
+    const matches = searchAlternatives(this.catalog.documents, input.query, input.alternatives, input.source, this.state.settings.searchTopK);
     const skipped = this.activate(matches);
     const usable = matches.some(hit => this.state.active.some(item => item.alias === hit.tool.name));
     return parseJsonObject({ code: matches.length === 0 ? 'no_matches' : usable ? 'ok' : 'active_schema_budget',
       matches: matches.map(hit => ({ name: hit.tool.name, source: hit.source, description: (hit.tool.description ?? '').slice(0, 240) })),
       loaded: this.state.active.map(item => item.alias), skipped, availableSources: this.catalog.sources });
   }
-  private activate(matches: ReturnType<typeof searchCatalog>): string[] {
+  private activate(matches: readonly SearchDocument[]): string[] {
     const active = [...this.state.active]; const skipped: string[] = [];
     for (const hit of matches) {
       if (active.some(item => item.alias === hit.tool.name)) continue;

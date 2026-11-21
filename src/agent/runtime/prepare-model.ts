@@ -3,6 +3,7 @@ import { prepareContext } from '../context/prepare.js';
 import type { StepContext } from './types.js';
 import { clientToolDefinitions } from './client-tools.js';
 import type { ModelCallId, StepId } from '../../contracts/identity/ids.js';
+import { MEMORY_TOOLS } from './memory-definitions.js';
 
 export async function prepareModelContext(context: StepContext, stepId: StepId, modelCallId: ModelCallId) {
   const { input, deps, state } = context;
@@ -11,7 +12,7 @@ export async function prepareModelContext(context: StepContext, stepId: StepId, 
     { scope: input.scope, conversationId: input.conversationId, runId: input.runId }, { signal }));
   const source = { scope: input.scope, conversationId: input.conversationId, runId: input.runId, stepId, modelCallId,
     model: input.model, maxOutputTokens: input.maxOutputTokens,
-    tools: [...context.index.modelTools, ...await clientToolDefinitions(context)],
+    tools: [...context.index.modelTools, ...await clientToolDefinitions(context), ...(deps.userMemory === undefined ? [] : MEMORY_TOOLS)],
     history: { ...input.history, messages: state.history }, instructions: input.instructions ?? [], evidence,
     discoveryExchanges: context.discovery.exchanges, deadlineAt: context.control.deadlineAt };
   if (input.context === undefined) return assembleContext(source, deps.model.capabilities, deps.clock.now());

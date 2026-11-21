@@ -67,6 +67,8 @@ export { DEFAULT_CONTEXT_BUDGET, resolveContextBudget } from './contracts/contex
 export type { ContextBudget } from './contracts/context/budget.js';
 export type { ContextCheckpoint, ContextReport } from './contracts/context/checkpoint.js';
 export { createEngineRecall } from './bootstrap/recall.js';
+export { createUserMemory } from './bootstrap/user-memory.js';
+export type { UserMemoryPort, MemorySave, MemoryDelete } from './contracts/recall/user-memory.js';
 export type { RecallNote, NoteSource, NoteChange, HistoryHit, RecallPage, RecallStore } from './contracts/recall/ports.js';
 export type { ContextEvidenceProvider } from './contracts/context/evidence.js';
 export { createEngineLearning } from './bootstrap/learning.js';
@@ -85,5 +87,8 @@ export { createDatabasePool, migrateDatabase, assertSchemaReady, SchemaNotReadyE
 export { parseDatabaseConfig } from './bootstrap/database-config.js';
 export type { DatabaseConfig } from './bootstrap/database-config.js';
 export { parseToolDiscoveryConfig } from './bootstrap/tool-discovery-config.js';
+export { parseBudgetProfiles } from './bootstrap/budget-profiles.js';
+export { DEFAULT_BUDGET_PROFILES, validateBudgetProfiles } from './contracts/models/budget-profiles.js';
+export type { BudgetProfiles, ModeBudget, BudgetMode } from './contracts/models/budget-profiles.js';
 export { DEFAULT_TOOL_DISCOVERY, resolveToolDiscovery } from './contracts/discovery/config.js';
 export type { ToolDiscoveryConfig } from './contracts/discovery/config.js';

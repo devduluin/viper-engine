@@ -14,8 +14,10 @@ import type { TrustedScope } from '../contracts/identity/scope.js';
 import type { RunCheckpoint } from '../contracts/state/checkpoints.js';
 import { eventReplay } from './event-replay.js';
 import type { EventStreamOptions } from './event-replay.js';
+import { createUserMemory } from './user-memory.js';
 
 export interface EngineHttpOptions extends Pick<ApiOptions, 'authorizeServer' | 'prepareContext' | 'authorizeMedia' | 'titleConversation'> {
+  readonly userMemory?: boolean;
   readonly authenticate: HttpOptions['authenticate'];
   /** Stable deployment secret, separate from bearer/provider credentials. */
   readonly cursorSecret: Uint8Array;
@@ -43,6 +45,7 @@ export function createEngineHttpServer(pool: SqlPool, options: EngineHttpOptions
     ...optionalHooks(options),
   });
   const app = createHttpServer(api, { requestBytes,
+    ...(options.userMemory ? { userMemory: createUserMemory(pool) } : {}),
     ...(options.stream === false ? {} : { replay: eventReplay(pool, cursors, clock, eventBytes, eventRetentionSeconds, options.stream) }),
     authenticate: token => withDeadline(() => options.authenticate(token),
     { operationName: 'HTTP authentication', timeoutMs: 10000 }) });

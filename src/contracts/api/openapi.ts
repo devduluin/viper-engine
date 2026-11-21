@@ -2,6 +2,7 @@ import { parseJsonObject } from '../messages/json.js';
 import type { JsonValue } from '../messages/json.js';
 import { RESOURCE_PATHS } from './resource-paths.js';
 import { RUN_PATHS } from './run-paths.js';
+import { MEMORY_PATHS } from './memory-paths.js';
 import { API_SCHEMA_DOCUMENT } from './schemas.js';
 
 /** Convert only local schema references; preserve arbitrary examples/string data. */
@@ -21,7 +22,7 @@ export const OPENAPI_DOCUMENT = parseJsonObject({
   info: { title: 'Viper Engine API', version: '1.0.0', description: 'MCP-first, client-neutral engine contract' },
   servers: [{ url: '/' }],
   security: [{ bearerAuth: [] }],
-  paths: { ...RESOURCE_PATHS, ...RUN_PATHS },
+  paths: { ...RESOURCE_PATHS, ...RUN_PATHS, ...MEMORY_PATHS },
   components: {
     securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer' } },
     schemas: openApiReferences(API_SCHEMA_DOCUMENT['$defs'] ?? {}),

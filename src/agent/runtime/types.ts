@@ -42,7 +42,7 @@ export interface RunLoopInput {
   readonly runId: RunId;
   readonly model: string;
   readonly maxOutputTokens: number;
-  /** Hard ceiling on model attempts in this invocation; no automatic retries. */
+  /** Hard ceiling on model attempts; durable resume retains the accumulated counter. */
   readonly maxModelCalls: number;
   readonly limits?: Partial<RunLimits>;
   /** Trusted, scope-checked history loaded by the application. */
@@ -63,7 +63,7 @@ export type RunStopReason =
 export type RuntimeEvent =
   | ExecutionEvent
   | { readonly type: 'tools_discovered'; readonly state: ToolDiscoveryState }
-  /** A step that called client tools: the assistant message and its results, journaled together. */
+  /** Auxiliary browser/native tools: the assistant message and its results, journaled together. */
   | { readonly type: 'client_tools_completed'; readonly messages: readonly Message[] }
   | { readonly type: 'model_call_started'; readonly stepId: StepId; readonly modelCallId: ModelCallId; readonly contextCheckpoint?: ContextCheckpoint }
   | { readonly type: 'model_call_finished'; readonly modelCallId: ModelCallId; readonly ok: boolean; readonly usage: ModelUsage; readonly failureCode?: ModelFailure['code'] }
@@ -87,6 +87,7 @@ export interface ClientToolPort {
 }
 
 export interface RunLoopDependencies {
+  readonly userMemory?: Pick<import('../../contracts/recall/user-memory.js').UserMemoryPort, 'search'>;
   readonly contextEvidence?: ContextEvidenceProvider;
   /** Tools executed by the user's client (e.g. reading the open web page); absent = none offered. */
   readonly clientTools?: ClientToolPort;

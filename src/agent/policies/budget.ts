@@ -7,6 +7,7 @@ import { BudgetExceeded } from './limits.js';
 import type { BudgetReason, RunLimits } from './limits.js';
 import { parseBudgetState } from './budget-state.js';
 import type { BudgetState } from './budget-state.js';
+import { TokenBudget } from './token-budget.js';
 
 export interface BudgetUsage {
   readonly steps: number;
@@ -18,6 +19,7 @@ export interface BudgetUsage {
 
 /** One invocation's trusted counters; model/tool payloads cannot configure or reset them. */
 export class RunBudget {
+  readonly tokens: TokenBudget;
   private steps = 0;
   private toolCalls = 0;
   private modelOutputBytes = 0;
@@ -28,6 +30,7 @@ export class RunBudget {
   private readonly uncertain = new Set<string>();
 
   constructor(readonly limits: RunLimits, private readonly scope: TrustedScope, private readonly runId: RunId, saved?: BudgetState) {
+    this.tokens = new TokenBudget(limits.maxTotalTokens, saved?.chargedTokens);
     if (saved === undefined) return;
     const state = parseBudgetState(saved);
     this.steps = state.steps; this.toolCalls = state.toolCalls; this.corrections = state.corrections;
@@ -38,7 +41,8 @@ export class RunBudget {
   }
 
   exportState(): BudgetState {
-    return parseBudgetState({ ...this.snapshot(), repeated: [...this.repeated], calls: [...this.calls], uncertain: [...this.uncertain] });
+    return parseBudgetState({ ...this.snapshot(), ...(this.tokens.enabled ? { chargedTokens: this.tokens.used } : {}),
+      repeated: [...this.repeated], calls: [...this.calls], uncertain: [...this.uncertain] });
   }
 
   step(): void {
