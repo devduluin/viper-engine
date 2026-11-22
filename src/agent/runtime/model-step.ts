@@ -51,13 +51,10 @@ async function generate(context: StepContext, request: ModelRequest) {
 /** One model call over the complete current history. Unexpected gateway faults propagate. */
 export async function requestDecision(context: StepContext): Promise<ModelStep> {
   const { deps, state } = context;
-  if (state.history.some(message => message.content.some(block => !deps.model.capabilities.contentTypes.includes(block.type)))) {
-    return { kind: 'failure', failure: { code: 'unsupported', message: 'Model does not support content retained in this conversation', retryable: false } };
-  }
   const stepId = deps.ids.next('step');
   const modelCallId = deps.ids.next('model_call');
   const prepared = await prepareModelContext(context, stepId, modelCallId);
-  const reservation = context.budget.tokens.reserve(prepared.estimate.tokens, outputAllowance(context), prepared.estimate.hasUnpricedMedia);
+  const reservation = context.budget.tokens.reserve(prepared.estimate.tokens, outputAllowance(context));
   const request = Object.freeze({ ...prepared.request, maxOutputTokens: reservation.output });
   await context.emit({ type: 'model_call_started', stepId, modelCallId,
     ...(state.contextCheckpoint === undefined ? {} : { contextCheckpoint: state.contextCheckpoint }) });

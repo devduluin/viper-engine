@@ -13,9 +13,10 @@ import { prefixDigest, summarizedPrefix } from './summary.js';
 import { assertContextCheckpoint } from './checkpoint.js';
 import { assertMessageHistory } from '../../contracts/messages/history.js';
 import { withDiscoveryExchanges } from './transient.js';
+import { measuredBytes, projectMedia } from './media.js';
 
 interface Selection { readonly request: ModelRequest; readonly covered: number; readonly digest: string; readonly excerpt: string }
-const bytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).byteLength;
+const bytes = measuredBytes;
 function fits(request: ModelRequest, budget: ContextBudget): boolean {
   return bytes(request) <= budget.maxInputBytes && estimateContextText(request).tokens + request.maxOutputTokens + budget.framingReserveTokens <= budget.windowTokens;
 }
@@ -55,7 +56,7 @@ export function prepareContext(input: ContextInput, capabilities: ModelCapabilit
   const budget = resolveContextBudget(options); const full = assembleContext(input, capabilities, now);
   if (previous !== undefined) assertContextCheckpoint(input, previous, budget);
   const preserve = anchor(input, previous, start); const selected = select(input, full.request, preserve, budget);
-  const request = Object.freeze({ ...selected.request });
+  const request = Object.freeze({ ...selected.request, messages: projectMedia(selected.request.messages, capabilities.contentTypes) });
   const estimate = estimateContextText(request);
   const checkpoint: ContextCheckpoint = Object.freeze({ version: 1, conversationId: input.conversationId, runId: input.runId,
     preserveFromMessageId: preserve, coveredMessages: selected.covered, sourceDigest: selected.digest, excerpt: selected.excerpt,

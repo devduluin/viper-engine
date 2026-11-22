@@ -7,9 +7,9 @@ export class TokenBudget {
   constructor(readonly maximum: number, saved = 0) { this.charged = saved; }
   get enabled() { return this.maximum < Number.MAX_SAFE_INTEGER; }
   get used() { return this.charged; }
-  reserve(input: number, requestedOutput: number, unpricedMedia: boolean) {
+  /** `input` already carries a fixed allowance per media block (context/media.ts), so media no longer rejects the step. */
+  reserve(input: number, requestedOutput: number) {
     if (!this.enabled) return { output: requestedOutput, reserved: 0 };
-    if (unpricedMedia) throw new BudgetExceeded('token_limit');
     const prompt = input + 2048; // Explicit framing allowance; input estimates are not a billing guarantee.
     const remaining = this.maximum - this.charged - prompt;
     if (remaining < 1) throw new BudgetExceeded('token_limit');

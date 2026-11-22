@@ -10,6 +10,7 @@ import { estimateContextText } from './estimate.js';
 import type { ContextTextEstimate } from './estimate.js';
 import type { DiscoveryExchange } from '../../contracts/discovery/state.js';
 import { withDiscoveryExchanges } from './transient.js';
+import { projectMedia } from './media.js';
 
 /** Loaded by trusted application storage; never authenticate an ingress history with this type. */
 export interface ScopedHistory {
@@ -42,7 +43,7 @@ export function assembleContext(input: ContextInput, capabilities: ModelCapabili
     throw new Error('History cannot supply system instructions');
   }
   const canonical = parseMessageHistory([...instructions, ...evidence(input.evidence ?? []), ...input.history.messages], { allowPendingToolCalls: false });
-  const messages = withDiscoveryExchanges(canonical, input.discoveryExchanges);
+  const messages = projectMedia(withDiscoveryExchanges(canonical, input.discoveryExchanges), capabilities.contentTypes);
   const tools = Object.freeze(input.tools.map(tool => Object.freeze({
     name: tool.name, inputSchema: parseJsonObject(tool.inputSchema),
     ...(tool.description === undefined ? {} : { description: tool.description }),
