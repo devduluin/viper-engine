@@ -8,6 +8,18 @@ import { createFingerprint } from '../../shared/fingerprints/fingerprint.js';
 const INVALID_SCHEMA = Object.freeze({ ok: false, message: 'Tool schema is invalid or unsupported' } as const);
 const INVALID_ARGS = Object.freeze({ ok: false, message: 'Tool arguments do not match the advertised schema' } as const);
 
+/**
+ * Names the failing field and rule (e.g. "/pid must be integer") so the model can fix the call in one step. Messages
+ * come from the schema keywords, never from the argument values.
+ */
+function explain(validator: ValidateFunction): { readonly ok: false; readonly message: string; readonly field?: string } {
+  const errors = (validator.errors ?? []).slice(0, 3);
+  if (errors.length === 0) return INVALID_ARGS;
+  const detail = errors.map(error => `${error.instancePath || '/'} ${error.message ?? 'is invalid'}`).join('; ').slice(0, 400);
+  const field = errors[0]?.instancePath.replace(/^\//, '');
+  return { ok: false, message: `${INVALID_ARGS.message}: ${detail}`, ...(field ? { field } : {}) };
+}
+
 /** Structural ToolArgumentValidator: adapter imports contracts, never agent/application types. */
 export class JsonSchemaToolValidator {
   private readonly cache = new Map<string, ValidateFunction | null>();
@@ -28,7 +40,7 @@ export class JsonSchemaToolValidator {
       }
     }
     if (validator === null) return INVALID_SCHEMA;
-    try { return validator(args) ? { ok: true } : INVALID_ARGS; } catch { return INVALID_ARGS; }
+    try { return validator(args) ? { ok: true } : explain(validator); } catch { return INVALID_ARGS; }
   }
 
   private compile(schema: JsonObject): ValidateFunction | null {

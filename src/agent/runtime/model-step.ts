@@ -13,6 +13,7 @@ import { withDiscoveryExchanges } from '../context/transient.js';
 import { isClientToolName } from './client-tools.js';
 import { isMemoryTool } from './memory-definitions.js';
 import { outputAllowance } from './recovery.js';
+import { coerceArguments } from '../execution/coerce-arguments.js';
 
 export type ModelStep =
   | { readonly kind: 'memory'; readonly assistant: AssistantMessage; readonly calls: readonly import('../../contracts/messages/message.js').ToolCall[] }
@@ -79,13 +80,29 @@ export async function requestDecision(context: StepContext): Promise<ModelStep> 
 
 function normalizeDecision(context: StepContext, value: unknown): ModelStep {
   let decision: ModelDecision;
-  try { decision = parseModelDecision(value); } catch { return { kind: 'invalid' }; }
+  try { decision = withRepairedArguments(context, parseModelDecision(value)); } catch { return { kind: 'invalid' }; }
   const assistant = assistantMessage(context, decision);
   if (assistant === undefined) return { kind: 'invalid' };
   const special = specialStep(context, decision, assistant);
   if (special !== undefined) return special;
   if (decision.kind === 'tool_calls') context.budget.propose(decision.calls, context.index);
   return { kind: 'decision', decision, assistant };
+}
+
+/**
+ * A call whose arguments fail the tool schema only because of string-typed values ("29332" for an integer, JSON text
+ * for an array) is repaired before the assistant message exists, so history, proposals, approvals and dispatch all
+ * carry the same final arguments. A call is changed only when the repaired arguments validate.
+ */
+function withRepairedArguments(context: StepContext, decision: ModelDecision): ModelDecision {
+  if (decision.kind !== 'tool_calls') return decision;
+  const calls = decision.calls.map(call => {
+    const schema = context.index.find(call.name)?.definition.inputSchema;
+    if (schema === undefined || context.deps.validator.validate(schema, call.arguments).ok) return call;
+    const repaired = coerceArguments(schema, call.arguments);
+    return context.deps.validator.validate(schema, repaired).ok ? Object.freeze({ ...call, arguments: repaired }) : call;
+  });
+  return calls.every((call, index) => call === decision.calls[index]) ? decision : Object.freeze({ ...decision, calls: Object.freeze(calls) });
 }
 
 /** Tool search (discovery) or client tools: steps handled outside MCP dispatch. */
