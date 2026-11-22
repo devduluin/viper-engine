@@ -13,7 +13,8 @@ import type { ToolCallReport } from '../execution/dispatch.js';
 import { discoverTools } from './discovery.js';
 import { runClientTools } from './client-tools.js';
 import { runMemoryTools } from './memory-tools.js';
-import { limitNotice, recoverModelFailure, settleRecovery } from './recovery.js';
+import { limitNotice, recoverModelFailure, settleRecovery, transientRetryWait, unavailableNotice } from './recovery.js';
+import { delay } from '../../shared/async/delay.js';
 
 /**
  * Model -> validated MCP calls -> normalized results -> model, until a final answer, a pause,
@@ -89,11 +90,19 @@ function preflightStop(context: StepContext, stop: RunStop): Promise<RunStop> | 
   return stop.status === 'failed' ? withLimitNotice(context, stop) : stop;
 }
 
-function recovering(context: StepContext, step: Awaited<ReturnType<typeof requestDecision>>): boolean {
-  if (step.kind === 'failure') return recoverModelFailure(context.state, step.failure);
+async function recovering(context: StepContext, step: Awaited<ReturnType<typeof requestDecision>>): Promise<boolean> {
   if (step.kind === 'invalid') return recoverModelFailure(context.state, 'invalid');
-  settleRecovery(context.state);
-  return false;
+  if (step.kind !== 'failure') { settleRecovery(context.state); return false; }
+  const wait = transientRetryWait(context, step.failure);
+  if (wait === undefined) return recoverModelFailure(context.state, step.failure);
+  await delay(wait, { signal: context.control.signal }).catch(() => undefined); // Stop/deadline: preflight reports it
+  return true;
+}
+
+async function modelFailureStop(context: StepContext, stop: RunStop): Promise<RunStop> {
+  const notice = stop.modelFailure === undefined ? undefined : unavailableNotice(context, stop.modelFailure);
+  if (notice !== undefined) await appendRuntimeMessages(context, [notice]);
+  return stop;
 }
 
 async function runStep(context: StepContext): Promise<RunStop | undefined> {
@@ -103,13 +112,13 @@ async function runStep(context: StepContext): Promise<RunStop | undefined> {
   context.budget.step();
   context.state.modelCalls += 1;
   const step = await requestDecision(context);
-  if (recovering(context, step)) return undefined; // a cut-off/unusable response is retried, not a failed run
+  if (await recovering(context, step)) return undefined; // cut-off, unusable or transient failures are retried
   switch (step.kind) {
     case 'memory': await runMemoryTools(context, step.assistant, step.calls); return undefined;
     case 'discovery': await discoverTools(context, step.assistant, step.call); return undefined;
     case 'client': await runClientTools(context, step.assistant, step.calls); return undefined;
     case 'cancelled': return { status: 'cancelled', reason: 'cancelled' };
-    case 'failure': return { status: 'failed', reason: 'model_failure', modelFailure: step.failure };
+    case 'failure': return modelFailureStop(context, { status: 'failed', reason: 'model_failure', modelFailure: step.failure });
     case 'invalid': return { status: 'failed', reason: 'invalid_model_response' };
     case 'decision':
       await appendRuntimeMessages(context, [step.assistant], step.decision.kind);

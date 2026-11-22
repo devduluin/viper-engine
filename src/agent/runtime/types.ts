@@ -95,6 +95,8 @@ export interface RunLoopDependencies {
    * Absent = the host offers no steering.
    */
   readonly steering?: { take(): Promise<readonly Message[]> };
+  /** Waits before retrying transient model failures (default recovery.ts schedule); tests inject short ones. */
+  readonly retryDelaysMs?: readonly number[];
   /** Tools executed by the user's client (e.g. reading the open web page); absent = none offered. */
   readonly clientTools?: ClientToolPort;
   readonly model: ModelGateway;
@@ -132,7 +134,7 @@ export interface LoopState {
   modelCalls: number;
   contextCheckpoint?: ContextCheckpoint;
   /** Current recovery episode after a cut-off or unusable model response (transient, never persisted). */
-  recovery?: { outputRetries: number; invalidRetries: number; boost: number; notice?: string };
+  recovery?: { outputRetries: number; invalidRetries: number; transientRetries: number; boost: number; notice?: string };
 }
 
 export type Emit = (event: RuntimeEvent) => Promise<void>;

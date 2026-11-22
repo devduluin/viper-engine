@@ -5,6 +5,10 @@ import type { LoopState, StepContext } from './types.js';
 import type { RunStopReason } from './types.js';
 
 const MAX_OUTPUT_RETRIES = 2;
+/** Waits before retrying a transient provider failure (network, rate limit, overloaded/5xx, timeout). */
+export const TRANSIENT_RETRY_DELAYS_MS: readonly number[] = Object.freeze([5_000, 15_000, 30_000, 60_000]);
+const TRANSIENT_CODES: readonly ModelFailure['code'][] = ['transport', 'rate_limited', 'timeout'];
+const DEADLINE_MARGIN_MS = 5_000;
 const MAX_INVALID_RETRIES = 1;
 const MAX_BOOST = 4;
 
@@ -20,7 +24,7 @@ const INVALID_NOTICE = 'Your previous response could not be used (it was malform
  * sent with the retry only, never stored as conversation history. Each retry is an ordinary charged model call.
  */
 export function recoverModelFailure(state: LoopState, failure: ModelFailure | 'invalid'): boolean {
-  const recovery = state.recovery ?? { outputRetries: 0, invalidRetries: 0, boost: 1 };
+  const recovery = state.recovery ?? { outputRetries: 0, invalidRetries: 0, transientRetries: 0, boost: 1 };
   if (failure === 'invalid') {
     if (recovery.invalidRetries >= MAX_INVALID_RETRIES) return false;
     state.recovery = { ...recovery, invalidRetries: recovery.invalidRetries + 1, notice: INVALID_NOTICE };
@@ -29,6 +33,29 @@ export function recoverModelFailure(state: LoopState, failure: ModelFailure | 'i
   if (failure.code !== 'output_limit' || recovery.outputRetries >= MAX_OUTPUT_RETRIES) return false;
   state.recovery = { ...recovery, outputRetries: recovery.outputRetries + 1, boost: Math.min(MAX_BOOST, recovery.boost * 2), notice: OUTPUT_NOTICE };
   return true;
+}
+
+/**
+ * Transient provider failures (no external side effect: a model call) wait and retry like a coding agent riding out a
+ * flaky network or an overloaded provider. Returns the wait in ms, or undefined when the retries are spent or the
+ * wait would not fit before the run deadline. The wait is cancellable (Stop) and each retry is a charged model call.
+ */
+export function transientRetryWait(context: StepContext, failure: ModelFailure): number | undefined {
+  if (!TRANSIENT_CODES.includes(failure.code)) return undefined;
+  const recovery = context.state.recovery ?? { outputRetries: 0, invalidRetries: 0, transientRetries: 0, boost: 1 };
+  const delays = context.deps.retryDelaysMs ?? TRANSIENT_RETRY_DELAYS_MS;
+  const wait = delays[recovery.transientRetries];
+  if (wait === undefined || context.deps.clock.now() + wait > context.control.deadlineAt - DEADLINE_MARGIN_MS) return undefined;
+  context.state.recovery = { ...recovery, transientRetries: recovery.transientRetries + 1 };
+  return wait;
+}
+
+/** A model that stayed unreachable ends the run with an explanation and a way to continue. */
+export function unavailableNotice(context: StepContext, failure: ModelFailure): Message | undefined {
+  if (!TRANSIENT_CODES.includes(failure.code) || !answered(context.state.history)) return undefined;
+  const text = 'Layanan model AI tidak dapat dihubungi setelah beberapa kali mencoba (koneksi terputus atau server sedang sibuk). '
+    + 'Pekerjaan dijeda dan hasil yang sudah diperoleh tetap tersimpan. Ketik **lanjut** untuk mencoba lagi.';
+  return parseMessage({ id: context.deps.ids.next('message'), role: 'assistant', content: [{ type: 'text', text }] });
 }
 
 /** A usable response ends the recovery episode (its counters are per episode, the model-call ceiling stays global). */
