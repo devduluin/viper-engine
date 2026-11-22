@@ -131,6 +131,8 @@ export interface LoopState {
   readonly reports: ToolCallReport[];
   modelCalls: number;
   contextCheckpoint?: ContextCheckpoint;
+  /** Current recovery episode after a cut-off or unusable model response (transient, never persisted). */
+  recovery?: { outputRetries: number; invalidRetries: number; boost: number; notice?: string };
 }
 
 export type Emit = (event: RuntimeEvent) => Promise<void>;

@@ -13,7 +13,7 @@ import type { ToolCallReport } from '../execution/dispatch.js';
 import { discoverTools } from './discovery.js';
 import { runClientTools } from './client-tools.js';
 import { runMemoryTools } from './memory-tools.js';
-import { parseMessage } from '../../contracts/messages/parse-message.js';
+import { limitNotice, recoverModelFailure, settleRecovery } from './recovery.js';
 
 /**
  * Model -> validated MCP calls -> normalized results -> model, until a final answer, a pause,
@@ -43,13 +43,17 @@ export function snapshotLoopResult(context: StepContext, stop: RunStop): RunLoop
 
 async function guardedStep(context: StepContext): Promise<RunStop | undefined> {
   try { return await runStep(context); } catch (error) {
-    if (error instanceof BudgetExceeded && error.reason === 'token_limit') {
-      await appendRuntimeMessages(context, [parseMessage({ id: context.deps.ids.next('message'), role: 'assistant',
-        content: [{ type: 'text', text: 'Pekerjaan dihentikan karena batas token. Hasil yang sudah diperoleh tetap tersimpan; pekerjaan ini belum dipastikan selesai.' }] })]);
-    }
-    if (error instanceof BudgetExceeded || error instanceof RunInterrupted) return guardedStop(error.reason, context.state.reports);
+    if (error instanceof BudgetExceeded) return withLimitNotice(context, guardedStop(error.reason, context.state.reports));
+    if (error instanceof RunInterrupted) return guardedStop(error.reason, context.state.reports);
     throw error;
   }
+}
+
+/** A limit ends the run with an explanation and a way to continue (see recovery.ts), not a bare failure. */
+async function withLimitNotice(context: StepContext, stop: RunStop): Promise<RunStop> {
+  const notice = limitNotice(context, stop.reason);
+  if (notice !== undefined) await appendRuntimeMessages(context, [notice]);
+  return stop;
 }
 
 function preflight(context: StepContext): RunStop | undefined {
@@ -81,13 +85,25 @@ export async function appendSteering(context: StepContext): Promise<boolean> {
   return messages.length > 0;
 }
 
+function preflightStop(context: StepContext, stop: RunStop): Promise<RunStop> | RunStop {
+  return stop.status === 'failed' ? withLimitNotice(context, stop) : stop;
+}
+
+function recovering(context: StepContext, step: Awaited<ReturnType<typeof requestDecision>>): boolean {
+  if (step.kind === 'failure') return recoverModelFailure(context.state, step.failure);
+  if (step.kind === 'invalid') return recoverModelFailure(context.state, 'invalid');
+  settleRecovery(context.state);
+  return false;
+}
+
 async function runStep(context: StepContext): Promise<RunStop | undefined> {
   const blocked = preflight(context);
-  if (blocked !== undefined) return blocked;
+  if (blocked !== undefined) return preflightStop(context, blocked);
   await appendSteering(context);
   context.budget.step();
   context.state.modelCalls += 1;
   const step = await requestDecision(context);
+  if (recovering(context, step)) return undefined; // a cut-off/unusable response is retried, not a failed run
   switch (step.kind) {
     case 'memory': await runMemoryTools(context, step.assistant, step.calls); return undefined;
     case 'discovery': await discoverTools(context, step.assistant, step.call); return undefined;
