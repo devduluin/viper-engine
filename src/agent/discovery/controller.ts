@@ -10,7 +10,6 @@ import type { RuntimeTool, ToolIndex } from '../execution/tool-catalog.js';
 import { createFingerprint } from '../../shared/fingerprints/fingerprint.js';
 import { discoveryCatalog, schemaTokens } from './catalog.js';
 import { searchAlternatives } from './fusion.js';
-import type { SearchDocument } from './search.js';
 import { searchDefinition } from './definition.js';
 import { searchArguments } from './arguments.js';
 
@@ -28,9 +27,7 @@ export class ToolDiscovery {
     if (this.state.ownerKey !== ownerKey || this.state.runId !== runId) throw new Error('Discovery checkpoint scope mismatch');
     this.state = { ...this.state, active: this.state.active.filter(item => this.catalog.key(item.alias) === item.key) };
     const current = this;
-    this.index = { get modelTools() { return current.modelTools(); }, find(alias) {
-      return !current.enabled || current.state.active.some(item => item.alias === alias) ? current.catalog.index.find(alias) : undefined;
-    } };
+    this.index = { get modelTools() { return current.modelTools(); }, find(alias) { return current.callable(alias); } };
   }
   get enabled() { return this.state.enabled; }
   get canSearch() { return this.state.searches < this.state.settings.maxSearchCalls; }
@@ -41,7 +38,21 @@ export class ToolDiscovery {
   }
   private modelTools() {
     const all = this.catalog.index.modelTools;
-    return !this.enabled ? all : Object.freeze([searchDefinition(this.catalog.sources), ...all.filter(tool => this.state.active.some(item => item.alias === tool.name))]);
+    return !this.enabled ? all : Object.freeze([searchDefinition(this.catalog.sources),
+      ...all.filter(tool => this.pinned(tool.name) || this.state.active.some(item => item.alias === tool.name))]);
+  }
+  private pinned(alias: string): boolean {
+    return this.state.settings.pinned.some(name => alias === name || alias.endsWith(`__${name}`));
+  }
+  /**
+   * Every tool of the authorized catalog is callable. With discovery on, a direct call to a tool not yet loaded loads
+   * it (its schema is offered from the next step, within the active budget) instead of failing: discovery saves
+   * context, it is not a permission. Unknown names stay unknown; policy and approval still decide dispatch.
+   */
+  private callable(alias: string) {
+    const tool = this.catalog.index.find(alias);
+    if (tool !== undefined && this.enabled && !this.pinned(alias)) this.activate([alias]);
+    return tool;
   }
   search(args: JsonObject): JsonObject {
     if (this.state.searches >= this.state.settings.maxSearchCalls) return { code: 'search_limit', loaded: [], matches: [] };
@@ -49,19 +60,19 @@ export class ToolDiscovery {
     const input = searchArguments(args);
     if (input === undefined) return { code: 'invalid_query', loaded: [], matches: [] };
     const matches = searchAlternatives(this.catalog.documents, input.query, input.alternatives, input.source, this.state.settings.searchTopK);
-    const skipped = this.activate(matches);
+    const skipped = this.activate(matches.map(hit => hit.tool.name));
     const usable = matches.some(hit => this.state.active.some(item => item.alias === hit.tool.name));
     return parseJsonObject({ code: matches.length === 0 ? 'no_matches' : usable ? 'ok' : 'active_schema_budget',
       matches: matches.map(hit => ({ name: hit.tool.name, source: hit.source, description: (hit.tool.description ?? '').slice(0, 240) })),
       loaded: this.state.active.map(item => item.alias), skipped, availableSources: this.catalog.sources });
   }
-  private activate(matches: readonly SearchDocument[]): string[] {
+  private activate(names: readonly string[]): string[] {
     const active = [...this.state.active]; const skipped: string[] = [];
-    for (const hit of matches) {
-      if (active.some(item => item.alias === hit.tool.name)) continue;
-      const next = [...active, { alias: hit.tool.name, key: this.catalog.key(hit.tool.name)! }];
+    for (const name of names) {
+      if (active.some(item => item.alias === name)) continue;
+      const next = [...active, { alias: name, key: this.catalog.key(name)! }];
       const schemas = this.catalog.index.modelTools.filter(tool => next.some(item => item.alias === tool.name));
-      if (schemaTokens(schemas) > this.state.settings.activeMaxTokens) { skipped.push(hit.tool.name); continue; }
+      if (schemaTokens(schemas) > this.state.settings.activeMaxTokens) { skipped.push(name); continue; }
       active.push(next[next.length - 1]!);
     }
     this.state = { ...this.state, active };
