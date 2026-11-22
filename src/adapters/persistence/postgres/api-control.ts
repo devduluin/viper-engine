@@ -12,6 +12,7 @@ import type { SqlPool } from './sql-client.js';
 import { lockRun, NOT_FOUND } from './run-lock.js';
 import { conversationRecord, CONVERSATION_COLUMNS, ownerColumns, asRow, text, MS_PARAM } from './rows.js';
 import { PostgresApiConnections } from './api-connections.js';
+import { pendingSteeringCount, queueSteering } from './run-steering.js';
 
 export class PostgresApiControl extends PostgresApiConnections implements ApiControlStore {
   constructor(private readonly pool: SqlPool) { super(pool); }
@@ -72,6 +73,18 @@ export class PostgresApiControl extends PostgresApiConnections implements ApiCon
     return result.rows.length > 0;
   }
 
+  /** `firstMessageId`: the run's prompt, so a client replaying the run's events knows where its own history starts. */
+  async getActiveRun(id: ConversationId) {
+    const result = await this.pool.query(`SELECT r.id, r.status, r.revision, (SELECT m.id FROM viper_engine.messages m
+        WHERE m.conversation_id = r.conversation_id AND m.run_id = r.id ORDER BY m.position LIMIT 1) AS first_message_id
+      FROM viper_engine.runs r WHERE r.conversation_id = $1
+      AND r.status IN ('queued', 'running', 'waiting_for_input', 'waiting_for_approval') ORDER BY r.created_at DESC LIMIT 1`, [id]);
+    if (result.rows.length === 0) return undefined;
+    const row = asRow(result.rows[0]); const first = row['first_message_id'];
+    return { id: text(row, 'id'), status: text(row, 'status'), revision: Number(row['revision']),
+      ...(typeof first === 'string' ? { firstMessageId: first } : {}) };
+  }
+
   async saveInstructions(scope: TrustedScope, runId: RunId, messages: readonly Message[]) {
     await this.pool.query(`INSERT INTO viper_engine.run_instructions (run_id, actor_id, app_id, tenant_key, messages)
       VALUES ($1, $2, $3, $4, $5)`, [runId, ...ownerColumns(scope), JSON.stringify(messages)]);
@@ -83,6 +96,14 @@ export class PostgresApiControl extends PostgresApiConnections implements ApiCon
     if (result.rows[0] === undefined) return undefined;
     const row = asRow(result.rows[0]);
     return { fingerprint: text(row, 'fingerprint'), response: parseJsonObject(row['response']) };
+  }
+
+  async pendingSteering(runId: RunId) {
+    return pendingSteeringCount(this.pool, runId);
+  }
+
+  async queueSteering(scope: TrustedScope, runId: RunId, input: Parameters<ApiControlStore['queueSteering']>[2]) {
+    await queueSteering(this.pool, scope, runId, input);
   }
 
   async saveInputReceipt(scope: TrustedScope, runId: RunId, inputId: string, fingerprint: string, response: JsonObject) {

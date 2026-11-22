@@ -31,7 +31,8 @@ function approval(item: ReplayItem): JsonObject {
 function terminalReason(item: ReplayItem): JsonObject {
   const reason = item.event.payload['reason'];
   if (reason === 'unknown_outcome') return { code: 'OUTCOME_UNKNOWN', message: 'Execution retains an unknown remote effect' };
-  if (typeof reason === 'string' && /^(deadline_exceeded|.*_limit)$/.test(reason)) return { code: 'BUDGET_EXCEEDED', message: 'Execution reached its configured limit' };
+  if (typeof reason === 'string' && /^(deadline_exceeded|.*_limit)$/.test(reason)) return {
+    code: 'BUDGET_EXCEEDED', message: 'Execution reached its configured limit', limit: reason };
   return { code: 'INVALID_STATE', message: 'Execution did not complete; inspect the run snapshot and messages' };
 }
 

@@ -14,10 +14,12 @@ import { isTerminalRunStatus } from '../../contracts/state/run-state.js';
 import { deliveryPlan } from './plan.js';
 import { contextPlan, resumeContext } from './context-state.js';
 import { parseApprovalTtl } from '../runs/approval-ttl.js';
+import { takeSteering } from './steering.js';
 
 function shouldYield(error: unknown, guard: LeaseGuard): boolean {
   if (guard.interrupted || error instanceof LeaseInterrupted) return true;
-  return error instanceof JournalError && ['lease_lost', 'revision_conflict'].includes(error.code);
+  // steering_pending: a stop met a waiting user message; the next delivery appends it before concluding.
+  return error instanceof JournalError && ['lease_lost', 'revision_conflict', 'steering_pending'].includes(error.code);
 }
 
 /** One durable work delivery. Hosting/polling/HTTP are separate P06 concerns. */
@@ -92,6 +94,7 @@ export class DurableRunDriver {
     }, { ...this.deps, policy: { decide: (tool, call) => policy(session, tool, call),
       rejection: (tool, call) => policyRejection(session, tool, call) },
       beforeToolInvoke: (tool, call) => { guard.assert(); return this.deps.beforeToolInvoke?.(tool, call); },
+      ...(this.deps.steeringInputs === undefined ? {} : { steering: { take: () => takeSteering(session) } }),
       onEvent: event => persistEvent(session, event) });
     return session;
   }

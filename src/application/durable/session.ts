@@ -20,6 +20,8 @@ export class JournalError extends Error {
 
 export class DurableSession {
   context?: StepContext;
+  /** Steering inputs handed to the loop in this delivery and not yet appended. */
+  readonly steeringIds = new Set<string>();
   constructor(readonly claim: RunClaim, readonly scope: TrustedScope, readonly deps: DurableDriverDependencies,
     public checkpoint: RunCheckpoint, readonly state: DurableState, readonly guard: LeaseGuard) {}
 

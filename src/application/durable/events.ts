@@ -4,6 +4,7 @@ import { proposals, dispatchCommands, reportCommands, approvalEvents } from './t
 import type { DurableSession } from './session.js';
 import { settlePending } from './recovery.js';
 import { withDeadline } from '../../shared/async/deadline.js';
+import { steeringConsumption, steeringStopGuard } from './steering.js';
 
 const UNAVAILABLE = { source: 'unavailable', inputTokens: null, outputTokens: null, totalTokens: null } as const;
 
@@ -11,6 +12,7 @@ export async function persistEvent(session: DurableSession, event: RuntimeEvent)
   await session.guard.refresh();
   const commands = eventCommands(session, event);
   if (event.type === 'run_stopped' && !event.status.startsWith('waiting_')) commands.unshift(...settlePending(session, event.reason === 'cancelled'));
+  if (event.type === 'run_stopped') commands.unshift(...steeringStopGuard(session, event.status, event.reason));
   await session.commit(commands);
   if (session.deps.onEvent !== undefined && !session.guard.cancelled) {
     await withDeadline(async () => session.deps.onEvent?.(event), {
@@ -72,7 +74,7 @@ function modelStart(session: DurableSession, event: Extract<RuntimeEvent, { type
 }
 
 function message(session: DurableSession, event: Extract<RuntimeEvent, { type: 'message_appended' }>): JournalCommand[] {
-  const commands = session.messages([event.message]);
+  const commands = [...steeringConsumption(session, event.message), ...session.messages([event.message])];
   if (event.decision === undefined) return commands;
   session.state.phase = event.decision === 'tool_calls' ? 'calls' : event.decision === 'needs_input' ? 'input' : 'final';
   if (session.state.stepId === undefined) throw new Error('Assistant decision has no step');

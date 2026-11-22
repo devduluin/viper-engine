@@ -16,9 +16,11 @@ export type PublicMessageView =
   | { readonly id: string; readonly role: 'user'; readonly content: readonly ContentBlock[] }
   | { readonly id: string; readonly role: 'assistant'; readonly content: readonly ContentBlock[]; readonly toolCalls?: readonly ToolCallView[] }
   | { readonly id: string; readonly role: 'tool'; readonly content: readonly ContentBlock[]; readonly toolCallId: string; readonly outcome: 'success' | 'error' | 'unknown' };
+export interface ActiveRunBindingView { readonly id: string; readonly status: RunStatus; readonly revision: number; readonly firstMessageId?: string }
 export interface ConversationView {
   readonly schemaVersion: 1; readonly conversationId: string; readonly revision: number; readonly createdAt: number; readonly updatedAt: number;
   readonly title?: string; readonly messages: readonly PublicMessageView[]; readonly nextCursor?: string;
+  readonly activeRun?: ActiveRunBindingView;
 }
 export interface RunAcceptedView {
   readonly schemaVersion: 1; readonly runId: string; readonly conversationId: string;

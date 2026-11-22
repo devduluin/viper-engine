@@ -89,6 +89,12 @@ export interface ClientToolPort {
 export interface RunLoopDependencies {
   readonly userMemory?: Pick<import('../../contracts/recall/user-memory.js').UserMemoryPort, 'search'>;
   readonly contextEvidence?: ContextEvidenceProvider;
+  /**
+   * Mid-run user messages (steering) waiting for this run, oldest first. Called only at step boundaries where
+   * every tool call is answered; returned messages are appended as user history before the next model call.
+   * Absent = the host offers no steering.
+   */
+  readonly steering?: { take(): Promise<readonly Message[]> };
   /** Tools executed by the user's client (e.g. reading the open web page); absent = none offered. */
   readonly clientTools?: ClientToolPort;
   readonly model: ModelGateway;

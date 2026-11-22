@@ -15,6 +15,11 @@ export const RUN_PATHS = {
       parameters: [pathId('runId')], requestBody: jsonBody('SubmitInput'),
     },
   },
+  '/api/v1/runs/{runId}/steer': {
+    post: { ...operation('steerRun', 'Queue a user message for a working run; it joins at the next step boundary', 'SteerAccepted', 202),
+      parameters: [pathId('runId')], requestBody: jsonBody('SteerRun'),
+    },
+  },
   '/api/v1/runs/{runId}/client-results': {
     post: { ...operation('submitClientResult', 'Answer a client_tool.request (e.g. the open page); process-local, best effort', 'ClientToolAccepted'),
       parameters: [pathId('runId')], requestBody: jsonBody('ClientToolResult'),

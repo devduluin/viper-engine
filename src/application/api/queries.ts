@@ -14,8 +14,10 @@ export async function conversation(scope: TrustedScope, call: ApiCall, options: 
     const limit = call.limit ?? 100;
     const page = requireState(await stores.messages.read(scope, id, after, limit + 1));
     const rows = page.messages.slice(0, limit); const last = rows.at(-1);
+    const activeRun = await stores.control.getActiveRun?.(id);
     return { schemaVersion: 1, conversationId: record.id, revision: record.revision, createdAt: record.createdAt,
       updatedAt: record.updatedAt, ...(record.title === undefined ? {} : { title: record.title }),
+      ...(activeRun ? { activeRun } : {}),
       messages: rows.filter(row => row.message.role !== 'system').map(row => publicMessage(row.message)),
       ...(page.messages.length <= limit || last === undefined ? {} : {
         nextCursor: options.cursors.issue(scope, 'messages', id, String(last.position)) }) };

@@ -16,7 +16,9 @@ export type StateConflictCode =
   /** Same idempotency key with a different payload fingerprint. */
   | 'idempotency_conflict'
   /** The bound MCP connection was revoked or needs re-authorization; approval cannot dispatch. */
-  | 'access_revoked';
+  | 'access_revoked'
+  /** A run may not conclude while a user steering message waits; the holder yields and consumes it first. */
+  | 'steering_pending';
 
 export interface StateConflict {
   readonly code: StateConflictCode;

@@ -2,7 +2,8 @@ import { API_ERROR_STATUS } from './errors.js';
 import { id, instant, literal, object, ref, revision, text } from './schema.js';
 import type { Schema } from './schema.js';
 
-const failure = object({ code: { enum: Object.keys(API_ERROR_STATUS) }, message: text });
+const failure = object({ code: { enum: Object.keys(API_ERROR_STATUS) }, message: text,
+  limit: { type: 'string', maxLength: 64, pattern: '^(deadline_exceeded|[a-z_]+_limit)$' } }, ['code', 'message']);
 const runPayload = (status: string) => object({ status: literal(status), revision });
 const toolPayload = { oneOf: [
   object({ outcome: literal('error'), resultMessageId: id, failure }),

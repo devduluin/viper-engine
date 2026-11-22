@@ -1,4 +1,5 @@
-import type { RunId } from '../identity/ids.js';
+import type { MessageId, RunId } from '../identity/ids.js';
+import type { SteeringSettleMode } from './steering.js';
 import type { TrustedScope } from '../identity/scope.js';
 import type { JsonObject } from '../messages/json.js';
 import type { RunCheckpoint, MessageAppend } from './checkpoints.js';
@@ -17,7 +18,11 @@ export type JournalCommand =
   | { readonly kind: 'step_start'; readonly input: Parameters<ExecutionLedger['startStep']>[1] }
   | { readonly kind: 'step_finish'; readonly input: Parameters<ExecutionLedger['finishStep']>[1] }
   | { readonly kind: 'model_start'; readonly input: Parameters<ExecutionLedger['startModelCall']>[1] }
-  | { readonly kind: 'model_finish'; readonly input: Parameters<ExecutionLedger['finishModelCall']>[1] };
+  | { readonly kind: 'model_finish'; readonly input: Parameters<ExecutionLedger['finishModelCall']>[1] }
+  /** Settles exactly these pending steering inputs as consumed; their messages are appended in the same commit. */
+  | { readonly kind: 'steering_consume'; readonly messageIds: readonly MessageId[] }
+  /** Before a stop: refuse while inputs wait (`require_none`), or mark the waiting ones discarded. */
+  | { readonly kind: 'steering_settle'; readonly mode: SteeringSettleMode };
 
 /** Atomic execution boundary: state/budgets, ledger, messages and events all commit or none do. */
 export interface RunJournal {

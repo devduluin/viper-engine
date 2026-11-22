@@ -8,6 +8,7 @@ import { PostgresToolCallLedger } from './tool-call-ledger.js';
 import { PostgresRunStore } from './run-store.js';
 import { PostgresMessageStore } from './message-store.js';
 import { PostgresExecutionLedger } from './execution-ledger.js';
+import { consumeSteering, settleSteering } from './run-steering.js';
 import type { SqlPool, SqlQueryable } from './sql-client.js';
 
 /** Reuses reviewed stores without nested BEGIN/COMMIT; any command conflict is thrown by journal. */
@@ -28,14 +29,18 @@ export function applyCommand(ctx: JournalContext, command: JournalCommand): Prom
     case 'run_transition': return new PostgresRunStore(pool).transition(scope, runId, { ...command.input, lease, at });
     case 'tool_proposal': return new PostgresToolCallLedger(pool).propose(scope, { ...command.input, runId, lease, at });
     case 'tool_transition': return new PostgresToolCallLedger(pool).transition(scope, runId, command.id, { ...command.input, lease, at });
-    case 'approval_proposal':
-      if (command.input.binding.runId !== runId) throw new Error('Cross-run approval command');
-      return new PostgresApprovalStore(pool).propose(scope, { ...command.input, lease, at });
-    case 'approval_consume':
-      if (command.input.binding.runId !== runId) throw new Error('Cross-run approval command');
-      return new PostgresApprovalStore(pool).consumeForDispatch(scope, command.id, { ...command.input, lease, at });
+    case 'approval_proposal': case 'approval_consume': return approvalCommand(ctx, command);
+    case 'steering_consume': return consumeSteering(pool, runId, command.messageIds, at);
+    case 'steering_settle': return settleSteering(pool, runId, command.mode, at);
     default: return auditCommand(ctx, command);
   }
+}
+
+function approvalCommand(ctx: JournalContext, command: Extract<JournalCommand, { kind: 'approval_proposal' | 'approval_consume' }>): Promise<StateResult<unknown>> {
+  const { scope, runId, lease, at, pool } = ctx;
+  if (command.input.binding.runId !== runId) throw new Error('Cross-run approval command');
+  return command.kind === 'approval_proposal' ? new PostgresApprovalStore(pool).propose(scope, { ...command.input, lease, at })
+    : new PostgresApprovalStore(pool).consumeForDispatch(scope, command.id, { ...command.input, lease, at });
 }
 
 function auditCommand(ctx: JournalContext, command: Extract<JournalCommand, { kind: 'step_start' | 'step_finish' | 'model_start' | 'model_finish' }>): Promise<StateResult<unknown>> {

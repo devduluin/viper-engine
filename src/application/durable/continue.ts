@@ -1,4 +1,4 @@
-import { driveAgentLoop, handleRuntimeDecision, snapshotLoopResult } from '../../agent/runtime/run-loop.js';
+import { appendSteering, driveAgentLoop, handleRuntimeDecision, snapshotLoopResult } from '../../agent/runtime/run-loop.js';
 import { finalAnswerStop } from '../../agent/runtime/outcome.js';
 import { BudgetExceeded } from '../../agent/policies/limits.js';
 import { RunInterrupted } from '../../agent/policies/control.js';
@@ -47,6 +47,8 @@ async function resumeBatch(session: DurableSession): Promise<RunStop | undefined
 async function finishOrDrive(session: DurableSession) {
   const context = session.context;
   if (context === undefined) throw new Error('No runtime context');
+  // A user message queued while the run worked (or right before it concluded) is answered before any stop.
+  if ((session.state.phase === 'final' || session.state.phase === 'input') && await appendSteering(context)) return driveAgentLoop(context);
   if (session.state.phase === 'final') return stop(session, finalAnswerStop(context.state.reports));
   if (session.state.phase === 'input' && session.checkpoint.history.at(-1)?.role !== 'user') return stop(session, { status: 'waiting_for_input', reason: 'needs_input' });
   return driveAgentLoop(context);

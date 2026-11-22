@@ -12,6 +12,8 @@ import { assertContextCheckpoint } from '../context/checkpoint.js';
 function contextState(input: RunLoopInput) {
   const saved = input.resume?.contextCheckpoint;
   if (saved === undefined) return {};
+  // Strict on purpose: a changed or forged checkpoint blocks before any dispatch (P07-01). The bounded history window
+  // is anchored at the run's prompt (checkpoint-reader), so it cannot shift under a saved checkpoint mid-run.
   const checkpoint = parseContextCheckpoint(saved);
   if (input.context === undefined) throw new Error('Context checkpoint requires its budget');
   assertContextCheckpoint(input, checkpoint, resolveContextBudget(input.context));
@@ -20,8 +22,15 @@ function contextState(input: RunLoopInput) {
 
 function discoveryFor(input: RunLoopInput) {
   const legacy = input.resume !== undefined && input.resume.modelCalls > 0 && input.resume.toolDiscovery === undefined;
-  const discovery = new ToolDiscovery(input.tools, input.scope, input.runId, legacy ? { mode: 'off' } : input.toolDiscovery, input.resume?.toolDiscovery);
-  if (discovery.exchanges.some(exchange => !input.history.messages.some(message => message.id === exchange.afterMessageId))) throw new Error('Discovery anchor missing');
+  const resumeDiscovery = input.resume?.toolDiscovery;
+  let filteredDiscovery = resumeDiscovery;
+  if (resumeDiscovery?.exchanges) {
+    filteredDiscovery = {
+      ...resumeDiscovery,
+      exchanges: resumeDiscovery.exchanges.filter(e => input.history.messages.some(m => m.id === e.afterMessageId))
+    };
+  }
+  const discovery = new ToolDiscovery(input.tools, input.scope, input.runId, legacy ? { mode: 'off' } : input.toolDiscovery, filteredDiscovery);
   return discovery;
 }
 

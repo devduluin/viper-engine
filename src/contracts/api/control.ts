@@ -8,8 +8,9 @@ import type { MessageStore, CheckpointReader } from '../state/checkpoints.js';
 import type { IdempotencyStore } from '../state/idempotency.js';
 import type { StateResult } from '../state/result.js';
 import type { McpConnectionDirectory } from '../mcp/access.js';
+import type { SteeringMessage } from '../state/steering.js';
 
-export type ApiOperation = 'createConversation' | 'listConversations' | 'getConversation' | 'deleteConversation' | 'titleConversation' | 'submitClientResult' | 'startRun' | 'getRun' | 'submitInput'
+export type ApiOperation = 'createConversation' | 'listConversations' | 'getConversation' | 'deleteConversation' | 'titleConversation' | 'submitClientResult' | 'startRun' | 'getRun' | 'submitInput' | 'steerRun'
   | 'cancelRun' | 'decideApproval' | 'createConnection' | 'listConnections' | 'disconnectConnection' | 'getCapabilities';
 export interface ApiCall {
   readonly operation: ApiOperation; readonly resourceId?: string; readonly body: JsonObject;
@@ -19,9 +20,14 @@ export interface ApiControlStore {
   lockConversation(scope: TrustedScope, id: ConversationId): Promise<StateResult<ConversationRecord>>;
   lockRun(scope: TrustedScope, id: RunId): Promise<StateResult<RunRecord>>;
   hasActiveRun(id: ConversationId): Promise<boolean>;
+  getActiveRun?(id: ConversationId): Promise<{ id: string; status: string; revision: number; firstMessageId?: string } | undefined>;
   saveInstructions(scope: TrustedScope, runId: RunId, messages: readonly Message[]): Promise<void>;
   inputReceipt(scope: TrustedScope, runId: RunId, inputId: string): Promise<{ readonly fingerprint: string; readonly response: JsonObject } | undefined>;
   saveInputReceipt(scope: TrustedScope, runId: RunId, inputId: string, fingerprint: string, response: JsonObject): Promise<void>;
+  /** Unsettled steering inputs of a run (call under its row lock). */
+  pendingSteering(runId: RunId): Promise<number>;
+  /** Queues a mid-run user message for the run's lease holder; never touches the conversation. */
+  queueSteering(scope: TrustedScope, runId: RunId, input: { readonly inputId: string; readonly message: SteeringMessage; readonly at: number }): Promise<void>;
   createConnection(scope: TrustedScope, serverId: string, id: string, authState: 'ready' | 'authentication_required', at: number): Promise<JsonObject>;
   listConnections(scope: TrustedScope, afterId: string, limit: number): Promise<readonly JsonObject[]>;
   /** Newest first (updatedAt, then id); `after` is the last row of the previous page. Empty conversations are omitted. */

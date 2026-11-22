@@ -68,9 +68,23 @@ export async function appendRuntimeMessages(context: StepContext, messages: read
   }
 }
 
+/**
+ * Appends waiting steering messages (user role) to the history. Only at a step boundary where every tool call
+ * is answered: before a model call, or when the model would stop, so the user is heard before the run concludes.
+ */
+export async function appendSteering(context: StepContext): Promise<boolean> {
+  const take = context.deps.steering?.take;
+  if (take === undefined) return false;
+  const messages = (await take()).filter(message => message.role === 'user'
+    && !context.state.history.some(existing => existing.id === message.id));
+  if (messages.length > 0) await appendRuntimeMessages(context, messages);
+  return messages.length > 0;
+}
+
 async function runStep(context: StepContext): Promise<RunStop | undefined> {
   const blocked = preflight(context);
   if (blocked !== undefined) return blocked;
+  await appendSteering(context);
   context.budget.step();
   context.state.modelCalls += 1;
   const step = await requestDecision(context);
@@ -87,13 +101,18 @@ async function runStep(context: StepContext): Promise<RunStop | undefined> {
   }
 }
 
+/** A final answer or a question ends the run, unless it was interrupted or the user steered meanwhile. */
+async function concludeAnswer(context: StepContext, decision: Exclude<ModelDecision, { kind: 'tool_calls' }>,
+  interrupted: ReturnType<StepContext['control']['check']>): Promise<RunStop | undefined> {
+  if (interrupted !== undefined) return guardedStop(interrupted, context.state.reports);
+  if (await appendSteering(context)) return undefined; // answer the user's new message before concluding
+  if (decision.kind === 'final') return finalAnswerStop(context.state.reports);
+  return { status: 'waiting_for_input', reason: 'needs_input', question: decision.question };
+}
+
 export async function handleRuntimeDecision(context: StepContext, decision: ModelDecision, priorReports: readonly ToolCallReport[] = []): Promise<RunStop | undefined> {
   const interrupted = context.control.check();
-  if (decision.kind !== 'tool_calls' && interrupted !== undefined) return guardedStop(interrupted, context.state.reports);
-  if (decision.kind === 'final') return finalAnswerStop(context.state.reports);
-  if (decision.kind === 'needs_input') {
-    return { status: 'waiting_for_input', reason: 'needs_input', question: decision.question };
-  }
+  if (decision.kind !== 'tool_calls') return concludeAnswer(context, decision, interrupted);
   const { input, deps } = context;
   const result = await executeCalls(decision.calls, {
     index: context.index, validator: deps.validator, policy: deps.policy, mcp: deps.mcp,

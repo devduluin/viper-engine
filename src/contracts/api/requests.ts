@@ -18,6 +18,7 @@ export const REQUEST_SCHEMAS = {
     // Why the client could not run the tool (e.g. not_allowed, timeout); logged, never shown to the model.
     code: { type: 'string', pattern: '^[a-z_]{1,32}$' } }, ['toolCallId', 'outcome']),
   SubmitInput: object({ inputId: id, expectedRevision: revision, input: ref('UserInput') }),
+  SteerRun: object({ inputId: id, input: ref('UserInput') }),
   CancelRun: object({}),
   DeleteConversation: object({}),
   TitleConversation: object({ title: { type: 'string', minLength: 1, maxLength: 200, pattern: '\\S' } }, []),

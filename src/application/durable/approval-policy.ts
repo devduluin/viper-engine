@@ -33,6 +33,9 @@ export function policy(session: DurableSession, tool: RuntimeTool, call: ToolCal
 }
 export function policyRejection(session: DurableSession, tool: RuntimeTool, call: ToolCall) {
   if (session.deps.policy.decide(tool, call) === 'reject') return session.deps.policy.rejection?.(tool, call);
+  const expired = session.checkpoint.approvals.some(approval => approval.binding.toolCallId === call.id
+    && (approval.status === 'expired' || (['pending', 'accepted'].includes(approval.status) && approval.expiresAt <= session.deps.clock.now())));
+  if (expired) return { code: 'permission' as const, message: 'Approval expired before execution. A new proposal requires fresh user approval.' };
   return matchingRecord(session, tool, call) === undefined ? undefined : declined(session, tool, call);
 }
 function approvalDecision(session: DurableSession, call: ToolCall) {

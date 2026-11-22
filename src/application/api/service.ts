@@ -6,6 +6,7 @@ import type { JsonObject } from '../../contracts/messages/json.js';
 import type { ApiOptions } from './options.js';
 import { startRun } from './start.js';
 import { submitInput, decideApproval } from './resume.js';
+import { steerRun } from './steer.js';
 import { conversation, getRun, cancelRun } from './queries.js';
 import { createConnection, listConnections, disconnectConnection } from './connections.js';
 import { deleteConversation, listConversations } from './conversation-list.js';
@@ -24,6 +25,7 @@ export class EngineApi implements ApiHandler {
       submitClientResult: () => submitClientResult(scope, call, this.options),
       getConversation: () => conversation(scope, call, this.options), startRun: () => startRun(scope, call, this.options),
       getRun: () => getRun(scope, call, this.options), submitInput: () => submitInput(scope, call, this.options),
+      steerRun: () => steerRun(scope, call, this.options),
       cancelRun: () => cancelRun(scope, call, this.options), decideApproval: () => decideApproval(scope, call, this.options),
       createConnection: () => createConnection(scope, call, this.options), listConnections: () => listConnections(scope, call, this.options),
       disconnectConnection: () => disconnectConnection(scope, call, this.options), getCapabilities: async () => this.capabilities() };
