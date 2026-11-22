@@ -42,10 +42,19 @@ function contentBlock(content: McpContent): ContentBlock {
 export function outcomeContent(outcome: McpToolOutcome): readonly ContentBlock[] {
   const blocks = outcome.content.map(contentBlock);
   if (outcome.structuredContent !== undefined) blocks.push({ type: 'json', data: outcome.structuredContent });
-  if (outcome.status !== 'success') {
+  if (outcome.status !== 'success' && !redundantFailure(outcome, blocks.length)) {
     blocks.push({ type: 'json', data: { status: outcome.status, error: { code: outcome.error.code, message: outcome.error.message } } });
   }
   return blocks;
+}
+
+/**
+ * A tool that reported its own error (content or structured payload) already explains it; a generic
+ * "MCP operation: unknown" block adds nothing and misleads the model. Uncertain outcomes (`unknown` status) and any
+ * classified code are always kept: they carry safety meaning the payload cannot.
+ */
+function redundantFailure(outcome: McpToolOutcome, payloadBlocks: number): boolean {
+  return outcome.status === 'error' && outcome.error.code === 'unknown' && payloadBlocks > 0;
 }
 
 export function outcomeMessage(id: MessageId, call: ToolCall, outcome: McpToolOutcome): ToolResultMessage {
