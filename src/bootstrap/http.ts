@@ -27,6 +27,8 @@ export interface EngineHttpOptions extends Pick<ApiOptions, 'authorizeServer' | 
   readonly stream?: EventStreamOptions | false;
   /** Check on `ready()`/`listen()` that the database is migrated for this build (default true). */
   readonly schemaCheck?: boolean;
+  /** Host routes served without a bearer token (exact paths); see HttpOptions.publicRoutes. */
+  readonly publicRoutes?: readonly string[];
 }
 
 export function createEngineHttpServer(pool: SqlPool, options: EngineHttpOptions) {
@@ -45,6 +47,7 @@ export function createEngineHttpServer(pool: SqlPool, options: EngineHttpOptions
     ...optionalHooks(options),
   });
   const app = createHttpServer(api, { requestBytes,
+    ...(options.publicRoutes === undefined ? {} : { publicRoutes: options.publicRoutes }),
     ...(options.userMemory ? { userMemory: createUserMemory(pool) } : {}),
     ...(options.stream === false ? {} : { replay: eventReplay(pool, cursors, clock, eventBytes, eventRetentionSeconds, options.stream) }),
     authenticate: token => withDeadline(() => options.authenticate(token),

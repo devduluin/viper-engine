@@ -21,6 +21,11 @@ export interface HttpOptions {
   readonly authenticate: (bearerToken: string) => Promise<AuthenticatedIdentity | undefined>;
   readonly requestBytes: number;
   readonly replay?: HttpReplay;
+  /**
+   * Exact paths (no query) the host serves without a bearer token, e.g. health, login and first-run setup. Engine
+   * routes never become public through this list: they still require an authenticated scope.
+   */
+  readonly publicRoutes?: readonly string[];
 }
 
 /** Constructs a server without listening. Host owns auth, DB and worker lifetimes. */
@@ -32,6 +37,7 @@ export function createHttpServer(handler: ApiHandler, options: HttpOptions) {
   app.addHook('preClose', async () => { streams?.close(); });
   app.addHook('onRequest', async (request, reply) => {
     reply.header('x-request-id', request.id).header('cache-control', 'no-store');
+    if (options.publicRoutes?.includes(request.url.split('?')[0] ?? '')) return;
     scopes.set(request, await authenticateRequest(request, options));
   });
   app.setErrorHandler((error, request, reply) => {
