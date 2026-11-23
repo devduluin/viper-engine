@@ -42,6 +42,8 @@ export interface ModelFailure {
   readonly message: string;
   /** Transport guidance, never an instruction to retry an external side effect. */
   readonly retryable: boolean;
+  /** Safe provider metadata (HTTP status, error type, request id); never provider error text. */
+  readonly diagnostic?: string;
 }
 
 export type ModelResult =

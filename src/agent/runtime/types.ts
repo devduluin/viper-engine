@@ -66,7 +66,7 @@ export type RuntimeEvent =
   /** Auxiliary browser/native tools: the assistant message and its results, journaled together. */
   | { readonly type: 'client_tools_completed'; readonly messages: readonly Message[] }
   | { readonly type: 'model_call_started'; readonly stepId: StepId; readonly modelCallId: ModelCallId; readonly contextCheckpoint?: ContextCheckpoint }
-  | { readonly type: 'model_call_finished'; readonly modelCallId: ModelCallId; readonly ok: boolean; readonly usage: ModelUsage; readonly failureCode?: ModelFailure['code'] }
+  | { readonly type: 'model_call_finished'; readonly modelCallId: ModelCallId; readonly ok: boolean; readonly usage: ModelUsage; readonly failureCode?: ModelFailure['code']; readonly failureDetail?: string }
   | { readonly type: 'message_appended'; readonly message: Message; readonly decision?: 'final' | 'tool_calls' | 'needs_input' }
   | { readonly type: 'batch_finished' }
   | { readonly type: 'run_stopped'; readonly status: RunLoopStatus; readonly reason: RunStopReason };

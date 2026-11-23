@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { ContentFilterFinishReasonError, LengthFinishReasonError } from 'openai/error';
 import { DeadlineExceededError } from '../../../shared/async/errors.js';
 import type { ModelFailure, ModelFailureCode } from '../../../contracts/models/gateway.js';
+import { withDiagnostic } from '../diagnostic.js';
 
 function failure(code: ModelFailureCode, message: string, retryable = false): ModelFailure {
   return Object.freeze({ code, message, retryable });
@@ -23,6 +24,10 @@ const MAPPINGS: readonly (readonly [ErrorClass, ModelFailure])[] = [
 
 /** Typed SDK errors only; provider text is never echoed (it can contain prompt content). */
 export function modelFailureFrom(error: unknown, signal?: AbortSignal): ModelFailure {
+  return withDiagnostic(classify(error, signal), error, error instanceof OpenAI.APIError);
+}
+
+function classify(error: unknown, signal?: AbortSignal): ModelFailure {
   if (signal?.aborted === true) return failure('cancelled', 'Model call cancelled');
   if (error instanceof DeadlineExceededError) return failure('timeout', 'Model call timed out', true);
   const mapped = MAPPINGS.find(([type]) => error instanceof type);

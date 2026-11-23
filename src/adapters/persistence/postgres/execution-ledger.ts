@@ -63,17 +63,17 @@ export class PostgresExecutionLedger implements ExecutionLedger {
     }, { modelCallId: input.modelCallId }, true);
   }
 
-  /** Records outcome and usage once; no prompt, output or provider error text is stored. */
+  /** Records outcome and usage once; no prompt, output or provider error text is stored (failure_detail is metadata only). */
   async finishModelCall(scope: TrustedScope, input: ModelCallFinish): Promise<StateResult<{ readonly modelCallId: ModelCallId }>> {
     return this.write(scope, input.runId, input.at, input.lease, async tx => {
       validateModelFinish(input);
       const { usage } = input;
       const done = await tx.query(`UPDATE viper_engine.model_calls SET outcome = $3, failure_code = $4, usage_source = $5,
           input_tokens = $6, output_tokens = $7, total_tokens = $8, ended_at = ${MS_PARAM(9)},
-          cache_read_tokens = $10, cache_write_tokens = $11
+          cache_read_tokens = $10, cache_write_tokens = $11, failure_detail = $12
         WHERE run_id = $1 AND id = $2 AND outcome = 'pending'`, [input.runId, input.modelCallId, input.outcome,
         input.failureCode ?? null, usage.source, usage.inputTokens, usage.outputTokens, usage.totalTokens, input.at,
-        usage.cacheReadTokens ?? null, usage.cacheWriteTokens ?? null]);
+        usage.cacheReadTokens ?? null, usage.cacheWriteTokens ?? null, input.failureDetail ?? null]);
       return done.rowCount === 1 ? undefined : ALREADY('Model call');
     }, { modelCallId: input.modelCallId });
   }

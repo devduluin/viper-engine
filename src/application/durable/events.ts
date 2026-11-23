@@ -54,7 +54,7 @@ function discoveryFinished(session: DurableSession, event: Extract<RuntimeEvent,
 function modelFinish(session: DurableSession, event: Extract<RuntimeEvent, { type: 'model_call_finished' }>): JournalCommand[] {
   session.state.modelPending = false;
   return [{ kind: 'model_finish', input: { runId: session.claim.runId, at: session.deps.clock.now(), modelCallId: event.modelCallId,
-    outcome: event.ok ? 'succeeded' : 'failed', usage: event.usage, ...(event.ok ? {} : { failureCode: event.failureCode ?? 'unknown' }) } }];
+    outcome: event.ok ? 'succeeded' : 'failed', usage: event.usage, ...(event.ok ? {} : { failureCode: event.failureCode ?? 'unknown', ...(event.failureDetail ? { failureDetail: event.failureDetail } : {}) }) } }];
 }
 
 function toolReport(session: DurableSession, event: Extract<RuntimeEvent, { type: 'tool_call_reported' }>): JournalCommand[] {

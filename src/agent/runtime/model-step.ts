@@ -63,7 +63,7 @@ export async function requestDecision(context: StepContext): Promise<ModelStep> 
   const usage = parseModelUsage(result.usage);
   context.budget.tokens.settle(reservation.reserved, usage);
   await context.emit({ type: 'model_call_finished', modelCallId, ok: result.ok, usage,
-    ...(result.ok ? {} : { failureCode: result.error.code }) });
+    ...(result.ok ? {} : { failureCode: result.error.code, ...(result.error.diagnostic ? { failureDetail: result.error.diagnostic } : {}) }) });
   const stopped = context.control.check();
   if (stopped !== undefined) throw new RunInterrupted(stopped);
   if (limit !== undefined) throw new BudgetExceeded(limit);

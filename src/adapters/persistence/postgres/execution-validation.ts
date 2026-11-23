@@ -12,4 +12,7 @@ export function validateModelFinish(input: ModelCallFinish): void {
   if (input.outcome === 'failed') {
     if (input.failureCode === undefined || !FAILURE_CODES.has(input.failureCode)) throw new Error('Invalid model failure code');
   } else if (input.failureCode !== undefined) throw new Error('Only a failed model call has a failure code');
+  if (input.failureDetail !== undefined && (input.outcome !== 'failed' || !/^[A-Za-z0-9_.: -]{1,200}$/.test(input.failureDetail))) {
+    throw new Error('Invalid model failure detail');
+  }
 }

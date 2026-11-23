@@ -50,6 +50,8 @@ export interface ModelCallFinish extends Leased {
   readonly outcome: ModelCallOutcome;
   /** Required iff outcome is `failed`; a sanitized code, never provider text. */
   readonly failureCode?: string;
+  /** Failed calls only: safe provider metadata (status, error type, request id), never provider text. */
+  readonly failureDetail?: string;
   readonly usage: ModelUsage;
 }
 

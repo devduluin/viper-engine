@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { DeadlineExceededError } from '../../../shared/async/errors.js';
 import type { ModelFailure, ModelFailureCode } from '../../../contracts/models/gateway.js';
+import { withDiagnostic } from '../diagnostic.js';
 
 function failure(code: ModelFailureCode, message: string, retryable = false): ModelFailure {
   return Object.freeze({ code, message, retryable });
@@ -24,6 +25,10 @@ const MAPPINGS: readonly (readonly [ErrorClass, ModelFailure])[] = [
  * which has no external side effect; the SDK has already spent its own retries.
  */
 export function modelFailureFrom(error: unknown, signal?: AbortSignal): ModelFailure {
+  return withDiagnostic(classify(error, signal), error, error instanceof Anthropic.APIError);
+}
+
+function classify(error: unknown, signal?: AbortSignal): ModelFailure {
   if (signal?.aborted === true) return failure('cancelled', 'Model call cancelled');
   if (error instanceof DeadlineExceededError) return failure('timeout', 'Model call timed out', true);
   const mapped = MAPPINGS.find(([type]) => error instanceof type);
