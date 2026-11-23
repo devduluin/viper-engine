@@ -17,7 +17,7 @@ import { runUsage } from './run-usage.js';
 const DEFAULT_MAX_MESSAGES = 10_000;
 
 /** Host setting (VIPER_MAX_CHAT_BUBBLES / VIPER_MAX_HISTORY_MESSAGES): user turns kept in the model's history; 0 = all. */
-function historyBubbleLimit(): number {
+export function historyBubbleLimit(): number {
   const limit = parseInt(process.env['VIPER_MAX_CHAT_BUBBLES'] || process.env['VIPER_MAX_HISTORY_MESSAGES'] || '0', 10);
   return Number.isSafeInteger(limit) && limit > 0 ? limit : 0;
 }
@@ -27,7 +27,7 @@ function historyBubbleLimit(): number {
  * prompt, the window never moves while the run works (steering adds user turns after it), so saved context
  * checkpoints stay verifiable, and the run keeps all of its own history (prompt, proposals, results) for recovery.
  */
-function historyWindow(stored: readonly StoredMessage[], runId: RunId, limit: number): readonly StoredMessage[] {
+export function historyWindow(stored: readonly StoredMessage[], runId: RunId, limit: number): readonly StoredMessage[] {
   if (limit <= 0) return stored;
   const runStart = stored.findIndex(row => row.runId === runId);
   const anchor = runStart === -1 ? stored.length - 1 : runStart;

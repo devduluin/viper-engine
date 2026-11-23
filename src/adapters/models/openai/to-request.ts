@@ -10,6 +10,9 @@ export type OpenAIReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'hig
 export interface OpenAIRequestSettings {
   /** Sent only when configured; models without reasoning reject the field. */
   readonly reasoningEffort?: OpenAIReasoningEffort;
+  /** Compatible Chat Completions endpoints can require the older output-limit field. */
+  readonly tokenParameter?: 'max_tokens';
+  readonly structuredOutput?: boolean;
 }
 
 function text(block: ContentBlock): string {
@@ -83,7 +86,8 @@ function tool(definition: ModelToolDefinition): ChatCompletionFunctionTool {
 /** Chat Completions request; always streamed with usage in the final chunk. */
 export function toOpenAIParams(request: ModelRequest, settings: OpenAIRequestSettings): ChatCompletionStreamParams {
   return {
-    model: request.model, messages: toMessages(request.messages), max_completion_tokens: request.maxOutputTokens,
+    model: request.model, messages: toMessages(request.messages),
+    ...(settings.tokenParameter === 'max_tokens' ? { max_tokens: request.maxOutputTokens } : { max_completion_tokens: request.maxOutputTokens }),
     stream: true, stream_options: { include_usage: true },
     ...(request.tools.length === 0 ? {} : { tools: request.tools.map(tool) }),
     ...(settings.reasoningEffort === undefined ? {} : { reasoning_effort: settings.reasoningEffort }),

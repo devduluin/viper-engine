@@ -1,8 +1,11 @@
 import type { SqlPool } from '../adapters/persistence/postgres/sql-client.js';
 import { PostgresEventReplay } from '../adapters/persistence/postgres/event-replay.js';
+import { SqliteEventReplay } from '../adapters/persistence/sqlite/event-replay.js';
+import { isSqlitePool } from './database-dialect.js';
 import { ReplayEvents } from '../application/events/replay.js';
 import type { ApiCursorPort } from '../contracts/api/control.js';
 import type { Clock } from '../contracts/identity/ports.js';
+import type { EventReplayStore } from '../contracts/events/replay.js';
 import type { SseOptions } from '../entrypoints/http/sse/types.js';
 import { assertTimerDuration } from '../shared/async/delay.js';
 
@@ -21,10 +24,17 @@ function timing(options: EventStreamOptions) {
 
 export function eventReplay(pool: SqlPool, cursors: ApiCursorPort, clock: Clock, eventBytes: number,
   retentionSeconds: number, configured: EventStreamOptions = {}) {
+  const store = isSqlitePool(pool) ? new SqliteEventReplay(pool, retentionSeconds, () => clock.now())
+    : new PostgresEventReplay(pool, retentionSeconds);
+  return eventReplayFromStore(store, cursors, clock, eventBytes, configured);
+}
+
+export function eventReplayFromStore(store: EventReplayStore, cursors: ApiCursorPort, clock: Clock, eventBytes: number,
+  configured: EventStreamOptions = {}) {
   const maxBufferedBytes = positive(configured.maxBufferedBytes ?? Math.max(1048576, eventBytes + 4096), 16777216);
   if (maxBufferedBytes < eventBytes + 4096) throw new RangeError('Stream buffer must fit an event plus cursor framing');
   const batchSize = Math.min(positive(configured.batchSize ?? 16, 64), Math.max(1, Math.floor(maxBufferedBytes / (eventBytes + 4096))));
   const options: SseOptions = Object.freeze({ ...timing(configured), eventBytes, maxBufferedBytes,
     maxStreams: positive(configured.maxStreams ?? 64, 4096), maxStreamsPerScope: positive(configured.maxStreamsPerScope ?? 8, 256) });
-  return { replay: new ReplayEvents(new PostgresEventReplay(pool, retentionSeconds), cursors, batchSize), clock, options };
+  return { replay: new ReplayEvents(store, cursors, batchSize), clock, options };
 }

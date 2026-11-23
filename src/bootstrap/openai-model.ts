@@ -16,6 +16,7 @@ export interface OpenAIModelConfig {
   /** Optional compatible endpoint; https required except loopback. */
   readonly baseUrl?: string;
   readonly maxRetries: number;
+  readonly compatibility?: 'qwen' | 'ollama';
 }
 
 function required(env: Environment, key: string): string {
@@ -64,6 +65,12 @@ export function createOpenAIModelGateway(config: OpenAIModelConfig, clock: Clock
   });
   return new OpenAIModelGateway({
     api: client.chat.completions, clock,
-    settings: config.reasoningEffort === undefined ? {} : { reasoningEffort: config.reasoningEffort },
+    settings: requestSettings(config),
   });
+}
+
+function requestSettings(config: OpenAIModelConfig) {
+  if (config.compatibility === 'qwen') return { tokenParameter: 'max_tokens', structuredOutput: false } as const;
+  if (config.compatibility === 'ollama') return { tokenParameter: 'max_tokens' } as const;
+  return config.reasoningEffort === undefined ? {} : { reasoningEffort: config.reasoningEffort };
 }

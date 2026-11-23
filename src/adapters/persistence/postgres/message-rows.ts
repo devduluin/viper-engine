@@ -5,7 +5,7 @@ import { parseMessage } from '../../../contracts/messages/parse-message.js';
 import type { StoredMessage } from '../../../contracts/state/checkpoints.js';
 import type { StateConflict } from '../../../contracts/state/result.js';
 import { asRow, integer, msColumn } from './rows.js';
-import type { SqlQueryable } from './sql-client.js';
+import type { SqlQueryable, SqlResult } from './sql-client.js';
 
 export const MESSAGE_COLUMNS = ['id', 'role', 'content', 'tool_calls', 'tool_call_id', 'outcome', 'position', 'run_id',
   msColumn('created_at')].join(', ');
@@ -32,9 +32,15 @@ export async function pairingConflict(tx: SqlQueryable, conversationId: Conversa
   const calls = await tx.query(`SELECT jsonb_array_elements(tool_calls)->>'id' AS id, run_id FROM viper_engine.messages
     WHERE conversation_id = $1 AND role = 'assistant' AND tool_calls IS NOT NULL`, [conversationId]);
   const answered = await tx.query(`SELECT tool_call_id AS id FROM viper_engine.messages WHERE conversation_id = $1 AND role = 'tool'`, [conversationId]);
-  const seen = new Set(calls.rows.map(row => String(asRow(row)['id'])));
-  const origins = new Map(calls.rows.map(row => [String(asRow(row)['id']), asRow(row)['run_id']]));
-  const pending = new Set([...seen].filter(id => !answered.rows.some(row => asRow(row)['id'] === id)));
+  return validatePairing(calls.rows, answered.rows, messages, runId);
+}
+
+/** Driver-independent pairing rules. Input rows are selected in the append transaction. */
+export function validatePairing(calls: SqlResult['rows'], answered: SqlResult['rows'], messages: readonly Message[], runId?: RunId): StateConflict | undefined {
+  const origins = new Map(calls.map(row => [String(asRow(row)['id']), asRow(row)['run_id']]));
+  const seen = new Set(origins.keys());
+  const pending = new Set(seen);
+  for (const row of answered) pending.delete(String(asRow(row)['id']));
   for (const message of messages) {
     if (message.role === 'system') return pairing('System instructions are not persisted as history');
     if (message.role === 'assistant') {

@@ -9,6 +9,8 @@ import { PostgresMessageStore } from '../adapters/persistence/postgres/message-s
 import { PostgresCheckpointReader } from '../adapters/persistence/postgres/checkpoint-reader.js';
 import { PostgresIdempotencyStore } from '../adapters/persistence/postgres/idempotency-store.js';
 import { PostgresMcpConnectionStore } from '../adapters/persistence/postgres/mcp-connection-store.js';
+import { sqliteApiDatabase } from './api-database-sqlite.js';
+import { isSqlitePool } from './database-dialect.js';
 
 function stores(pool: SqlPool): ApiStores {
   return { conversations: new PostgresConversationStore(pool), runs: new PostgresRunStore(pool),
@@ -17,7 +19,8 @@ function stores(pool: SqlPool): ApiStores {
     connections: new PostgresMcpConnectionStore(pool) };
 }
 
-export function apiDatabase(pool: SqlPool): ApiDatabase {
+export function apiDatabase(pool: SqlPool, clock: () => number = Date.now): ApiDatabase {
+  if (isSqlitePool(pool)) return sqliteApiDatabase(pool, clock);
   return { transaction: work => withTransaction(pool, tx => work(stores(transactionPool(tx)))),
     snapshot: work => withSnapshot(pool, tx => work(stores(transactionPool(tx)))) };
 }

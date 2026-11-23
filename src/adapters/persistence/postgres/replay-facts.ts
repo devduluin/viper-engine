@@ -1,6 +1,8 @@
 import type { RunId } from '../../../contracts/identity/ids.js';
 import type { RunEventRecord } from '../../../contracts/state/events.js';
 import type { ReplayItem } from '../../../contracts/events/replay.js';
+import type { StoredMessage } from '../../../contracts/state/checkpoints.js';
+import type { ApprovalRecord, ToolCallRecord } from '../../../contracts/state/records.js';
 import { MESSAGE_COLUMNS, storedMessage } from './message-rows.js';
 import { APPROVAL_COLUMNS, TOOL_CALL_COLUMNS, approvalRecord, toolCallRecord } from './rows.js';
 import type { SqlQueryable } from './sql-client.js';
@@ -20,6 +22,11 @@ export async function replayFacts(tx: SqlQueryable, runId: RunId, events: readon
   const messages = await rows(tx, 'messages', MESSAGE_COLUMNS, runId, messageIds, storedMessage);
   const approvals = await rows(tx, 'approvals', APPROVAL_COLUMNS, runId, approvalIds, approvalRecord);
   const tools = await rows(tx, 'tool_calls', TOOL_CALL_COLUMNS, runId, toolIds, toolCallRecord);
+  return assembleReplayItems(events, messages, approvals, tools);
+}
+
+export function assembleReplayItems(events: readonly RunEventRecord[], messages: readonly StoredMessage[],
+  approvals: readonly ApprovalRecord[], tools: readonly ToolCallRecord[]): readonly ReplayItem[] {
   const byMessage = new Map(messages.map(record => [String(record.message.id), record.message]));
   const byApproval = new Map(approvals.map(record => [String(record.id), record]));
   const byTool = new Map(tools.map(record => [String(record.id), record]));

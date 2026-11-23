@@ -12,6 +12,8 @@ import { createClientToolPort } from './client-tools.js';
 import { processClientTools } from '../application/streaming/client-tools.js';
 import { runBudgetSelector } from './run-budget.js';
 import { userMemoryOptions } from './user-memory.js';
+import { SqliteMcpConnectionStore } from '../adapters/persistence/sqlite/mcp-connection-store.js';
+import { isSqlitePool } from './database-dialect.js';
 
 /** Concrete standalone engine. Host owns DB pool/migrations; engine owns its MCP sessions. */
 export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
@@ -19,12 +21,13 @@ export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
   const settings = engineSettings(options);
   const modeSettings = runBudgetSelector(pool, options, settings.limits);
   const { clock, ids, connectTimeoutMs, requestTimeoutMs } = settings;
-  const directory = new PostgresMcpConnectionStore(pool);
+  const directory = connectionDirectory(pool);
   const connections = new McpConnectionPool({ directory, credentials: options.credentials, resolveEndpoint: options.resolveEndpoint,
     clock, connectTimeoutMs, requestTimeoutMs });
   const mcp = new PooledMcpGateway(connections, clock, requestTimeoutMs, connectTimeoutMs);
   const driver = createDurableRunDriver(pool, {
     model: settings.model.gateway, provider: settings.model.provider, mcp, validator: new JsonSchemaToolValidator(), policy: options.policy, clock, ids,
+    resolveRunModel: options.resolveRunModel,
     configure: async (scope, checkpoint) => ({ model: settings.model.model,
       maxModelCalls: settings.maxModelCalls, maxOutputTokens: settings.maxOutputTokens,
       tools: await discoverRuntimeTools(scope, await options.connections(scope, checkpoint), directory, mcp, settings),
@@ -43,4 +46,8 @@ export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
   const onResult = options.clientTools?.onResult;
   const stopObserving = onResult === undefined ? () => undefined : processClientTools.observe(onResult);
   return engineLifecycle(driver, async () => { stopObserving(); await connections.closeAll(); });
+}
+
+function connectionDirectory(pool: SqlPool) {
+  return isSqlitePool(pool) ? new SqliteMcpConnectionStore(pool) : new PostgresMcpConnectionStore(pool);
 }

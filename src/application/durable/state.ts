@@ -19,7 +19,7 @@ export interface DurableState extends DurableContextState {
   toolDiscovery?: ToolDiscoveryState;
   version: 1;
   phase: 'model' | 'calls' | 'correction' | 'input' | 'final';
-  model: string; maxModelCalls: number; maxOutputTokens: number; limits: RunLimits; deadlineAt: number;
+  model: string; provider?: string; maxModelCalls: number; maxOutputTokens: number; limits: RunLimits; deadlineAt: number;
   budget: BudgetState; modelCalls: number; reports: ToolCallReport[]; stepIndex: number;
   stepId?: StepId; modelCallId?: ModelCallId; modelPending: boolean;
 }
@@ -67,6 +67,7 @@ export function decodeState(value: JsonObject): DurableState {
       ...(report['failureCode'] === undefined ? {} : { failureCode: failureCode(report['failureCode'], status) }) };
   });
   return { version: 1, phase: member(value['phase'], PHASES), model: text(value['model']),
+    ...(value['provider'] === undefined ? {} : { provider: text(value['provider']) }),
     maxModelCalls: positive(value['maxModelCalls']), maxOutputTokens: positive(value['maxOutputTokens']),
     limits: resolveRunLimits(parseJsonObject(value['limits'])), deadlineAt: number(value['deadlineAt']),
     budget: parseBudgetState(value['budget']), modelCalls: number(value['modelCalls']), reports,

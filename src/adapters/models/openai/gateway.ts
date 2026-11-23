@@ -64,10 +64,12 @@ async function relay(chunk: ChatCompletionChunk, id: ModelCallId, tools: Map<num
  * client's base URL). Always streams; provider failures come back as `ok: false`.
  */
 export class OpenAIModelGateway implements ModelGateway {
-  readonly capabilities = OPENAI_CAPABILITIES;
+  readonly capabilities: ModelCapabilities;
   private readonly timeoutMs: number;
 
   constructor(private readonly options: OpenAIGatewayOptions) {
+    this.capabilities = options.settings.structuredOutput === false
+      ? Object.freeze({ ...OPENAI_CAPABILITIES, structuredOutput: false }) : OPENAI_CAPABILITIES;
     this.timeoutMs = options.requestTimeoutMs ?? 600_000;
     assertTimerDuration('model request timeout', this.timeoutMs);
     if (this.timeoutMs === 0) throw new RangeError('Model request timeout must be positive');

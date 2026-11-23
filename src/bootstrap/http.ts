@@ -15,6 +15,8 @@ import type { RunCheckpoint } from '../contracts/state/checkpoints.js';
 import { eventReplay } from './event-replay.js';
 import type { EventStreamOptions } from './event-replay.js';
 import { createUserMemory } from './user-memory.js';
+import { isSqlitePool } from './database-dialect.js';
+import { loadRunInstructions as loadSqliteInstructions } from '../adapters/persistence/sqlite/api-control.js';
 
 export interface EngineHttpOptions extends Pick<ApiOptions, 'authorizeServer' | 'prepareContext' | 'authorizeMedia' | 'titleConversation'> {
   readonly userMemory?: boolean;
@@ -40,7 +42,7 @@ export function createEngineHttpServer(pool: SqlPool, options: EngineHttpOptions
   const idempotencyRetentionSeconds = bounded(options.idempotencyRetentionSeconds ?? 86400, 31536000);
   const eventRetentionSeconds = bounded(options.eventRetentionSeconds ?? 86400, 31536000);
   const cursors = new SignedApiCursors(options.cursorSecret, clock, eventRetentionSeconds * 1000);
-  const api = new EngineApi({ database: apiDatabase(pool), clock, ids, requestBytes, eventBytes,
+  const api = new EngineApi({ database: apiDatabase(pool, () => clock.now()), clock, ids, requestBytes, eventBytes,
     idempotencyRetentionSeconds, eventRetentionSeconds,
     cursors, eventReplay: options.stream !== false,
     authorizeServer: (scope, id) => withDeadline(() => options.authorizeServer(scope, id), { operationName: 'server authorization', timeoutMs: 10000 }),
@@ -61,7 +63,8 @@ export function createEngineHttpServer(pool: SqlPool, options: EngineHttpOptions
 
 /** Pass as ViperEngineOptions.instructions when pairing this HTTP surface with a worker. */
 export function persistedRunInstructions(pool: SqlPool) {
-  return (scope: TrustedScope, checkpoint: RunCheckpoint) => loadRunInstructions(pool, scope, checkpoint.run.id);
+  const load = isSqlitePool(pool) ? loadSqliteInstructions : loadRunInstructions;
+  return (scope: TrustedScope, checkpoint: RunCheckpoint) => load(pool, scope, checkpoint.run.id);
 }
 
 function bounded(value: number, maximum: number): number {

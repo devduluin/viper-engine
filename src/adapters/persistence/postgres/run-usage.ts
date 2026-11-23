@@ -9,7 +9,11 @@ export async function runUsage(tx: SqlQueryable, runId: RunId): Promise<RunUsage
     count(output_tokens)::bigint AS output_count, sum(output_tokens) AS output_sum,
     count(total_tokens)::bigint AS total_count, sum(total_tokens) AS total_sum
     FROM viper_engine.model_calls WHERE run_id = $1`, [runId]);
-  const row = asRow(result.rows[0]); const modelCalls = integer(row, 'calls'); const sources = integer(row, 'sources');
+  return decodeRunUsage(result.rows[0]);
+}
+
+export function decodeRunUsage(value: unknown): RunUsage {
+  const row = asRow(value); const modelCalls = integer(row, 'calls'); const sources = integer(row, 'sources');
   const token = (kind: string) => modelCalls > 0 && integer(row, `${kind}_count`) === modelCalls ? integer(row, `${kind}_sum`) : null;
   const source = sources === 0 ? 'unavailable' : sources > 1 ? 'mixed'
     : member(row, 'single_source', ['provider', 'estimate', 'unavailable'] as const);

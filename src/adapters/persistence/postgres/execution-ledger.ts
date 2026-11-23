@@ -17,7 +17,7 @@ import { withTransaction } from './sql-client.js';
 const RESULTS: readonly AttemptResultKind[] = ['succeeded', 'failed', 'unknown', 'retry_wait'];
 const ALREADY = (what: string): StateConflict => ({ code: 'invalid_transition', message: `${what} is already finished` });
 
-function attempt(value: unknown): ToolCallAttempt {
+export function attempt(value: unknown): ToolCallAttempt {
   const row = asRow(value);
   const settled = row['settled_at_ms'] === null ? {} : {
     settledAt: integer(row, 'settled_at_ms'), resultKind: member(row, 'result_kind', RESULTS),

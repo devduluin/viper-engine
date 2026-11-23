@@ -14,6 +14,9 @@ import { workerInstructions } from './instructions.js';
 import { deadLetter, parseMaxDeliveryFailures } from './dead-letter.js';
 import { guardWorkerSchema } from './schema-guard.js';
 import { assertSchemaReady } from '../database.js';
+import { SqliteRunStore } from '../../adapters/persistence/sqlite/run-store.js';
+import { SqliteWorkerControl } from '../../adapters/persistence/sqlite/worker-control.js';
+import { isSqlitePool } from '../database-dialect.js';
 export type { WorkerEvent, WorkerHandle, WorkerStatus } from '../../application/worker/types.js';
 
 export interface EngineWorkerOptions extends Omit<WorkerOptions, 'workerId'> {
@@ -31,8 +34,11 @@ export function createEngineWorker(pool: SqlPool, engineOptions: Omit<ViperEngin
   const clock = engineOptions.clock ?? { now: () => Date.now() };
   const maxFailures = parseMaxDeliveryFailures(options.maxDeliveryFailures);
   const ids = engineOptions.ids ?? { next: <K extends string>(kind: K) => parseId(kind, `${kind}-${randomUUID()}`) };
-  const runs = new PostgresRunStore(pool);
-  const control = new PostgresWorkerControl(pool, { baseMs: 1000, maxMs: 300000, authenticationMs: 30000, ...options.retry });
+  const sqlite = isSqlitePool(pool);
+  const now = () => clock.now();
+  const runs = sqlite ? new SqliteRunStore(pool, now) : new PostgresRunStore(pool);
+  const retry = { baseMs: 1000, maxMs: 300000, authenticationMs: 30000, ...options.retry };
+  const control = sqlite ? new SqliteWorkerControl(pool, retry, now) : new PostgresWorkerControl(pool, retry);
   const saved = persistedRunInstructions(pool); const configured = engineOptions.instructions;
   const engine = createViperEngine(pool, { ...engineOptions, clock,
     instructions: workerInstructions(configured, saved),

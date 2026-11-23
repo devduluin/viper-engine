@@ -12,7 +12,11 @@ export async function userStatement(tx: SqlQueryable, scope: TrustedScope, input
     WHERE actor_id = $1 AND app_id = $2 AND tenant_key = $3 AND conversation_id = $4 AND id = $5`,
   [...ownerColumns(scope), input.conversationId, input.messageId]);
   if (result.rows[0] === undefined) return stateConflict({ code: 'not_found', message: 'Source not found' });
-  const row = asRow(result.rows[0]); const blocks = parseContent(row['content']);
+  return userStatementFromRow(result.rows[0], input);
+}
+
+export function userStatementFromRow(value: unknown, input: NoteSource): StateResult<{ readonly source: SourceView; readonly text: string }> {
+  const row = asRow(value); const blocks = parseContent(row['content']);
   if (text(row, 'role') !== 'user' || blocks.some(block => block.type !== 'text')) return stateConflict({ code: 'evidence_required', message: 'Select a user text statement explicitly' });
   const content = blocks.map(block => block.type === 'text' ? block.text : '').join('\n');
   if (content.trim() === '' || new TextEncoder().encode(content).byteLength > 8192) return stateConflict({ code: 'evidence_required', message: 'User statement requires 1..8192 bytes of text' });

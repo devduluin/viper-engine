@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { PostgresLearningStore } from '../adapters/persistence/postgres/learning-store.js';
+import { SqliteLearningStore } from '../adapters/persistence/sqlite/learning-store.js';
+import { isSqlitePool } from './database-dialect.js';
 import type { SqlPool } from '../adapters/persistence/postgres/sql-client.js';
 import { EngineLearning } from '../application/learning/service.js';
 import { parseId } from '../contracts/identity/ids.js';
@@ -9,5 +11,5 @@ import type { Clock, IdGenerator } from '../contracts/identity/ports.js';
 export function createEngineLearning(pool: SqlPool, options: { readonly clock?: Clock; readonly ids?: IdGenerator } = {}) {
   const clock = options.clock ?? { now: () => Date.now() };
   const ids = options.ids ?? { next: <K extends string>(kind: K) => parseId(kind, `${kind}-${randomUUID()}`) };
-  return new EngineLearning(new PostgresLearningStore(pool), clock, ids);
+  return new EngineLearning(isSqlitePool(pool) ? new SqliteLearningStore(pool) : new PostgresLearningStore(pool), clock, ids);
 }

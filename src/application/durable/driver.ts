@@ -82,8 +82,9 @@ export class DurableRunDriver {
     const plan = await deliveryPlan(this.deps, scope, loaded.value, guard);
     if (loaded.value.execution === undefined && loaded.value.toolCalls.length > 0) throw new Error('Execution requires a managed checkpoint');
     const state = loaded.value.execution === undefined ? initialState(plan, this.deps.clock.now()) : decodeState(loaded.value.execution.state);
+    const runDeps = this.bindRunModel(state, loaded.value.execution !== undefined, guard.cancelled);
     const context = contextPlan(state, plan, loaded.value, guard.cancelled);
-    const session = new DurableSession(claim, scope, this.deps, loaded.value, state, guard);
+    const session = new DurableSession(claim, scope, runDeps, loaded.value, state, guard);
     await guard.refresh();
     await session.commit(loaded.value.run.status === 'queued' ? [{ kind: 'run_transition', input: {
       to: 'running', expectedRevision: loaded.value.run.revision, at: this.deps.clock.now(), events: [session.event('run.started')] } }] : []);
@@ -91,11 +92,23 @@ export class DurableRunDriver {
       model: state.model, maxModelCalls: state.maxModelCalls, maxOutputTokens: state.maxOutputTokens, limits: state.limits, deadlineAt: state.deadlineAt,
       history: { scope, conversationId: claim.conversationId, messages: session.checkpoint.history },
       signal: guard.controller.signal, resume: { budget: state.budget, modelCalls: state.modelCalls, reports: state.reports, ...resumeContext(state) },
-    }, { ...this.deps, policy: { decide: (tool, call) => policy(session, tool, call),
+    }, { ...runDeps, policy: { decide: (tool, call) => policy(session, tool, call),
       rejection: (tool, call) => policyRejection(session, tool, call) },
       beforeToolInvoke: (tool, call) => { guard.assert(); return this.deps.beforeToolInvoke?.(tool, call); },
       ...(this.deps.steeringInputs === undefined ? {} : { steering: { take: () => takeSteering(session) } }),
       onEvent: event => persistEvent(session, event) });
     return session;
+  }
+
+  private bindRunModel(state: ReturnType<typeof initialState>, resumed: boolean, cancelled: boolean): DurableDriverDependencies {
+    if (cancelled || this.deps.resolveRunModel === undefined) return this.deps;
+    const pinned = state.provider === undefined ? undefined : { provider: state.provider, model: state.model };
+    const binding = this.deps.resolveRunModel(pinned);
+    if (resumed && (binding.model !== state.model || (pinned !== undefined && binding.provider !== pinned.provider))) {
+      throw new Error('The model pinned to this run is unavailable');
+    }
+    state.provider = binding.provider;
+    state.model = binding.model;
+    return { ...this.deps, provider: binding.provider, model: binding.gateway };
   }
 }

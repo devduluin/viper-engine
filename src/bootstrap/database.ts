@@ -5,11 +5,20 @@ import type { MigrationReport, SchemaStatus } from '../adapters/persistence/post
 import type { SqlPool } from '../adapters/persistence/postgres/sql-client.js';
 import type { DatabaseConfig } from './database-config.js';
 import { assertMigrationVersion } from './schema-version.js';
+import { isSqlitePool } from './database-dialect.js';
+import { migrateSqlitePrototype, sqliteSchemaStatus } from '../adapters/persistence/sqlite/migrate.js';
+import type { SqliteFiles, SqlitePool } from '../adapters/persistence/sqlite/pool.js';
+export type { SqliteFiles, SqlitePool } from '../adapters/persistence/sqlite/pool.js';
 
 /** Build copies SQL assets beside the compiled adapters; callers may pass another directory. */
 export const MIGRATIONS_DIRECTORY = fileURLToPath(new URL('../adapters/persistence/postgres/migrations/', import.meta.url));
 
 export type DatabasePool = pg.Pool & SqlPool;
+
+export async function openSqliteDatabase(files: SqliteFiles): Promise<SqlitePool> {
+  const { SqlitePool: Pool } = await import('../adapters/persistence/sqlite/pool.js');
+  return new Pool(files);
+}
 
 export function createDatabasePool(config: DatabaseConfig): DatabasePool {
   return new pg.Pool({
@@ -23,6 +32,7 @@ export function createDatabasePool(config: DatabaseConfig): DatabasePool {
 }
 
 export async function migrateDatabase(pool: SqlPool, directory = MIGRATIONS_DIRECTORY): Promise<MigrationReport> {
+  if (isSqlitePool(pool)) return migrateSqlitePrototype(pool);
   return migrate(pool, await engineMigrations(directory));
 }
 
@@ -52,8 +62,7 @@ function schemaMessage(status: SchemaStatus): string {
  * or unreadable: a ledger alone cannot establish compatibility with the current build.
  */
 export async function assertSchemaReady(pool: SqlPool, directory = MIGRATIONS_DIRECTORY): Promise<SchemaStatus> {
-  const migrations = await engineMigrations(directory);
-  const status = await schemaStatus(pool, migrations);
+  const status = isSqlitePool(pool) ? await sqliteSchemaStatus(pool) : await schemaStatus(pool, await engineMigrations(directory));
   if (!status.ready) throw new SchemaNotReadyError(status);
   return status;
 }

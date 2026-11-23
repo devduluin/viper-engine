@@ -14,6 +14,9 @@ export interface DurableDriverDependencies extends RunLoopDependencies {
   readonly configure: (scope: TrustedScope, checkpoint: RunCheckpoint) => Promise<Omit<RunLoopInput,
     'scope' | 'conversationId' | 'runId' | 'history' | 'resume' | 'signal'>>;
   readonly provider: string;
+  readonly resolveRunModel?: ((pinned?: { readonly provider: string; readonly model: string }) => {
+    readonly provider: string; readonly model: string; readonly gateway: RunLoopDependencies['model'];
+  }) | undefined;
   readonly leaseMs?: number;
   readonly heartbeatMs?: number;
   /** Approval proposal lifetime in ms (positive safe integer, default 60000); checked when the driver is built. */

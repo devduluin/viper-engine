@@ -22,7 +22,7 @@ const OWNED = `c.id = $1 AND c.actor_id = $2 AND c.app_id = $3 AND c.tenant_key 
 const SELECT = `SELECT c.id, c.server_id, c.auth_state, c.revision, s.transport, s.endpoint_ref, s.config, s.enabled
   FROM viper_engine.mcp_connections c JOIN viper_engine.mcp_servers s ON s.id = c.server_id`;
 
-function record(value: unknown): McpConnectionRecord {
+export function decodeConnection(value: unknown): McpConnectionRecord {
   const row = asRow(value);
   const enabled = row['enabled'];
   if (typeof enabled !== 'boolean') throw new Error('Unexpected database value: enabled');
@@ -42,7 +42,7 @@ export class PostgresMcpConnectionStore implements McpConnectionDirectory {
 
   async get(scope: TrustedScope, id: McpConnectionId): Promise<StateResult<McpConnectionRecord>> {
     const result = await this.pool.query(`${SELECT} WHERE ${OWNED}`, [id, ...ownerColumns(scope)]);
-    return result.rows[0] === undefined ? stateConflict(NOT_FOUND) : stateOk(record(result.rows[0]));
+    return result.rows[0] === undefined ? stateConflict(NOT_FOUND) : stateOk(decodeConnection(result.rows[0]));
   }
 
   /** ready -> authentication_required; a revoked connection stays revoked. */
