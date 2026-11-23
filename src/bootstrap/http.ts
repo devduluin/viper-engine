@@ -18,7 +18,7 @@ import { createUserMemory } from './user-memory.js';
 import { isSqlitePool } from './database-dialect.js';
 import { loadRunInstructions as loadSqliteInstructions } from '../adapters/persistence/sqlite/api-control.js';
 
-export interface EngineHttpOptions extends Pick<ApiOptions, 'authorizeServer' | 'prepareContext' | 'authorizeMedia' | 'titleConversation'> {
+export interface EngineHttpOptions extends Pick<ApiOptions, 'authorizeServer' | 'prepareContext' | 'authorizeMedia' | 'titleConversation' | 'queuedModel'> {
   readonly userMemory?: boolean;
   readonly authenticate: HttpOptions['authenticate'];
   /** Stable deployment secret, separate from bearer/provider credentials. */
@@ -73,8 +73,9 @@ function bounded(value: number, maximum: number): number {
 }
 
 /** Host hooks the API only uses when provided (context preparation, media authorization, titles). */
-function optionalHooks(options: EngineHttpOptions): Partial<Pick<EngineHttpOptions, 'prepareContext' | 'authorizeMedia' | 'titleConversation'>> {
+function optionalHooks(options: EngineHttpOptions): Partial<Pick<EngineHttpOptions, 'prepareContext' | 'authorizeMedia' | 'titleConversation' | 'queuedModel'>> {
   return {
+    ...(options.queuedModel === undefined ? {} : { queuedModel: options.queuedModel }),
     ...(options.prepareContext === undefined ? {} : { prepareContext: options.prepareContext }),
     ...(options.authorizeMedia === undefined ? {} : { authorizeMedia: options.authorizeMedia }),
     ...(options.titleConversation === undefined ? {} : { titleConversation: options.titleConversation }),

@@ -82,7 +82,7 @@ export class DurableRunDriver {
     const plan = await deliveryPlan(this.deps, scope, loaded.value, guard);
     if (loaded.value.execution === undefined && loaded.value.toolCalls.length > 0) throw new Error('Execution requires a managed checkpoint');
     const state = loaded.value.execution === undefined ? initialState(plan, this.deps.clock.now()) : decodeState(loaded.value.execution.state);
-    const runDeps = this.bindRunModel(state, loaded.value.execution !== undefined, guard.cancelled);
+    const runDeps = await this.bindRunModel(state, loaded.value.execution !== undefined, guard.cancelled, claim.runId);
     const context = contextPlan(state, plan, loaded.value, guard.cancelled);
     const session = new DurableSession(claim, scope, runDeps, loaded.value, state, guard);
     await guard.refresh();
@@ -100,10 +100,10 @@ export class DurableRunDriver {
     return session;
   }
 
-  private bindRunModel(state: ReturnType<typeof initialState>, resumed: boolean, cancelled: boolean): DurableDriverDependencies {
+  private async bindRunModel(state: ReturnType<typeof initialState>, resumed: boolean, cancelled: boolean, runId: RunClaim['runId']): Promise<DurableDriverDependencies> {
     if (cancelled || this.deps.resolveRunModel === undefined) return this.deps;
     const pinned = state.provider === undefined ? undefined : { provider: state.provider, model: state.model };
-    const binding = this.deps.resolveRunModel(pinned);
+    const binding = await this.deps.resolveRunModel(pinned, runId);
     if (resumed && (binding.model !== state.model || (pinned !== undefined && binding.provider !== pinned.provider))) {
       throw new Error('The model pinned to this run is unavailable');
     }

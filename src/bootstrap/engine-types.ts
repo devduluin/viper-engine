@@ -34,7 +34,8 @@ export interface ViperEngineOptions {
   readonly budgetProfiles?: import('../contracts/models/budget-profiles.js').BudgetProfiles;
   readonly defaultBudgetMode?: import('../contracts/models/budget-profiles.js').BudgetMode;
   readonly model: EngineModel;
-  readonly resolveRunModel?: (pinned?: { readonly provider: string; readonly model: string }) => EngineModel;
+  readonly resolveRunModel?: (pinned?: { readonly provider: string; readonly model: string },
+    runId?: import('../contracts/identity/ids.js').RunId) => EngineModel | Promise<EngineModel>;
   readonly credentials: McpCredentialPort;
   readonly resolveEndpoint: (server: McpServerEndpoint) => McpTransportConfig;
   /** Server selection/auth, never a connection list supplied by the model. */

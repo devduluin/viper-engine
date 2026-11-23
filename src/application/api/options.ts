@@ -10,6 +10,7 @@ export interface ApiOptions {
   readonly requestBytes: number; readonly eventBytes: number;
   readonly idempotencyRetentionSeconds: number; readonly eventRetentionSeconds: number;
   readonly eventReplay?: boolean;
+  readonly queuedModel?: (scope: TrustedScope) => Promise<{ readonly provider: string; readonly model: string }>;
   /** Host grant after authenticating the configured server; no client secret/config accepted. */
   readonly authorizeServer: (scope: TrustedScope, serverId: string) => Promise<'ready' | 'authentication_required' | false>;
   /** Read-only, bounded, application-controlled MCP resource/prompt preparation. */

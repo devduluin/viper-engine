@@ -17,6 +17,7 @@ export async function startRun(scope: TrustedScope, call: ApiCall, options: ApiO
   if (call.key === undefined || !/^[!-~]{1,128}$/.test(call.key)) throw new ApiFailure('INVALID_REQUEST');
   const key = createFingerprint({ resource: id, key: call.key }, { domain: 'api.runs.key', version: '1' });
   const fingerprint = createFingerprint({ method: 'POST', resource: id, body: call.body }, { domain: 'api.runs.body', version: '1' });
+  const queuedModel = await options.queuedModel?.(scope);
   return options.database.transaction(async stores => {
     requireState(await stores.conversations.get(scope, id));
     const request = { operation: 'runs.create', key, fingerprint };
@@ -32,7 +33,7 @@ export async function startRun(scope: TrustedScope, call: ApiCall, options: ApiO
     const effort = runEffort(call.body); const clientTools = runClientTools(call.body);
     const run = requireState(await stores.runs.create(scope, { id: runId, conversationId: id, at, ...(effort ? { effort } : {}),
       ...(clientTools.length > 0 ? { clientTools } : {}),
-      events: [{ eventId: options.ids.next('run_event'), type: 'run.queued', occurredAt: at, payload: {} }] }));
+      events: [{ eventId: options.ids.next('run_event'), type: 'run.queued', occurredAt: at, payload: queuedModel ? { queuedModel } : {} }] }));
     requireState(await stores.messages.append(scope, id, { expectedRevision: conversation.revision, at, runId,
       messages: [input] }));
     await stores.control.saveInstructions(scope, runId, instructions);
