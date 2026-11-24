@@ -15,7 +15,9 @@ import { AgentError } from '../../agent/runtime/agent-port.js';
 import type { AgentPort, AgentReport, AgentTier, AgentView } from '../../agent/runtime/agent-port.js';
 import type { RuntimeTool } from '../../agent/execution/tool-catalog.js';
 
-interface Binding { readonly options: SubAgentOptions; readonly scope: TrustedScope; readonly run: RunLineage;
+/** Options with the profiles of this delivery resolved. */
+type ResolvedOptions = SubAgentOptions & { readonly profiles: readonly AgentProfile[] };
+interface Binding { readonly options: ResolvedOptions; readonly scope: TrustedScope; readonly run: RunLineage;
   readonly ids: IdGenerator; readonly now: () => number }
 
 export function createAgentPort(binding: Binding): AgentPort {
@@ -112,9 +114,10 @@ export async function subAgentWiring<T extends { readonly tools: readonly Runtim
   options: SubAgentOptions | undefined, context: { readonly scope: TrustedScope; readonly runId: RunId; readonly ids: IdGenerator;
     readonly now: () => number; readonly cancelled: boolean }, plan: T): Promise<{ readonly plan: T; readonly agents?: AgentPort }> {
   if (options === undefined || context.cancelled) return { plan };
+  const resolved: ResolvedOptions = { ...options, profiles: typeof options.profiles === 'function' ? options.profiles() : options.profiles };
   const run = await runLineage(options, context.scope, context.runId);
   if (run === undefined) return { plan };
-  const shaped = run.depth > 0 ? applyAgentProfile(plan, options.profiles.find(profile => profile.name === run.profile), context.ids) : plan;
+  const shaped = run.depth > 0 ? applyAgentProfile(plan, resolved.profiles.find(profile => profile.name === run.profile), context.ids) : plan;
   if (run.depth >= (options.maxDepth ?? 1)) return { plan: shaped };
-  return { plan: shaped, agents: createAgentPort({ options, scope: context.scope, run, ids: context.ids, now: context.now }) };
+  return { plan: shaped, agents: createAgentPort({ options: resolved, scope: context.scope, run, ids: context.ids, now: context.now }) };
 }
