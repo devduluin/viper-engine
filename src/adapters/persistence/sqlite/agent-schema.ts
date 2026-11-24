@@ -110,3 +110,15 @@ BEGIN
       AND status NOT IN ('completed','partial','failed','cancelled');
 END;
 `;
+
+/** Twin of postgres 0021_agent_park_guard.sql: a parent that parks with nothing open is woken at once. */
+export const AGENT_PARK_GUARD_SCHEMA = `
+CREATE TRIGGER viper_engine.wake_settled_parent AFTER UPDATE OF status ON runs
+WHEN NEW.status = 'waiting_for_agents' AND OLD.status <> NEW.status AND NOT EXISTS (
+  SELECT 1 FROM run_links l WHERE l.from_run_id = NEW.id AND l.kind = 'awaits' AND l.satisfied_at_ms IS NULL)
+BEGIN
+  UPDATE runs SET status = 'running', revision = revision + 1, updated_at_ms = NEW.updated_at_ms,
+    lease_owner = NULL, lease_expires_at_ms = NULL, lease_fence = lease_fence + 1
+  WHERE id = NEW.id AND status = 'waiting_for_agents';
+END;
+`;

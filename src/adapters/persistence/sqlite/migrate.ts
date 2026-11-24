@@ -9,7 +9,7 @@ import { RECALL_SCHEMA } from './recall-schema.js';
 import { LEARNING_EVIDENCE_SCHEMA } from './learning-evidence-schema.js';
 import { LEARNING_SCHEMA } from './learning-schema.js';
 import { LEARNING_GUARDS } from './learning-guards.js';
-import { AGENT_RUNS_SCHEMA, AGENT_SETTLEMENT_SCHEMA } from './agent-schema.js';
+import { AGENT_PARK_GUARD_SCHEMA, AGENT_RUNS_SCHEMA, AGENT_SETTLEMENT_SCHEMA } from './agent-schema.js';
 import { defineMigration } from '../postgres/migrate.js';
 import type { MigrationReport, SchemaStatus } from '../postgres/migrate.js';
 
@@ -20,6 +20,7 @@ const MIGRATIONS = Object.freeze([
   defineMigration(3, 'outcome_learning', LEARNING_SCHEMA + LEARNING_EVIDENCE_SCHEMA + LEARNING_GUARDS),
   defineMigration(4, 'agent_runs', AGENT_RUNS_SCHEMA),
   defineMigration(5, 'agent_settlement', AGENT_SETTLEMENT_SCHEMA),
+  defineMigration(6, 'agent_park_guard', AGENT_PARK_GUARD_SCHEMA),
 ]);
 
 export function migrateSqlitePrototype(pool: SqlitePool): Promise<MigrationReport> {

@@ -44,6 +44,7 @@ export interface ApiStores {
   readonly messages: MessageStore; readonly checkpoints: CheckpointReader;
   readonly idempotency: IdempotencyStore; readonly control: ApiControlStore;
   readonly connections: McpConnectionDirectory;
+  readonly agents: import('../state/agents.js').AgentRunStore;
 }
 export interface ApiDatabase {
   transaction<T>(work: (stores: ApiStores) => Promise<T>): Promise<T>;

@@ -8,6 +8,8 @@ import { SqliteMcpConnectionStore } from '../adapters/persistence/sqlite/mcp-con
 import { SqliteMessageStore } from '../adapters/persistence/sqlite/message-store.js';
 import type { SqlitePool } from '../adapters/persistence/sqlite/pool.js';
 import { SqliteConversationStore, SqliteRunStore } from '../adapters/persistence/sqlite/run-store.js';
+import { SqlAgentRunStore } from '../adapters/persistence/postgres/agent-store.js';
+import { SQLITE_AGENTS } from '../adapters/persistence/sqlite/agent-store.js';
 import type { ApiDatabase, ApiStores } from '../contracts/api/control.js';
 
 function stores(tx: SqlQueryable, clock: () => number): ApiStores {
@@ -15,7 +17,8 @@ function stores(tx: SqlQueryable, clock: () => number): ApiStores {
   return { conversations: new SqliteConversationStore(pool), runs: new SqliteRunStore(pool, clock),
     approvals: new SqliteApprovalStore(pool, clock), messages: new SqliteMessageStore(pool, clock),
     checkpoints: new SqliteCheckpointReader(pool, clock), idempotency: new SqliteIdempotencyStore(pool),
-    control: new SqliteApiControl(tx, clock), connections: new SqliteMcpConnectionStore(pool) };
+    control: new SqliteApiControl(tx, clock), connections: new SqliteMcpConnectionStore(pool),
+    agents: new SqlAgentRunStore(pool, SQLITE_AGENTS) };
 }
 
 export function sqliteApiDatabase(pool: SqlitePool, clock: () => number = Date.now): ApiDatabase {

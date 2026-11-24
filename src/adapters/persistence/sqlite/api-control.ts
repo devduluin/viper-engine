@@ -37,7 +37,7 @@ export class SqliteApiControl extends SqliteApiConnections implements ApiControl
   async listConversations(scope: TrustedScope, after: ConversationPosition | undefined, limit: number) {
     const position = after === undefined ? '' : 'AND (updated_at_ms, id COLLATE BINARY) < (?, ?)';
     const result = await this.db.query(`SELECT * FROM viper_engine.conversations
-      WHERE ${OWNED} AND next_message_position > 0 AND deleted_at_ms IS NULL ${position}
+      WHERE ${OWNED} AND next_message_position > 0 AND deleted_at_ms IS NULL AND kind = 'chat' ${position}
       ORDER BY updated_at_ms DESC, id COLLATE BINARY DESC LIMIT ?`,
     [...ownerColumns(scope), ...(after === undefined ? [] : [after.updatedAt, after.id]), limit]);
     return result.rows.map(value => {

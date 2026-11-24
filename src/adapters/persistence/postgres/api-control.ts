@@ -33,7 +33,7 @@ export class PostgresApiControl extends PostgresApiConnections implements ApiCon
     const result = await this.pool.query(`SELECT id, title, revision, next_message_position,
         floor(extract(epoch FROM created_at) * 1000)::bigint AS created_ms, floor(extract(epoch FROM updated_at) * 1000)::bigint AS updated_ms
       FROM viper_engine.conversations
-      WHERE actor_id = $1 AND app_id = $2 AND tenant_key = $3 AND next_message_position > 0 AND deleted_at IS NULL
+      WHERE actor_id = $1 AND app_id = $2 AND tenant_key = $3 AND next_message_position > 0 AND deleted_at IS NULL AND kind = 'chat'
         AND ($4::bigint IS NULL OR (floor(extract(epoch FROM updated_at) * 1000)::bigint, id COLLATE "C") < ($4::bigint, $5::text COLLATE "C"))
       ORDER BY updated_at DESC, id COLLATE "C" DESC LIMIT $6`,
     [...ownerColumns(scope), after?.updatedAt ?? null, after?.id ?? '', limit]);
