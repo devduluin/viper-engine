@@ -55,6 +55,7 @@ async function spawn(binding: Binding, stores: ApiStores, input: { task: string;
   if (existing !== undefined) return existing; // same key = same sub-agent (idempotent under retries and unknown outcomes)
   if (run.depth + 1 > (options.maxDepth ?? 1)) throw new AgentError('AGENT_DEPTH_LIMIT', 'Sub-agents cannot start further sub-agents.');
   await assertTreeCapacity(binding, stores);
+  if (profile.writes === true) await assertNoLiveWriter(binding, stores);
   const at = binding.now();
   const child = await stores.agents.createChild(scope, { parent: run, runId: binding.ids.next('run'),
     conversationId: binding.ids.next('conversation'), linkId: binding.ids.next('run_link'), profile: profile.name,
@@ -68,6 +69,14 @@ async function assertTreeCapacity({ options, scope, run }: Binding, stores: ApiS
   const counts = await stores.agents.treeCounts(scope, run.rootRunId);
   if (counts.live >= (options.maxLive ?? 3)) throw new AgentError('AGENT_LIMIT_REACHED', 'Too many sub-agents are running; wait for one first.');
   if (counts.total >= (options.maxPerTree ?? 12)) throw new AgentError('AGENT_LIMIT_REACHED', 'This task already used its sub-agent allowance.');
+}
+
+/** One writer at a time per task tree (enforced here, not left to instructions). */
+async function assertNoLiveWriter({ options, scope, run }: Binding, stores: ApiStores) {
+  const writers = new Set(options.profiles.filter(profile => profile.writes === true).map(profile => profile.name));
+  if ((await stores.agents.liveProfiles(scope, run.rootRunId)).some(name => writers.has(name))) {
+    throw new AgentError('AGENT_LIMIT_REACHED', 'Another sub-agent is already changing files; wait for it and review its changes first.');
+  }
 }
 
 /** The child sees only this brief (PLAN-SUBAGENTS §9), never the parent's transcript. */

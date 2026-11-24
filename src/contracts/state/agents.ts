@@ -44,6 +44,8 @@ export interface AgentRunStore {
   findSpawn(scope: TrustedScope, parentRunId: RunId, spawnKey: string): Promise<AgentChildRecord | undefined>;
   /** Children of the whole tree under `rootRunId`: live ones and all ever spawned. */
   treeCounts(scope: TrustedScope, rootRunId: RunId): Promise<{ readonly live: number; readonly total: number }>;
+  /** Profiles of the live sub-agents in the tree (one entry per run). */
+  liveProfiles(scope: TrustedScope, rootRunId: RunId): Promise<readonly string[]>;
   createChild(scope: TrustedScope, input: AgentChildInput): Promise<AgentChildRecord>;
   children(scope: TrustedScope, parentRunId: RunId): Promise<readonly AgentChildRecord[]>;
   /** Records awaits links (already satisfied for settled children) and returns how many are still open. */
@@ -60,4 +62,9 @@ export interface AgentProfile {
   readonly description: string;
   readonly instructions: string;
   readonly tools?: readonly string[];
+  /**
+   * The profile changes files. Writers are serialized: at most one live writer per task tree, because path claims are
+   * coordination, not isolation (PLAN-SUBAGENTS §10). Read-only profiles run in parallel freely.
+   */
+  readonly writes?: boolean;
 }

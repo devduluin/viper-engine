@@ -46,6 +46,12 @@ export class SqlAgentRunStore implements AgentRunStore {
     return Object.freeze({ live: Number(row['live']), total: Number(row['total']) });
   }
 
+  async liveProfiles(scope: TrustedScope, rootRunId: RunId) {
+    const result = await this.db.query(`SELECT agent_profile FROM viper_engine.runs WHERE root_run_id = ${this.d.param(4)}
+      AND status NOT IN ${TERMINAL} AND ${OWNER(this.d, 1)}`, [...ownerColumns(scope), rootRunId]);
+    return result.rows.map(row => String(asRow(row)['agent_profile']));
+  }
+
   async createChild(scope: TrustedScope, input: AgentChildInput): Promise<AgentChildRecord> {
     const owner = ownerColumns(scope); const p = this.d.param; const at = this.d.time;
     await this.db.query(`INSERT INTO viper_engine.conversations (id, actor_id, app_id, tenant_key, title, kind, parent_conversation_id,
