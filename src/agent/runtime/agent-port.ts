@@ -10,6 +10,9 @@ export interface AgentView {
 }
 export interface AgentReport extends AgentView {
   readonly report: string;
+  readonly model?: string;
+  /** Total tokens the sub-agent used (null = provider reported none). */
+  readonly tokens: number | null;
 }
 export interface AgentProfileInfo {
   readonly name: string;

@@ -50,6 +50,8 @@ export interface AgentRunStore {
   awaitChildren(scope: TrustedScope, parentRunId: RunId, links: readonly { readonly linkId: string; readonly childRunId: RunId }[], at: number): Promise<number>;
   /** Text of the child's last assistant message, at most `maxBytes` UTF-8 bytes (cut marked). */
   finalText(scope: TrustedScope, child: AgentChildRecord, maxBytes: number): Promise<string>;
+  /** Model(s) and tokens the child used, for cost display; tokens are null when the provider reported none. */
+  usage(scope: TrustedScope, child: AgentChildRecord): Promise<{ readonly model?: string; readonly tokens: number | null }>;
 }
 
 /** A host-defined sub-agent role (PLAN-SUBAGENTS §6.2). `tools` narrows the parent's tools; absent = the same tools. */

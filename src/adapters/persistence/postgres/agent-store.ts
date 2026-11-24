@@ -94,6 +94,15 @@ export class SqlAgentRunStore implements AgentRunStore {
     return truncateBytes(text, maxBytes);
   }
 
+  async usage(scope: TrustedScope, child: AgentChildRecord) {
+    const result = await this.db.query(`SELECT model, sum(total_tokens) AS tokens, count(total_tokens) AS counted FROM viper_engine.model_calls
+      WHERE run_id = ${this.d.param(1)} AND ${OWNER(this.d, 2)} GROUP BY model ORDER BY count(*) DESC`, [child.runId, ...ownerColumns(scope)]);
+    const rows = result.rows.map(value => asRow(value));
+    const counted = rows.some(row => Number(row['counted']) > 0);
+    return Object.freeze({ ...(rows[0] === undefined ? {} : { model: String(rows[0]['model']) }),
+      tokens: counted ? rows.reduce((sum, row) => sum + Number(row['tokens'] ?? 0), 0) : null });
+  }
+
   private async link(owner: readonly string[], id: string, from: RunId, to: RunId, kind: 'spawned' | 'awaits', at: number, satisfied: boolean,
     metadata: Record<string, string> = {}) {
     const p = this.d.param; const time = this.d.time;

@@ -23,7 +23,8 @@ export function createAgentPort(binding: Binding): AgentPort {
   const tx = <T>(work: (stores: ApiStores) => Promise<T>) => options.database.transaction(work);
   const view = (child: AgentChildRecord): AgentView => ({ id: child.runId, key: child.spawnKey, profile: child.profile, status: child.status });
   const reports = async (stores: ApiStores, children: readonly AgentChildRecord[]) => Promise.all(children.map(async (child): Promise<AgentReport> => ({
-    ...view(child), report: await stores.agents.finalText(scope, child, options.reportBytes ?? 16384) })));
+    ...view(child), report: await stores.agents.finalText(scope, child, options.reportBytes ?? 16384),
+    ...await stores.agents.usage(scope, child) })));
   return {
     profiles: options.profiles.map(profile => ({ name: profile.name, description: profile.description })),
     spawn: input => tx(stores => spawn(binding, stores, input)).then(view),
