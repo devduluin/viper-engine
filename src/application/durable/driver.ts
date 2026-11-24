@@ -15,6 +15,7 @@ import { deliveryPlan } from './plan.js';
 import { contextPlan, resumeContext } from './context-state.js';
 import { parseApprovalTtl } from '../runs/approval-ttl.js';
 import { takeSteering } from './steering.js';
+import { subAgentWiring } from './agents.js';
 
 function shouldYield(error: unknown, guard: LeaseGuard): boolean {
   if (guard.interrupted || error instanceof LeaseInterrupted) return true;
@@ -79,7 +80,9 @@ export class DurableRunDriver {
     const scope = scopeFromAuthenticatedIdentity(claim.owner);
     const loaded = await this.deps.checkpoints.load(scope, claim.runId);
     if (!loaded.ok) throw new JournalError(loaded.error.code);
-    const plan = await deliveryPlan(this.deps, scope, loaded.value, guard);
+    const wiring = await subAgentWiring(this.deps.subAgents, { scope, runId: claim.runId, ids: this.deps.ids,
+      now: () => this.deps.clock.now(), cancelled: guard.cancelled }, await deliveryPlan(this.deps, scope, loaded.value, guard));
+    const plan = wiring.plan;
     if (loaded.value.execution === undefined && loaded.value.toolCalls.length > 0) throw new Error('Execution requires a managed checkpoint');
     const state = loaded.value.execution === undefined ? initialState(plan, this.deps.clock.now()) : decodeState(loaded.value.execution.state);
     const runDeps = await this.bindRunModel(state, loaded.value.execution !== undefined, guard.cancelled, claim.runId);
@@ -96,6 +99,7 @@ export class DurableRunDriver {
       rejection: (tool, call) => policyRejection(session, tool, call) },
       beforeToolInvoke: (tool, call) => { guard.assert(); return this.deps.beforeToolInvoke?.(tool, call); },
       ...(this.deps.steeringInputs === undefined ? {} : { steering: { take: () => takeSteering(session) } }),
+      ...(wiring.agents === undefined ? {} : { agents: wiring.agents }),
       onEvent: event => persistEvent(session, event) });
     return session;
   }

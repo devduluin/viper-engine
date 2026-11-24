@@ -32,7 +32,7 @@ export function steeringConsumption(session: DurableSession, message: Message): 
  * take input, so waiting inputs are discarded with them; a waiting approval keeps them for its resume.
  */
 export function steeringStopGuard(session: DurableSession, status: RunLoopStatus, reason: RunStopReason): JournalCommand[] {
-  if (status === 'waiting_for_approval') return [];
+  if (status === 'waiting_for_approval' || status === 'waiting_for_agents') return [];
   const mode: SteeringSettleMode = session.deps.steeringInputs !== undefined && ANSWER_STOPS.includes(reason) ? 'require_none' : 'discard';
   return [{ kind: 'steering_settle', mode }];
 }

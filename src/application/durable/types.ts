@@ -23,6 +23,8 @@ export interface DurableDriverDependencies extends RunLoopDependencies {
   readonly approvalTtlMs?: number;
   /** Host scheduling runs before release; callbacks must not dispatch tools or relax fencing. */
   readonly onDeliveryFailure?: (claim: RunClaim, error: unknown) => Promise<void>;
+  /** Sub-agents (PLAN-SUBAGENTS): absent = off. */
+  readonly subAgents?: import('./agents.js').SubAgentOptions;
 }
 
 export type DriverResult =

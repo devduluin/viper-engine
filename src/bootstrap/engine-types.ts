@@ -31,6 +31,8 @@ export interface ClientToolsConfig {
 
 export interface ViperEngineOptions {
   readonly userMemory?: boolean;
+  /** Sub-agents (PLAN-SUBAGENTS): host-defined profiles and limits; absent = off. */
+  readonly subAgents?: Omit<import('../application/durable/agents.js').SubAgentOptions, 'database'>;
   readonly budgetProfiles?: import('../contracts/models/budget-profiles.js').BudgetProfiles;
   readonly defaultBudgetMode?: import('../contracts/models/budget-profiles.js').BudgetMode;
   readonly model: EngineModel;

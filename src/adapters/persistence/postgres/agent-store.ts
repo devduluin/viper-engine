@@ -25,12 +25,13 @@ export class SqlAgentRunStore implements AgentRunStore {
   constructor(private readonly db: SqlQueryable, private readonly d: AgentDialect = POSTGRES_AGENTS) {}
 
   async lineage(scope: TrustedScope, runId: RunId): Promise<RunLineage | undefined> {
-    const row = (await this.db.query(`SELECT id, conversation_id, coalesce(root_run_id, id) AS root, depth, status
+    const row = (await this.db.query(`SELECT id, conversation_id, coalesce(root_run_id, id) AS root, depth, status, agent_profile
       FROM viper_engine.runs WHERE id = ${this.d.param(1)} AND ${OWNER(this.d, 2)}`, [runId, ...ownerColumns(scope)])).rows[0];
     if (row === undefined) return undefined;
     const r = asRow(row);
     return Object.freeze({ runId: parseId('run', r['id']), conversationId: parseId('conversation', r['conversation_id']),
-      rootRunId: parseId('run', r['root']), depth: Number(r['depth']), status: status(r['status']) });
+      rootRunId: parseId('run', r['root']), depth: Number(r['depth']), status: status(r['status']),
+      ...(typeof r['agent_profile'] === 'string' ? { profile: r['agent_profile'] } : {}) });
   }
 
   async findSpawn(scope: TrustedScope, parentRunId: RunId, spawnKey: string) {

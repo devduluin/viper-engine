@@ -92,6 +92,12 @@ function finish(session: DurableSession, event: Extract<RuntimeEvent, { type: 'r
       at: session.deps.clock.now(), outcome: event.reason === 'cancelled' ? 'cancelled' : 'failed', usage: UNAVAILABLE,
       ...(event.reason === 'cancelled' ? {} : { failureCode: 'timeout' }) } });
   }
+  if (event.status === 'waiting_for_agents') {
+    // Parked for sub-agents: no user-facing event; the database wakes the run when the awaited ones settle.
+    commands.push({ kind: 'run_transition', input: { to: event.status, expectedRevision: session.checkpoint.run.revision,
+      at: session.deps.clock.now(), events: [] } });
+    return commands;
+  }
   const type = event.status.startsWith('waiting_') ? (event.status === 'waiting_for_input' ? 'run.input_required' : 'approval.required')
     : `run.${event.status}` as 'run.completed' | 'run.partial' | 'run.failed' | 'run.cancelled';
   const last = [...session.checkpoint.history].reverse().find(message => message.role === 'assistant');

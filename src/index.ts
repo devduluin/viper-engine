@@ -93,3 +93,4 @@ export { DEFAULT_BUDGET_PROFILES, validateBudgetProfiles } from './contracts/mod
 export type { BudgetProfiles, ModeBudget, BudgetMode } from './contracts/models/budget-profiles.js';
 export { DEFAULT_TOOL_DISCOVERY, resolveToolDiscovery } from './contracts/discovery/config.js';
 export type { ToolDiscoveryConfig } from './contracts/discovery/config.js';
+export type { AgentProfile, SubAgentOptions } from './application/durable/agents.js';

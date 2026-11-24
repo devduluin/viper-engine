@@ -14,6 +14,7 @@ import { runBudgetSelector } from './run-budget.js';
 import { userMemoryOptions } from './user-memory.js';
 import { SqliteMcpConnectionStore } from '../adapters/persistence/sqlite/mcp-connection-store.js';
 import { isSqlitePool } from './database-dialect.js';
+import { apiDatabase } from './api-database.js';
 
 /** Concrete standalone engine. Host owns DB pool/migrations; engine owns its MCP sessions. */
 export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
@@ -40,12 +41,18 @@ export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
     ...(options.onEvent === undefined ? {} : { onEvent: options.onEvent }),
     ...(options.contextEvidence === undefined ? {} : { contextEvidence: options.contextEvidence }),
     ...userMemoryOptions(pool, options.userMemory),
+    ...subAgentOptions(pool, options, clock),
     ...(options.clientTools === undefined ? {} : { clientTools: createClientToolPort(pool, options.clientTools) }),
     ...(options.onDeliveryFailure === undefined ? {} : { onDeliveryFailure: options.onDeliveryFailure }),
   });
   const onResult = options.clientTools?.onResult;
   const stopObserving = onResult === undefined ? () => undefined : processClientTools.observe(onResult);
   return engineLifecycle(driver, async () => { stopObserving(); await connections.closeAll(); });
+}
+
+/** Sub-agents spawn through the same database as the API, in one transaction per spawn. */
+function subAgentOptions(pool: SqlPool, options: ViperEngineOptions, clock: { now(): number }) {
+  return options.subAgents === undefined ? {} : { subAgents: { ...options.subAgents, database: apiDatabase(pool, () => clock.now()) } };
 }
 
 function connectionDirectory(pool: SqlPool) {

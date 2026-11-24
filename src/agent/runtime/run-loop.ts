@@ -13,6 +13,7 @@ import type { ToolCallReport } from '../execution/dispatch.js';
 import { discoverTools } from './discovery.js';
 import { runClientTools } from './client-tools.js';
 import { runMemoryTools } from './memory-tools.js';
+import { appendAgentReports, runAgentTools } from './agent-tools.js';
 import { limitNotice, recoverModelFailure, settleRecovery, transientRetryWait, unavailableNotice } from './recovery.js';
 import { delay } from '../../shared/async/delay.js';
 
@@ -109,14 +110,13 @@ async function runStep(context: StepContext): Promise<RunStop | undefined> {
   const blocked = preflight(context);
   if (blocked !== undefined) return preflightStop(context, blocked);
   await appendSteering(context);
+  await appendAgentReports(context);
   context.budget.step();
   context.state.modelCalls += 1;
   const step = await requestDecision(context);
   if (await recovering(context, step)) return undefined; // cut-off, unusable or transient failures are retried
+  if (isAuxiliary(step)) return auxiliaryStep(context, step);
   switch (step.kind) {
-    case 'memory': await runMemoryTools(context, step.assistant, step.calls); return undefined;
-    case 'discovery': await discoverTools(context, step.assistant, step.call); return undefined;
-    case 'client': await runClientTools(context, step.assistant, step.calls); return undefined;
     case 'cancelled': return { status: 'cancelled', reason: 'cancelled' };
     case 'failure': return modelFailureStop(context, { status: 'failed', reason: 'model_failure', modelFailure: step.failure });
     case 'invalid': return { status: 'failed', reason: 'invalid_model_response' };
@@ -152,5 +152,19 @@ export async function handleRuntimeDecision(context: StepContext, decision: Mode
   if (result.cancelled) return { status: 'cancelled', reason: 'cancelled' };
   context.budget.correction([...priorReports, ...result.reports]);
   await context.emit({ type: 'batch_finished' });
+  return undefined;
+}
+
+type Step = Awaited<ReturnType<typeof requestDecision>>;
+type AuxiliaryStep = Extract<Step, { kind: 'agents' | 'memory' | 'discovery' | 'client' }>;
+const AUXILIARY: ReadonlySet<Step['kind']> = new Set(['agents', 'memory', 'discovery', 'client']);
+const isAuxiliary = (step: Step): step is AuxiliaryStep => AUXILIARY.has(step.kind);
+
+/** Steps answered outside MCP dispatch; only a sub-agent wait can stop the run (it parks). */
+async function auxiliaryStep(context: StepContext, step: AuxiliaryStep): Promise<RunStop | undefined> {
+  if (step.kind === 'agents') return runAgentTools(context, step.assistant, step.calls);
+  if (step.kind === 'memory') await runMemoryTools(context, step.assistant, step.calls);
+  else if (step.kind === 'discovery') await discoverTools(context, step.assistant, step.call);
+  else await runClientTools(context, step.assistant, step.calls);
   return undefined;
 }

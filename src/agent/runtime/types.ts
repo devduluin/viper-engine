@@ -54,10 +54,10 @@ export interface RunLoopInput {
 }
 
 export type RunLoopStatus =
-  | 'completed' | 'partial' | 'failed' | 'cancelled' | 'waiting_for_input' | 'waiting_for_approval';
+  | 'completed' | 'partial' | 'failed' | 'cancelled' | 'waiting_for_input' | 'waiting_for_approval' | 'waiting_for_agents';
 
 export type RunStopReason =
-  | 'final_answer' | 'tool_failures' | 'unknown_outcome' | 'needs_input' | 'approval_required'
+  | 'final_answer' | 'tool_failures' | 'unknown_outcome' | 'needs_input' | 'approval_required' | 'agents_pending'
   | 'model_failure' | 'invalid_model_response' | 'model_call_limit' | 'deadline_exceeded' | 'cancelled' | BudgetReason;
 
 export type RuntimeEvent =
@@ -87,6 +87,8 @@ export interface ClientToolPort {
 }
 
 export interface RunLoopDependencies {
+  /** Sub-agent tools bound to this run (PLAN-SUBAGENTS); absent = no sub-agents (host off, or depth limit reached). */
+  readonly agents?: import('./agent-port.js').AgentPort;
   readonly userMemory?: Pick<import('../../contracts/recall/user-memory.js').UserMemoryPort, 'search'>;
   readonly contextEvidence?: ContextEvidenceProvider;
   /**

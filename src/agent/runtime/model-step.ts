@@ -12,10 +12,12 @@ import { TOOL_SEARCH_NAME } from '../../contracts/discovery/state.js';
 import { withDiscoveryExchanges } from '../context/transient.js';
 import { isClientToolName } from './client-tools.js';
 import { isMemoryTool } from './memory-definitions.js';
+import { isAgentTool } from './agent-definitions.js';
 import { outputAllowance } from './recovery.js';
 import { coerceArguments } from '../execution/coerce-arguments.js';
 
 export type ModelStep =
+  | { readonly kind: 'agents'; readonly assistant: AssistantMessage; readonly calls: readonly import('../../contracts/messages/message.js').ToolCall[] }
   | { readonly kind: 'memory'; readonly assistant: AssistantMessage; readonly calls: readonly import('../../contracts/messages/message.js').ToolCall[] }
   | { readonly kind: 'client'; readonly assistant: AssistantMessage; readonly calls: readonly import('../../contracts/messages/message.js').ToolCall[] }
   | { readonly kind: 'discovery'; readonly assistant: AssistantMessage; readonly call: import('../../contracts/messages/message.js').ToolCall }
@@ -105,14 +107,21 @@ function withRepairedArguments(context: StepContext, decision: ModelDecision): M
 /** Tool search (discovery) or client tools: steps handled outside MCP dispatch. */
 function specialStep(context: StepContext, decision: ModelDecision, assistant: AssistantMessage): ModelStep | undefined {
   if (decision.kind !== 'tool_calls') return undefined;
-  if (decision.calls.some(call => isMemoryTool(call.name))) {
-    context.budget.propose(decision.calls, context.index);
-    return { kind: 'memory', assistant, calls: decision.calls };
-  }
+  const native = nativeStep(context, decision.calls, assistant);
+  if (native !== undefined) return native;
   if (context.discovery.enabled && decision.calls.some(call => call.name === TOOL_SEARCH_NAME)) {
     if (decision.calls.length !== 1 || decision.calls[0]?.name !== TOOL_SEARCH_NAME) return { kind: 'invalid' };
     return { kind: 'discovery', assistant, call: decision.calls[0] };
   }
   if (decision.calls.some(call => isClientToolName(call.name))) return { kind: 'client', assistant, calls: decision.calls };
   return undefined;
+}
+
+/** Engine-native tools (sub-agents, memory): answered by the engine, never dispatched through MCP. */
+function nativeStep(context: StepContext, calls: readonly import('../../contracts/messages/message.js').ToolCall[], assistant: AssistantMessage): ModelStep | undefined {
+  const kind = context.deps.agents !== undefined && calls.some(call => isAgentTool(call.name)) ? 'agents'
+    : calls.some(call => isMemoryTool(call.name)) ? 'memory' : undefined;
+  if (kind === undefined) return undefined;
+  context.budget.propose(calls, context.index);
+  return { kind, assistant, calls };
 }

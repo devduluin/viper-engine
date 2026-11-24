@@ -18,6 +18,8 @@ export interface RunLineage {
   readonly rootRunId: RunId;
   readonly depth: number;
   readonly status: RunStatus;
+  /** Sub-agent profile of a child run; absent for a root run. */
+  readonly profile?: string;
 }
 
 export interface AgentChildInput {
