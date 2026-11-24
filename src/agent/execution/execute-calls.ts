@@ -52,7 +52,7 @@ async function settlePlan(plan: CallPlan, stopped: ExecutionStopReason | undefin
   const status = outcomeStatus(outcome);
   const tool = plan.tool.definition.ref;
   return {
-    message: outcomeMessage(context.nextMessageId(), call, outcome),
+    message: outcomeMessage(context.nextMessageId(), call, outcome, plan.tool.untrustedOutput),
     report: report(call, status, { tool, dispatchState: 'sent_or_unknown',
       ...(outcome.status === 'success' ? {} : { failureCode: outcome.error.code }),
     }),

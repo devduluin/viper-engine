@@ -14,6 +14,7 @@ export interface RuntimeTool {
   readonly alias: string;
   readonly definition: McpToolDefinition;
   readonly context: McpContext;
+  readonly untrustedOutput?: boolean;
 }
 
 export interface ToolIndex {
@@ -51,6 +52,7 @@ export function indexTools(tools: readonly RuntimeTool[], scope?: TrustedScope):
 function snapshotTool(tool: RuntimeTool): RuntimeTool {
   return Object.freeze({
     alias: tool.alias,
+    ...(tool.untrustedOutput ? { untrustedOutput: true } : {}),
     context: Object.freeze({ scope: tool.context.scope, connection: Object.freeze({ ...tool.context.connection }) }),
     definition: Object.freeze({
       ...tool.definition, ref: Object.freeze({ ...tool.definition.ref }),

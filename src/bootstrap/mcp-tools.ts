@@ -10,7 +10,14 @@ import { namespaceTools } from '../adapters/mcp/client/aliases.js';
 import { withDeadline } from '../shared/async/deadline.js';
 import { createFingerprint } from '../shared/fingerprints/fingerprint.js';
 
-export interface ConnectionBinding { readonly id: McpConnectionId; readonly namespace?: string }
+export interface ConnectionBinding {
+  readonly id: McpConnectionId;
+  readonly namespace?: string;
+  readonly allowTool?: (name: string) => boolean;
+  readonly untrustedOutput?: boolean;
+  /** An optional integration may be unavailable without blocking the app's built-in tools. */
+  readonly optionalTimeoutMs?: number;
+}
 export class EngineSetupError extends Error {
   constructor(readonly code: 'invalid_catalog' | 'not_found' | 'permission' | 'authentication_required' | 'connection_unavailable') {
     super(`Engine setup failed: ${code}`); this.name = 'EngineSetupError';
@@ -41,20 +48,43 @@ export async function discoverRuntimeTools(scope: TrustedScope, selected: readon
   directory: McpConnectionDirectory, gateway: McpGateway, options: DiscoveryOptions): Promise<readonly RuntimeTool[]> {
   const bindings = selected.map(binding => Object.freeze({ ...binding }));
   validateBindings(bindings, options.maxConnections);
+  const required = bindings.filter(binding => binding.optionalTimeoutMs === undefined);
+  const optional = bindings.filter(binding => binding.optionalTimeoutMs !== undefined);
   const tools = await withDeadline(async signal => {
     const tools: RuntimeTool[] = [];
-    for (const binding of bindings) {
-      const record = await directory.get(scope, binding.id);
-      if (!record.ok) throw new EngineSetupError('not_found');
-      const context = { scope, connection: record.value.connection };
-      const definitions = await pages(context, gateway, options, signal);
-      if (definitions.length > options.maxTools - tools.length) throw new EngineSetupError('invalid_catalog');
-      tools.push(...namespaceTools(namespace(binding), definitions).map(tool => Object.freeze({ ...tool, context })));
+    for (const binding of required) {
+      const found = await discoverBinding(scope, binding, directory, gateway, options, signal);
+      if (found.length > options.maxTools - tools.length) throw new EngineSetupError('invalid_catalog');
+      tools.push(...found);
     }
-    return Object.freeze(sortByAlias(tools));
+    return tools;
   }, { operationName: 'MCP discovery', timeoutMs: options.timeoutMs });
-  indexTools(tools, scope); // Reject ambiguous aliases/definitions before the model is called.
-  return tools;
+  const extras = await Promise.all(optional.map(binding => discoverBinding(scope, binding, directory, gateway, options)));
+  for (const found of extras) {
+    if (found.length <= options.maxTools - tools.length) tools.push(...found);
+  }
+  const sorted = Object.freeze(sortByAlias(tools));
+  indexTools(sorted, scope); // Reject ambiguous aliases/definitions before the model is called.
+  return sorted;
+}
+
+async function discoverBinding(scope: TrustedScope, binding: ConnectionBinding, directory: McpConnectionDirectory,
+  gateway: McpGateway, options: DiscoveryOptions, signal?: AbortSignal): Promise<readonly RuntimeTool[]> {
+  const discover = async (discoverySignal: AbortSignal, settings: DiscoveryOptions) => {
+    const record = await directory.get(scope, binding.id);
+    if (!record.ok) throw new EngineSetupError('not_found');
+    const context = { scope, connection: record.value.connection };
+    const definitions = await pages(context, gateway, settings, discoverySignal, binding.allowTool);
+    return namespaceTools(namespace(binding), definitions).map(tool => Object.freeze({
+      ...tool, context, ...(binding.untrustedOutput ? { untrustedOutput: true } : {}),
+    }));
+  };
+  if (signal !== undefined) return discover(signal, options);
+  const timeoutMs = Math.min(binding.optionalTimeoutMs ?? options.timeoutMs, options.timeoutMs);
+  try {
+    return await withDeadline(inner => discover(inner, { ...options, timeoutMs }),
+      { operationName: 'Optional MCP discovery', timeoutMs });
+  } catch { return []; }
 }
 
 /**
@@ -66,22 +96,25 @@ export function sortByAlias<T extends { readonly alias: string }>(tools: readonl
 }
 
 async function pages(context: Parameters<McpGateway['listTools']>[0], gateway: McpGateway, options: DiscoveryOptions,
-  signal: AbortSignal): Promise<readonly McpToolDefinition[]> {
+  signal: AbortSignal, allowTool: (name: string) => boolean = () => true): Promise<readonly McpToolDefinition[]> {
   const tools: McpToolDefinition[] = []; const seen = new Set<string>();
   let cursor: string | undefined;
   const deadlineAt = options.clock.now() + options.timeoutMs;
   for (let page = 0; page < options.maxPages; page += 1) {
     const result = await gateway.listTools({ ...context, ...(cursor === undefined ? {} : { cursor }) }, { signal, deadlineAt });
-    if (!result.ok) {
-      const code = result.error.code;
-      throw new EngineSetupError(code === 'authentication_required' || code === 'permission' || code === 'not_found' ? code : 'connection_unavailable');
-    }
-    if (result.value.items.length > options.maxTools - tools.length) throw new EngineSetupError('invalid_catalog');
-    tools.push(...result.value.items);
+    if (!result.ok) throw discoveryError(result.error.code);
+    const allowed = result.value.items.filter(tool => allowTool(tool.ref.name));
+    if (allowed.length > options.maxTools - tools.length) throw new EngineSetupError('invalid_catalog');
+    tools.push(...allowed);
     cursor = result.value.nextCursor;
     if (cursor === undefined) return tools;
     if (seen.has(cursor)) throw new EngineSetupError('invalid_catalog');
     seen.add(cursor);
   }
   throw new EngineSetupError('invalid_catalog');
+}
+
+function discoveryError(code: string) {
+  return new EngineSetupError(code === 'authentication_required' || code === 'permission' || code === 'not_found'
+    ? code : 'connection_unavailable');
 }
