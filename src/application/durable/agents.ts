@@ -31,13 +31,13 @@ export function createAgentPort(binding: Binding): AgentPort {
     status: () => tx(stores => stores.agents.children(scope, run.runId)).then(children => children.map(view)),
     wait: agents => tx(async stores => {
       const children = await stores.agents.children(scope, run.runId);
-      const wanted = agents === 'all' ? children : children.filter(child => agents.includes(child.runId));
+      const wanted = agents === 'all' ? children : children.filter(child => named(child, agents));
       if (agents !== 'all' && wanted.length !== agents.length) throw new AgentError('AGENT_NOT_FOUND', 'Only sub-agents of this run can be awaited.');
       const open = await stores.agents.awaitChildren(scope, run.runId, wanted.map(child => ({ linkId: binding.ids.next('run_link'), childRunId: child.runId })), binding.now());
       return { settled: await reports(stores, wanted.filter(child => isTerminalRunStatus(child.status))), open };
     }),
     cancel: agents => tx(async stores => {
-      const children = (await stores.agents.children(scope, run.runId)).filter(child => agents.includes(child.runId));
+      const children = (await stores.agents.children(scope, run.runId)).filter(child => named(child, agents));
       for (const child of children) requireState(await stores.runs.requestCancellation(scope, child.runId, binding.now(), []));
       return children.map(view);
     }),
@@ -69,6 +69,11 @@ async function assertTreeCapacity({ options, scope, run }: Binding, stores: ApiS
   const counts = await stores.agents.treeCounts(scope, run.rootRunId);
   if (counts.live >= (options.maxLive ?? 3)) throw new AgentError('AGENT_LIMIT_REACHED', 'Too many sub-agents are running; wait for one first.');
   if (counts.total >= (options.maxPerTree ?? 12)) throw new AgentError('AGENT_LIMIT_REACHED', 'This task already used its sub-agent allowance.');
+}
+
+/** A sub-agent is named by its run id or by the key it was spawned with (what models tend to use). */
+function named(child: AgentChildRecord, names: readonly string[]) {
+  return names.includes(child.runId) || names.includes(child.spawnKey);
 }
 
 /** One writer at a time per task tree (enforced here, not left to instructions). */

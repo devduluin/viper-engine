@@ -51,9 +51,10 @@ export async function appendAgentReports(context: StepContext): Promise<void> {
   context.state.appended.push(...messages);
 }
 
-async function invoke(context: StepContext, call: ToolCall): Promise<Outcome> {
+async function invoke(context: StepContext, original: ToolCall): Promise<Outcome> {
   const agents = context.deps.agents;
-  if (agents === undefined || !isAgentTool(call.name)) return failure('Call this tool separately; it was not executed.');
+  if (agents === undefined || !isAgentTool(original.name)) return failure('Call this tool separately; it was not executed.');
+  const call = normalizeAgents(original);
   const definition = agentToolDefinitions(agents.profiles).find(tool => tool.name === call.name);
   if (definition === undefined || !context.deps.validator.validate(definition.inputSchema, call.arguments).ok) {
     return failure('AGENT_INVALID_REQUEST: Arguments do not match the tool schema.');
@@ -110,3 +111,14 @@ function ids(value: unknown): readonly string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }
 function failure(message: string): Outcome { return { ok: false, data: { error: message } }; }
+
+/** Models often send the id list as a JSON string ("[\"a\",\"b\"]"); accept it as the array it means. */
+function normalizeAgents(call: ToolCall): ToolCall {
+  const value = call.arguments['agents'];
+  if (typeof value !== 'string' || !value.trim().startsWith('[')) return call;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed) || !parsed.every(item => typeof item === 'string')) return call;
+    return { ...call, arguments: { ...call.arguments, agents: parsed } };
+  } catch { return call; }
+}
