@@ -13,6 +13,7 @@ export const HTTP_ROUTES: readonly HttpRoute[] = [
   { operation: 'deleteConversation', method: 'POST', url: '/api/v1/conversations/:conversationId/delete', resource: 'conversationId', body: 'DeleteConversation', response: 'ConversationDeleted', status: 200 },
   { operation: 'startRun', method: 'POST', url: '/api/v1/conversations/:conversationId/runs', resource: 'conversationId', body: 'StartRun', response: 'RunAccepted', status: 202 },
   { operation: 'getRun', method: 'GET', url: '/api/v1/runs/:runId', resource: 'runId', response: 'RunSnapshot', status: 200 },
+  { operation: 'listRunAgents', method: 'GET', url: '/api/v1/runs/:runId/agents', resource: 'runId', response: 'RunAgents', status: 200 },
   { operation: 'submitInput', method: 'POST', url: '/api/v1/runs/:runId/inputs', resource: 'runId', body: 'SubmitInput', response: 'RunAccepted', status: 202 },
   { operation: 'steerRun', method: 'POST', url: '/api/v1/runs/:runId/steer', resource: 'runId', body: 'SteerRun', response: 'SteerAccepted', status: 202 },
   { operation: 'submitClientResult', method: 'POST', url: '/api/v1/runs/:runId/client-results', resource: 'runId', body: 'ClientToolResult', response: 'ClientToolAccepted', status: 200 },

@@ -10,7 +10,7 @@ import type { StateResult } from '../state/result.js';
 import type { McpConnectionDirectory } from '../mcp/access.js';
 import type { SteeringMessage } from '../state/steering.js';
 
-export type ApiOperation = 'createConversation' | 'listConversations' | 'getConversation' | 'deleteConversation' | 'titleConversation' | 'submitClientResult' | 'startRun' | 'getRun' | 'submitInput' | 'steerRun'
+export type ApiOperation = 'createConversation' | 'listConversations' | 'getConversation' | 'deleteConversation' | 'titleConversation' | 'submitClientResult' | 'startRun' | 'getRun' | 'listRunAgents' | 'submitInput' | 'steerRun'
   | 'cancelRun' | 'decideApproval' | 'createConnection' | 'listConnections' | 'disconnectConnection' | 'getCapabilities';
 export interface ApiCall {
   readonly operation: ApiOperation; readonly resourceId?: string; readonly body: JsonObject;

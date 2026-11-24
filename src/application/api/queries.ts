@@ -3,7 +3,8 @@ import type { TrustedScope } from '../../contracts/identity/scope.js';
 import { parseId } from '../../contracts/identity/ids.js';
 import { ApiFailure, requireState } from '../../contracts/api/failure.js';
 import type { ApiOptions } from './options.js';
-import { publicMessage, runView } from './projection.js';
+import { approvalView, publicMessage, runView } from './projection.js';
+import type { JsonObject } from '../../contracts/messages/json.js';
 
 export async function conversation(scope: TrustedScope, call: ApiCall, options: ApiOptions) {
   const id = parseId('conversation', call.resourceId);
@@ -27,6 +28,20 @@ export async function conversation(scope: TrustedScope, call: ApiCall, options: 
 export async function getRun(scope: TrustedScope, call: ApiCall, options: ApiOptions) {
   return options.database.snapshot(async stores => runView(scope,
     requireState(await stores.checkpoints.load(scope, parseId('run', call.resourceId))), options.cursors));
+}
+
+/** Sub-agents of a run and their open approvals: the parent's conversation shows and decides them (PLAN-SUBAGENTS §6.3). */
+export async function listRunAgents(scope: TrustedScope, call: ApiCall, options: ApiOptions) {
+  return options.database.snapshot(async stores => {
+    const parent = requireState(await stores.checkpoints.load(scope, parseId('run', call.resourceId)));
+    const agents: JsonObject[] = [];
+    for (const child of await stores.agents.children(scope, parent.run.id)) {
+      const cp = requireState(await stores.checkpoints.load(scope, child.runId));
+      agents.push({ runId: child.runId, key: child.spawnKey, profile: child.profile, status: child.status,
+        pendingApprovals: cp.approvals.filter(approval => approval.status === 'pending').map(approvalView) });
+    }
+    return { schemaVersion: 1, runId: parent.run.id, agents };
+  });
 }
 
 export async function cancelRun(scope: TrustedScope, call: ApiCall, options: ApiOptions) {

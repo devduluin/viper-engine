@@ -10,6 +10,9 @@ export const RUN_PATHS = {
   '/api/v1/runs/{runId}': {
     get: { ...operation('getRun', 'Read consistent state and event cursor', 'RunSnapshot'), parameters: [pathId('runId')] },
   },
+  '/api/v1/runs/{runId}/agents': {
+    get: { ...operation('listRunAgents', 'Sub-agents of a run with their pending approvals', 'RunAgents'), parameters: [pathId('runId')] },
+  },
   '/api/v1/runs/{runId}/inputs': {
     post: { ...operation('submitInput', 'Continue clarification using inputId deduplication and revision', 'RunAccepted', 202),
       parameters: [pathId('runId')], requestBody: jsonBody('SubmitInput'),

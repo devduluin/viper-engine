@@ -1,5 +1,5 @@
 /** Reviewed schema required by this build. Increment alongside every new migration. */
-export const ENGINE_SCHEMA_VERSION = 21;
+export const ENGINE_SCHEMA_VERSION = 22;
 
 /** A missing suffix is still a contiguous SQL directory; it must not certify an older schema. */
 export function assertMigrationVersion(version: number | undefined): void {
