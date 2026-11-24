@@ -7,10 +7,13 @@ import type { JsonObject } from '../../contracts/messages/json.js';
 export function apiValidation() {
   const ajv = new Ajv2020({ strict: true, coerceTypes: false, useDefaults: false, removeAdditional: false, logger: false });
   ajv.addSchema(API_SCHEMA_DOCUMENT);
+  let lastErrors: readonly { instancePath: string; keyword: string }[] = [];
   const validate = (name: string, value: unknown): boolean => {
     const compiled = ajv.getSchema(`${API_SCHEMA_ID}#/$defs/${name}`);
     if (compiled === undefined) throw new Error('Unknown API schema');
-    return compiled(value) === true;
+    const ok = compiled(value) === true;
+    lastErrors = ok ? [] : (compiled.errors ?? []).slice(0, 5);
+    return ok;
   };
   return {
     request(name: string, value: unknown): JsonObject {
@@ -22,7 +25,12 @@ export function apiValidation() {
       return body;
     },
     response(name: string, value: unknown): JsonObject {
-      if (!validate(name, value)) throw new ApiFailure('INTERNAL_ERROR');
+      if (!validate(name, value)) {
+        // Our own response broke its contract: say where (paths and keywords only, never values that may hold user data).
+        console.error(JSON.stringify({ event: 'viper_engine_invalid_response', schema: name,
+          errors: lastErrors.map(error => `${error.instancePath || '/'} ${error.keyword}`) }));
+        throw new ApiFailure('INTERNAL_ERROR');
+      }
       return parseJsonObject(value);
     },
   };

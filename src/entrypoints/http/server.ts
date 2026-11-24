@@ -42,6 +42,7 @@ export function createHttpServer(handler: ApiHandler, options: HttpOptions) {
   });
   app.setErrorHandler((error, request, reply) => {
     const failure = error instanceof ApiFailure ? error : frameworkFailure(error);
+    if (!(error instanceof ApiFailure) && failure.code === 'INTERNAL_ERROR') logInternal(error, request.id, request.routeOptions.url);
     const status = API_ERROR_STATUS[failure.code];
     if (status === 401) reply.header('www-authenticate', 'Bearer');
     const response = { error: { code: failure.code, message: failure.code.replaceAll('_', ' '), requestId: request.id,
@@ -89,4 +90,12 @@ function frameworkFailure(error: unknown): ApiFailure {
   if (code === 'FST_ERR_CTP_BODY_TOO_LARGE') return new ApiFailure('PAYLOAD_TOO_LARGE');
   if (typeof code === 'string' && /^(FST_ERR_CTP_|FST_ERR_BAD_URL)/.test(code)) return new ApiFailure('INVALID_REQUEST');
   return new ApiFailure('INTERNAL_ERROR');
+}
+
+/** Unexpected failures were answered with a bare 500 and no trace; log the kind and the first stack line, no payloads. */
+function logInternal(error: unknown, requestId: string, route: string | undefined) {
+  const detail = error instanceof Error
+    ? { name: error.name, message: error.message.slice(0, 300), at: error.stack?.split('\n')[1]?.trim().slice(0, 200) }
+    : { name: typeof error };
+  console.error(JSON.stringify({ event: 'viper_engine_internal_error', requestId, route: route ?? 'unknown', ...detail }));
 }
