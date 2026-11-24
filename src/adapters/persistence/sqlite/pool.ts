@@ -126,6 +126,9 @@ export class SqlitePool implements SqlPool {
   async migrateSeries(migrations: readonly Migration[], schema: SqliteSchema = 'viper_engine'): Promise<MigrationReport> {
     const unlock = await this.reserve();
     try {
+      // Table rebuilds (SQLite cannot alter a CHECK) need foreign keys off, which only works outside a transaction.
+      // Integrity is still enforced: foreign_key_check must be clean before the migration commits.
+      this.db.exec('PRAGMA foreign_keys = OFF');
       this.db.exec('BEGIN IMMEDIATE');
       const tx: SqlQueryable = { query: async (sql, values = []) => this.execute(sql, values) };
       const current = await recordedMigrations(tx, migrations, schema);
@@ -139,11 +142,12 @@ export class SqlitePool implements SqlPool {
         this.db.prepare(`INSERT INTO ${schema}.schema_migrations VALUES (?, ?, ?)`).run(migration.version, migration.name, migration.checksum);
         this.db.exec(`PRAGMA ${schema}.user_version = ${migration.version}`);
       }
+      if (this.db.prepare(`PRAGMA ${schema}.foreign_key_check`).all().length > 0) throw new Error('SQLite migration broke a foreign key');
       this.db.exec('COMMIT');
       return { applied: pending.map(item => item.version), current: migrations.length };
     } finally {
       try { if (this.db.isTransaction) this.db.exec('ROLLBACK'); }
-      finally { unlock(); }
+      finally { this.db.exec('PRAGMA foreign_keys = ON'); unlock(); }
     }
   }
 

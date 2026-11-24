@@ -9,7 +9,7 @@ import type { SqlitePool } from './pool.js';
 
 const LOST = { code: 'lease_lost', message: 'Run lease is no longer held by this worker' } as const;
 const CLAIMABLE = `
-  (status IN ('queued','running') OR (status IN ('waiting_for_input','waiting_for_approval') AND cancel_requested_at_ms IS NOT NULL))
+  (status IN ('queued','running') OR (status IN ('waiting_for_input','waiting_for_approval','waiting_for_agents') AND cancel_requested_at_ms IS NOT NULL))
   AND (lease_expires_at_ms IS NULL OR lease_expires_at_ms <= ?)
   AND (cancel_requested_at_ms IS NOT NULL OR NOT EXISTS (
     SELECT 1 FROM viper_engine.run_deliveries AS d WHERE d.run_id = runs.id AND d.available_at_ms > ?

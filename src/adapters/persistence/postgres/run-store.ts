@@ -1,3 +1,4 @@
+import { WAKEABLE_RUN_STATUSES as WAKEABLE } from '../../../contracts/state/run-state.js';
 import type { RunEffort } from '../../../contracts/state/ports.js';
 import type { ConversationId, RunId } from '../../../contracts/identity/ids.js';
 import type { TrustedScope } from '../../../contracts/identity/scope.js';
@@ -113,7 +114,7 @@ export class PostgresRunStore implements RunStore {
       const next = applyRunTransition(run.record, scope, { ...request, to: 'running', toolCalls: [],
         at: Math.max(request.at, run.leaseCheckedAt ?? request.at) });
       if (!next.ok) return next;
-      if (run.record.status !== 'waiting_for_input' && run.record.status !== 'waiting_for_approval') {
+      if (!WAKEABLE.has(run.record.status)) {
         return stateConflict({ code: 'invalid_transition', message: 'Only a waiting run may be woken' });
       }
       await tx.query(`UPDATE viper_engine.runs SET lease_owner = NULL, lease_expires_at = NULL,

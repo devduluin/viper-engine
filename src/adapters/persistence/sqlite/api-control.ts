@@ -17,7 +17,7 @@ import { lockRun } from './run-store.js';
 import { pendingSteeringCount, queueSteering } from './run-steering.js';
 
 const OWNED = 'actor_id = ? AND app_id = ? AND tenant_key = ?';
-const ACTIVE = "status IN ('queued','running','waiting_for_input','waiting_for_approval')";
+const ACTIVE = "status IN ('queued','running','waiting_for_input','waiting_for_approval','waiting_for_agents')";
 
 // Control operations run on the connection held by the enclosing ApiDatabase transaction or snapshot.
 export class SqliteApiControl extends SqliteApiConnections implements ApiControlStore {

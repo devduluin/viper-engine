@@ -8,13 +8,15 @@ export type RunStatus =
   | 'running'
   | 'waiting_for_input'
   | 'waiting_for_approval'
+  /** Parked until awaited sub-agent runs settle; holds no lease (PLAN-SUBAGENTS §4). */
+  | 'waiting_for_agents'
   | 'completed'
   | 'partial'
   | 'failed'
   | 'cancelled';
 
 export const RUN_STATUSES: readonly RunStatus[] = Object.freeze([
-  'queued', 'running', 'waiting_for_input', 'waiting_for_approval',
+  'queued', 'running', 'waiting_for_input', 'waiting_for_approval', 'waiting_for_agents',
   'completed', 'partial', 'failed', 'cancelled',
 ]);
 
@@ -22,10 +24,11 @@ export const RUN_STATUSES: readonly RunStatus[] = Object.freeze([
 export const RUN_TRANSITIONS: Readonly<Record<RunStatus, readonly RunStatus[]>> = Object.freeze({
   queued: Object.freeze<RunStatus[]>(['running', 'cancelled']),
   running: Object.freeze<RunStatus[]>([
-    'waiting_for_input', 'waiting_for_approval', 'completed', 'partial', 'failed', 'cancelled',
+    'waiting_for_input', 'waiting_for_approval', 'waiting_for_agents', 'completed', 'partial', 'failed', 'cancelled',
   ]),
   waiting_for_input: Object.freeze<RunStatus[]>(['running', 'failed', 'cancelled']),
   waiting_for_approval: Object.freeze<RunStatus[]>(['running', 'failed', 'cancelled']),
+  waiting_for_agents: Object.freeze<RunStatus[]>(['running', 'failed', 'cancelled']),
   completed: Object.freeze<RunStatus[]>([]),
   partial: Object.freeze<RunStatus[]>([]),
   failed: Object.freeze<RunStatus[]>([]),
@@ -56,3 +59,6 @@ export function checkRunSettlement(to: RunStatus, toolCalls: readonly ToolCallSt
   }
   return undefined;
 }
+
+/** Parked runs that user input, a decision or settled sub-agents may wake without borrowing a lease. */
+export const WAKEABLE_RUN_STATUSES: ReadonlySet<RunStatus> = new Set<RunStatus>(['waiting_for_input', 'waiting_for_approval', 'waiting_for_agents']);

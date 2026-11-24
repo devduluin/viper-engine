@@ -69,7 +69,7 @@ export class PostgresApiControl extends PostgresApiConnections implements ApiCon
 
   async hasActiveRun(id: ConversationId) {
     const result = await this.pool.query(`SELECT id FROM viper_engine.runs WHERE conversation_id = $1
-      AND status IN ('queued', 'running', 'waiting_for_input', 'waiting_for_approval') LIMIT 1`, [id]);
+      AND status IN ('queued', 'running', 'waiting_for_input', 'waiting_for_approval', 'waiting_for_agents') LIMIT 1`, [id]);
     return result.rows.length > 0;
   }
 
@@ -78,7 +78,7 @@ export class PostgresApiControl extends PostgresApiConnections implements ApiCon
     const result = await this.pool.query(`SELECT r.id, r.status, r.revision, (SELECT m.id FROM viper_engine.messages m
         WHERE m.conversation_id = r.conversation_id AND m.run_id = r.id ORDER BY m.position LIMIT 1) AS first_message_id
       FROM viper_engine.runs r WHERE r.conversation_id = $1
-      AND r.status IN ('queued', 'running', 'waiting_for_input', 'waiting_for_approval') ORDER BY r.created_at DESC LIMIT 1`, [id]);
+      AND r.status IN ('queued', 'running', 'waiting_for_input', 'waiting_for_approval', 'waiting_for_agents') ORDER BY r.created_at DESC LIMIT 1`, [id]);
     if (result.rows.length === 0) return undefined;
     const row = asRow(result.rows[0]); const first = row['first_message_id'];
     return { id: text(row, 'id'), status: text(row, 'status'), revision: Number(row['revision']),

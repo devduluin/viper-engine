@@ -9,7 +9,7 @@ import type { SqlPool } from './sql-client.js';
 import { withTransaction } from './sql-client.js';
 
 const LOST = Object.freeze({ code: 'lease_lost', message: 'Run lease is no longer held by this worker' } as const);
-const CLAIMABLE = `(status IN ('queued', 'running') OR (status IN ('waiting_for_input', 'waiting_for_approval') AND cancel_requested_at IS NOT NULL))
+const CLAIMABLE = `(status IN ('queued', 'running') OR (status IN ('waiting_for_input', 'waiting_for_approval', 'waiting_for_agents') AND cancel_requested_at IS NOT NULL))
   AND (lease_expires_at IS NULL OR lease_expires_at <= clock_timestamp())
   AND (cancel_requested_at IS NOT NULL OR NOT EXISTS (SELECT 1 FROM viper_engine.run_deliveries d
     WHERE d.run_id = runs.id AND d.available_at > clock_timestamp()))`;
