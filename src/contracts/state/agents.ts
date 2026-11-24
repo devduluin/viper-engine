@@ -29,6 +29,8 @@ export interface AgentChildInput {
   readonly linkId: string;
   readonly profile: string;
   readonly spawnKey: string;
+  /** Model tier the parent asked for; stored on the spawned link, resolved to a model by the host. */
+  readonly tier?: 'fast' | 'balanced' | 'deep';
   readonly title: string;
   readonly at: number;
 }
@@ -48,4 +50,12 @@ export interface AgentRunStore {
   awaitChildren(scope: TrustedScope, parentRunId: RunId, links: readonly { readonly linkId: string; readonly childRunId: RunId }[], at: number): Promise<number>;
   /** Text of the child's last assistant message, at most `maxBytes` UTF-8 bytes (cut marked). */
   finalText(scope: TrustedScope, child: AgentChildRecord, maxBytes: number): Promise<string>;
+}
+
+/** A host-defined sub-agent role (PLAN-SUBAGENTS §6.2). `tools` narrows the parent's tools; absent = the same tools. */
+export interface AgentProfile {
+  readonly name: string;
+  readonly description: string;
+  readonly instructions: string;
+  readonly tools?: readonly string[];
 }

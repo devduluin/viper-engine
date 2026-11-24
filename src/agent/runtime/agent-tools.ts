@@ -5,8 +5,8 @@ import type { JsonObject } from '../../contracts/messages/json.js';
 import { parseJsonObject } from '../../contracts/messages/json.js';
 import { parseMessage } from '../../contracts/messages/parse-message.js';
 import { BudgetExceeded } from '../policies/limits.js';
-import { AGENT_CANCEL, AGENT_SPAWN, AGENT_STATUS, AGENT_WAIT, isAgentTool } from './agent-definitions.js';
-import { AgentError } from './agent-port.js';
+import { AGENT_CANCEL, AGENT_SPAWN, AGENT_STATUS, AGENT_WAIT, agentToolDefinitions, isAgentTool } from './agent-definitions.js';
+import { AGENT_TIERS, AgentError } from './agent-port.js';
 import type { AgentPort, AgentReport } from './agent-port.js';
 
 const REPORT_KIND = 'viper_agent_reports_v1';
@@ -45,15 +45,19 @@ export async function appendAgentReports(context: StepContext): Promise<void> {
   const call = { id: callId, name: AGENT_WAIT, arguments: { agents: fresh.map(report => report.id) } };
   const assistant = parseMessage({ id: context.deps.ids.next('message'), role: 'assistant', content: [], toolCalls: [call] });
   const result = toolResult(context, call, { ok: true, data: reportsData(fresh, 0) });
-  for (const message of [assistant, result]) {
-    context.state.history.push(message); context.state.appended.push(message);
-    await context.emit({ type: 'message_appended', message });
-  }
+  const messages = [assistant, result];
+  await context.emit({ type: 'agent_reports_delivered', messages });
+  context.state.history.push(...messages);
+  context.state.appended.push(...messages);
 }
 
 async function invoke(context: StepContext, call: ToolCall): Promise<Outcome> {
   const agents = context.deps.agents;
   if (agents === undefined || !isAgentTool(call.name)) return failure('Call this tool separately; it was not executed.');
+  const definition = agentToolDefinitions(agents.profiles).find(tool => tool.name === call.name);
+  if (definition === undefined || !context.deps.validator.validate(definition.inputSchema, call.arguments).ok) {
+    return failure('AGENT_INVALID_REQUEST: Arguments do not match the tool schema.');
+  }
   try { return await dispatch(agents, call); } catch (error) {
     if (error instanceof AgentError) return failure(`${error.code}: ${error.message}`);
     throw error;
@@ -63,7 +67,9 @@ async function invoke(context: StepContext, call: ToolCall): Promise<Outcome> {
 async function dispatch(agents: AgentPort, call: ToolCall): Promise<Outcome> {
   const args = call.arguments;
   if (call.name === AGENT_SPAWN) {
-    const view = await agents.spawn({ task: String(args['task'] ?? ''), profile: String(args['profile'] ?? ''), key: String(args['key'] ?? '') });
+    const tier = AGENT_TIERS.find(item => item === args['tier']);
+    const view = await agents.spawn({ task: String(args['task'] ?? ''), profile: String(args['profile'] ?? ''), key: String(args['key'] ?? ''),
+      ...(tier === undefined ? {} : { tier }) });
     return { ok: true, data: parseJsonObject({ agent: { ...view }, next: `Collect the report with ${AGENT_WAIT}.` }) };
   }
   if (call.name === AGENT_STATUS) return { ok: true, data: parseJsonObject({ agents: (await agents.status()).map(view => ({ ...view })) }) };
@@ -85,7 +91,9 @@ function toolResult(context: StepContext, call: ToolCall, outcome: Outcome) {
 
 /** Sub-agent ids whose reports already reached the conversation (durable: read from history, not runtime state). */
 function deliveredAgents(history: readonly Message[]): Set<string> {
-  const blocks = history.flatMap(message => message.role === 'tool' ? message.content : []);
+  const waitCalls = new Set(history.flatMap(message => message.role === 'assistant'
+    ? (message.toolCalls ?? []).filter(call => call.name === AGENT_WAIT).map(call => call.id) : []));
+  const blocks = history.flatMap(message => message.role === 'tool' && waitCalls.has(message.toolCallId) ? message.content : []);
   return new Set(blocks.flatMap(block => block.type === 'json' ? reportIds(block.data) : []));
 }
 

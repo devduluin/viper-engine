@@ -1,34 +1,19 @@
-import type { ApiDatabase, ApiStores } from '../../contracts/api/control.js';
+import type { ApiStores } from '../../contracts/api/control.js';
+import type { SubAgentOptions } from '../../contracts/api/sub-agents.js';
 import { parseId } from '../../contracts/identity/ids.js';
 import type { RunId } from '../../contracts/identity/ids.js';
 import type { IdGenerator } from '../../contracts/identity/ports.js';
 import type { TrustedScope } from '../../contracts/identity/scope.js';
 import { parseMessage } from '../../contracts/messages/parse-message.js';
 import type { Message } from '../../contracts/messages/message.js';
-import type { AgentChildRecord, RunLineage } from '../../contracts/state/agents.js';
+import type { AgentChildRecord, AgentProfile, RunLineage } from '../../contracts/state/agents.js';
+export type { AgentProfile } from '../../contracts/state/agents.js';
+export type { SubAgentOptions } from '../../contracts/api/sub-agents.js';
 import { isTerminalRunStatus } from '../../contracts/state/run-state.js';
 import { requireState } from '../../contracts/api/failure.js';
 import { AgentError } from '../../agent/runtime/agent-port.js';
-import type { AgentPort, AgentReport, AgentView } from '../../agent/runtime/agent-port.js';
+import type { AgentPort, AgentReport, AgentTier, AgentView } from '../../agent/runtime/agent-port.js';
 import type { RuntimeTool } from '../../agent/execution/tool-catalog.js';
-
-/** A host-defined sub-agent role (PLAN-SUBAGENTS §6.2). `tools` narrows the parent's tools; absent = the same tools. */
-export interface AgentProfile {
-  readonly name: string;
-  readonly description: string;
-  readonly instructions: string;
-  readonly tools?: readonly string[];
-}
-
-export interface SubAgentOptions {
-  readonly database: ApiDatabase;
-  readonly profiles: readonly AgentProfile[];
-  /** Defaults (PLAN-SUBAGENTS §16 Q2): depth 1, 3 live and 12 total sub-agents per tree, 16 KB per report. */
-  readonly maxDepth?: number;
-  readonly maxLive?: number;
-  readonly maxPerTree?: number;
-  readonly reportBytes?: number;
-}
 
 interface Binding { readonly options: SubAgentOptions; readonly scope: TrustedScope; readonly run: RunLineage;
   readonly ids: IdGenerator; readonly now: () => number }
@@ -60,7 +45,7 @@ export function createAgentPort(binding: Binding): AgentPort {
   };
 }
 
-async function spawn(binding: Binding, stores: ApiStores, input: { task: string; profile: string; key: string }) {
+async function spawn(binding: Binding, stores: ApiStores, input: { task: string; profile: string; key: string; tier?: AgentTier }) {
   const { options, scope, run } = binding;
   const profile = options.profiles.find(item => item.name === input.profile);
   if (profile === undefined) throw new AgentError('AGENT_UNKNOWN_PROFILE', `Unknown profile "${input.profile}".`);
@@ -68,16 +53,20 @@ async function spawn(binding: Binding, stores: ApiStores, input: { task: string;
   const existing = await stores.agents.findSpawn(scope, run.runId, input.key);
   if (existing !== undefined) return existing; // same key = same sub-agent (idempotent under retries and unknown outcomes)
   if (run.depth + 1 > (options.maxDepth ?? 1)) throw new AgentError('AGENT_DEPTH_LIMIT', 'Sub-agents cannot start further sub-agents.');
-  const counts = await stores.agents.treeCounts(scope, run.rootRunId);
-  if (counts.live >= (options.maxLive ?? 3)) throw new AgentError('AGENT_LIMIT_REACHED', 'Too many sub-agents are running; wait for one first.');
-  if (counts.total >= (options.maxPerTree ?? 12)) throw new AgentError('AGENT_LIMIT_REACHED', 'This task already used its sub-agent allowance.');
+  await assertTreeCapacity(binding, stores);
   const at = binding.now();
   const child = await stores.agents.createChild(scope, { parent: run, runId: binding.ids.next('run'),
     conversationId: binding.ids.next('conversation'), linkId: binding.ids.next('run_link'), profile: profile.name,
-    spawnKey: input.key, title: `${profile.name}: ${input.key}`, at });
+    spawnKey: input.key, ...(input.tier === undefined ? {} : { tier: input.tier }), title: `${profile.name}: ${input.key}`, at });
   requireState(await stores.messages.append(scope, child.conversationId, { expectedRevision: 1, at, runId: child.runId,
     messages: [brief(binding, input.task)] }));
   return child;
+}
+
+async function assertTreeCapacity({ options, scope, run }: Binding, stores: ApiStores) {
+  const counts = await stores.agents.treeCounts(scope, run.rootRunId);
+  if (counts.live >= (options.maxLive ?? 3)) throw new AgentError('AGENT_LIMIT_REACHED', 'Too many sub-agents are running; wait for one first.');
+  if (counts.total >= (options.maxPerTree ?? 12)) throw new AgentError('AGENT_LIMIT_REACHED', 'This task already used its sub-agent allowance.');
 }
 
 /** The child sees only this brief (PLAN-SUBAGENTS §9), never the parent's transcript. */

@@ -52,7 +52,9 @@ export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
 
 /** Sub-agents spawn through the same database as the API, in one transaction per spawn. */
 function subAgentOptions(pool: SqlPool, options: ViperEngineOptions, clock: { now(): number }) {
-  return options.subAgents === undefined ? {} : { subAgents: { ...options.subAgents, database: apiDatabase(pool, () => clock.now()) } };
+  // Existing children still need a restricted catalog if the host disables new delegation.
+  const policy = options.subAgents ?? { profiles: [], maxDepth: 0 };
+  return { subAgents: { ...policy, database: apiDatabase(pool, () => clock.now()) } };
 }
 
 function connectionDirectory(pool: SqlPool) {

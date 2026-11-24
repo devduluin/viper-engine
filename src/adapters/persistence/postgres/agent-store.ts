@@ -57,7 +57,8 @@ export class SqlAgentRunStore implements AgentRunStore {
       VALUES (${p(1)}, ${p(2)}, ${p(3)}, ${p(4)}, ${p(5)}, 'queued', ${at(6)}, ${at(6)}, ${p(7)}, ${p(8)}, ${p(9)}, ${p(10)}, ${p(11)})`,
     [input.runId, ...owner, input.conversationId, input.at, input.parent.runId, input.parent.rootRunId,
       input.parent.depth + 1, input.profile, input.spawnKey]);
-    await this.link(owner, input.linkId, input.parent.runId, input.runId, 'spawned', input.at, false);
+    await this.link(owner, input.linkId, input.parent.runId, input.runId, 'spawned', input.at, false,
+      input.tier === undefined ? {} : { tier: input.tier });
     return Object.freeze({ runId: input.runId, conversationId: input.conversationId, profile: input.profile,
       spawnKey: input.spawnKey, status: 'queued' as const });
   }
@@ -93,12 +94,13 @@ export class SqlAgentRunStore implements AgentRunStore {
     return truncateBytes(text, maxBytes);
   }
 
-  private async link(owner: readonly string[], id: string, from: RunId, to: RunId, kind: 'spawned' | 'awaits', at: number, satisfied: boolean) {
+  private async link(owner: readonly string[], id: string, from: RunId, to: RunId, kind: 'spawned' | 'awaits', at: number, satisfied: boolean,
+    metadata: Record<string, string> = {}) {
     const p = this.d.param; const time = this.d.time;
     await this.db.query(`INSERT INTO viper_engine.run_links (id, from_run_id, to_run_id, actor_id, app_id, tenant_key, kind,
-        ${this.d.column('created_at')}, ${this.d.column('satisfied_at')})
-      VALUES (${p(1)}, ${p(2)}, ${p(3)}, ${p(4)}, ${p(5)}, ${p(6)}, ${p(7)}, ${time(8)}, ${satisfied ? time(8) : 'NULL'})`,
-    [id, from, to, ...owner, kind, at]);
+        ${this.d.column('created_at')}, ${this.d.column('satisfied_at')}, metadata)
+      VALUES (${p(1)}, ${p(2)}, ${p(3)}, ${p(4)}, ${p(5)}, ${p(6)}, ${p(7)}, ${time(8)}, ${satisfied ? time(8) : 'NULL'}, ${p(9)})`,
+    [id, from, to, ...owner, kind, at, JSON.stringify(metadata)]);
   }
 
   private async select(scope: TrustedScope, where: string, values: readonly unknown[]): Promise<readonly AgentChildRecord[]> {

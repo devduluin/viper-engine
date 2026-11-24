@@ -1,3 +1,6 @@
+export type AgentTier = 'fast' | 'balanced' | 'deep';
+export const AGENT_TIERS: readonly AgentTier[] = ['fast', 'balanced', 'deep'];
+
 /** What the parent model may know about a sub-agent. Ids are run ids; reports are bounded text. */
 export interface AgentView {
   readonly id: string;
@@ -22,7 +25,7 @@ export class AgentError extends Error {
 /** Sub-agent operations bound to one running parent run; implemented by the durable application layer. */
 export interface AgentPort {
   readonly profiles: readonly AgentProfileInfo[];
-  spawn(input: { readonly task: string; readonly profile: string; readonly key: string }): Promise<AgentView>;
+  spawn(input: { readonly task: string; readonly profile: string; readonly key: string; readonly tier?: AgentTier }): Promise<AgentView>;
   status(): Promise<readonly AgentView[]>;
   /** Records the wait and returns the settled reports plus how many awaited sub-agents are still running. */
   wait(agents: readonly string[] | 'all'): Promise<{ readonly settled: readonly AgentReport[]; readonly open: number }>;

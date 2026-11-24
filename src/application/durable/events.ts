@@ -10,7 +10,7 @@ const UNAVAILABLE = { source: 'unavailable', inputTokens: null, outputTokens: nu
 
 export async function persistEvent(session: DurableSession, event: RuntimeEvent): Promise<void> {
   await session.guard.refresh();
-  const commands = eventCommands(session, event);
+  const commands = event.type === 'agent_reports_delivered' ? session.messages(event.messages) : eventCommands(session, event);
   if (event.type === 'run_stopped' && !event.status.startsWith('waiting_')) commands.unshift(...settlePending(session, event.reason === 'cancelled'));
   if (event.type === 'run_stopped') commands.unshift(...steeringStopGuard(session, event.status, event.reason));
   await session.commit(commands);
@@ -22,7 +22,7 @@ export async function persistEvent(session: DurableSession, event: RuntimeEvent)
   }
 }
 
-function eventCommands(session: DurableSession, event: RuntimeEvent): JournalCommand[] {
+function eventCommands(session: DurableSession, event: Exclude<RuntimeEvent, { type: 'agent_reports_delivered' }>): JournalCommand[] {
   switch (event.type) {
     case 'model_call_started': return modelStart(session, event);
     case 'model_call_finished': return modelFinish(session, event);
