@@ -93,3 +93,20 @@ BEGIN SELECT RAISE(ABORT, 'conversation kind and parent are immutable'); END;
 `;
 
 export const AGENT_RUNS_SCHEMA = RUNS_REBUILD + RUN_LINKS + AGENT_CONVERSATIONS;
+
+/** Twin of postgres 0020_agent_settlement.sql: settle awaits, wake a parked parent, cancel orphaned children. */
+export const AGENT_SETTLEMENT_SCHEMA = `
+CREATE TRIGGER viper_engine.settle_agent_runs AFTER UPDATE OF status ON runs
+WHEN NEW.status IN ('completed','partial','failed','cancelled') AND OLD.status <> NEW.status
+BEGIN
+  UPDATE run_links SET satisfied_at_ms = NEW.updated_at_ms
+    WHERE to_run_id = NEW.id AND kind = 'awaits' AND satisfied_at_ms IS NULL;
+  UPDATE runs SET status = 'running', revision = revision + 1, updated_at_ms = NEW.updated_at_ms,
+      lease_owner = NULL, lease_expires_at_ms = NULL, lease_fence = lease_fence + 1
+    WHERE id = NEW.parent_run_id AND status = 'waiting_for_agents'
+      AND NOT EXISTS (SELECT 1 FROM run_links l WHERE l.from_run_id = runs.id AND l.kind = 'awaits' AND l.satisfied_at_ms IS NULL);
+  UPDATE runs SET cancel_requested_at_ms = NEW.updated_at_ms, revision = revision + 1, updated_at_ms = NEW.updated_at_ms
+    WHERE parent_run_id = NEW.id AND cancel_requested_at_ms IS NULL
+      AND status NOT IN ('completed','partial','failed','cancelled');
+END;
+`;
