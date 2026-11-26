@@ -13,10 +13,12 @@ export interface CachedPrefix {
 }
 
 /**
- * Render order is tools -> system -> messages. One explicit breakpoint closes the stable prefix
- * (last system block, or the last tool when there is no system text): tools + system are written once
- * and read by every later call. The top-level automatic breakpoint then caches the growing tail
- * (history, tool results). Both use the same TTL, so the "longer TTL first" rule always holds.
+ * Render order is tools -> system -> messages. Breakpoints (3 of the 4 allowed):
+ * - the last tool: tools alone stay cached when any system text changes (tools are the largest stable part);
+ * - the first system block: hosts put their static prompt first and per-run text (date, model, topics) in later blocks,
+ *   which therefore carry no marker and never invalidate the stable prefix;
+ * - the top-level automatic breakpoint caches the growing tail (history, tool results).
+ * Every marker uses the same TTL, so the "longer TTL first" rule always holds.
  */
 export function cachedPrefix(system: readonly string[], tools: readonly BetaTool[], cache: PromptCacheSettings | undefined): CachedPrefix {
   const plain: CachedPrefix = {
@@ -25,12 +27,11 @@ export function cachedPrefix(system: readonly string[], tools: readonly BetaTool
   };
   if (cache === undefined) return plain;
   const marker: BetaCacheControlEphemeral = { type: 'ephemeral', ttl: cache.ttl };
-  if (system.length > 0) {
-    return { ...plain, system: [{ type: 'text', text: system.join('\n\n'), cache_control: marker }], cache_control: marker };
-  }
-  if (tools.length > 0) {
-    const last = tools.length - 1;
-    return { tools: tools.map((tool, index) => (index === last ? { ...tool, cache_control: marker } : tool)), cache_control: marker };
-  }
-  return { cache_control: marker };
+  const last = tools.length - 1;
+  return {
+    ...(tools.length === 0 ? {} : { tools: tools.map((tool, index) => (index === last ? { ...tool, cache_control: marker } : tool)) }),
+    ...(system.length === 0 ? {} : { system: system.map((text, index): BetaTextBlockParam =>
+      (index === 0 ? { type: 'text', text, cache_control: marker } : { type: 'text', text })) }),
+    cache_control: marker,
+  };
 }
