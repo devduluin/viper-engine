@@ -23,6 +23,11 @@ export interface DurableDriverDependencies extends RunLoopDependencies {
   readonly approvalTtlMs?: number;
   /** Host scheduling runs before release; callbacks must not dispatch tools or relax fencing. */
   readonly onDeliveryFailure?: (claim: RunClaim, error: unknown) => Promise<void>;
+  /**
+   * Context budget for the model a run is pinned to (its window differs per model). Read on the run's first delivery,
+   * after the model is bound, and persisted with the run; it overrides the static configured budget.
+   */
+  readonly contextForModel?: (model: { readonly provider?: string; readonly model: string }) => Partial<import('../../contracts/context/budget.js').ContextBudget> | undefined;
   /** Sub-agents (PLAN-SUBAGENTS): absent = off. */
   readonly subAgents?: import('./agents.js').SubAgentOptions;
 }

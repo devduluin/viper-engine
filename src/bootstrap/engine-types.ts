@@ -49,6 +49,8 @@ export interface ViperEngineOptions {
   readonly maxModelCalls?: number; readonly maxOutputTokens?: number; readonly limits?: Partial<RunLimits>;
   /** Defaults to the engine's bounded text/byte policy; choose the actual provider window explicitly. */
   readonly context?: Partial<ContextBudget>;
+  /** Per-model context budget, applied to each run for the model it is pinned to (see DurableDriverDependencies). */
+  readonly contextForModel?: (model: { readonly provider?: string; readonly model: string }) => Partial<ContextBudget> | undefined;
   readonly contextEvidence?: ContextEvidenceProvider;
   /** Tools the user's client runs (e.g. read_page in the embed panel), offered only to runs that ask for them. */
   readonly clientTools?: ClientToolsConfig;

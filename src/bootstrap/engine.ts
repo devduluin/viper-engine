@@ -49,13 +49,18 @@ export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
     ...(options.onEvent === undefined ? {} : { onEvent: options.onEvent }),
     ...(options.contextEvidence === undefined ? {} : { contextEvidence: options.contextEvidence }),
     ...userMemoryOptions(pool, options.userMemory),
-    ...subAgentOptions(pool, options, clock),
+    ...subAgentOptions(pool, options, clock), ...optional({ contextForModel: options.contextForModel }),
     ...(options.clientTools === undefined ? {} : { clientTools: createClientToolPort(pool, options.clientTools) }),
     ...(options.onDeliveryFailure === undefined ? {} : { onDeliveryFailure: options.onDeliveryFailure }),
   });
   const onResult = options.clientTools?.onResult;
   const stopObserving = onResult === undefined ? () => undefined : processClientTools.observe(onResult);
   return engineLifecycle(driver, async () => { stopObserving(); await connections.closeAll(); });
+}
+
+/** Copies only the options a host set (exactOptionalPropertyTypes: absent stays absent). */
+function optional<T extends Record<string, unknown>>(values: T): Partial<T> {
+  return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined)) as Partial<T>;
 }
 
 /** Sub-agents spawn through the same database as the API, in one transaction per spawn. */

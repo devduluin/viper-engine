@@ -88,7 +88,8 @@ export class DurableRunDriver {
     if (loaded.value.execution === undefined && loaded.value.toolCalls.length > 0) throw new Error('Execution requires a managed checkpoint');
     const state = loaded.value.execution === undefined ? initialState(plan, this.deps.clock.now()) : decodeState(loaded.value.execution.state);
     const runDeps = await this.bindRunModel(state, loaded.value.execution !== undefined, guard.cancelled, claim.runId);
-    const context = contextPlan(state, plan, loaded.value, guard.cancelled);
+    const context = contextPlan(state, withModelContext(plan, this.deps, state, loaded.value.execution === undefined),
+      loaded.value, guard.cancelled);
     const session = new DurableSession(claim, scope, runDeps, loaded.value, state, guard);
     await guard.refresh();
     await session.commit(loaded.value.run.status === 'queued' ? [{ kind: 'run_transition', input: {
@@ -123,4 +124,18 @@ function loopDependencies(deps: DurableDriverDependencies, isolated: boolean) {
   if (!isolated) return deps;
   const { clientTools: _client, userMemory: _memory, contextEvidence: _evidence, agents: _agents, ...textOnly } = deps;
   return textOnly;
+}
+
+/**
+ * The run's model decides its context window; the configured budget is the default for anything it leaves out.
+ * A new run's budget was seeded from the static plan before its model was bound, so it is cleared and recomputed;
+ * a resumed run keeps the budget it started with.
+ */
+function withModelContext<T extends { readonly context?: object }>(plan: T, deps: Pick<DurableDriverDependencies, 'contextForModel' | 'provider'>,
+  state: { readonly provider?: string; readonly model: string; contextBudget?: unknown }, fresh: boolean): T {
+  if (deps.contextForModel === undefined || !fresh) return plan;
+  const forModel = deps.contextForModel({ provider: state.provider ?? deps.provider, model: state.model });
+  if (forModel === undefined) return plan;
+  delete state.contextBudget;
+  return { ...plan, context: { ...plan.context, ...forModel } };
 }
