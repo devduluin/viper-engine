@@ -9,7 +9,7 @@ import { NOT_FOUND } from './run-lock.js';
 import {
   APPROVAL_COLUMNS, approvalRecord, asRow, integer, RUN_COLUMNS, runRecord, TOOL_CALL_COLUMNS, toolCallRecord,
 } from './rows.js';
-import type { SqlPool } from './sql-client.js';
+import type { SqlPool, SqlQueryable } from './sql-client.js';
 import { withSnapshot } from './sql-client.js';
 import { parseJsonObject } from '../../../contracts/messages/json.js';
 import { runUsage } from './run-usage.js';
@@ -38,13 +38,43 @@ export function historyWindow(stored: readonly StoredMessage[], runId: RunId, li
   return stored.slice(start);
 }
 
+/** Find the same stable user-turn boundary without reading old message bodies. */
+export async function historyStart(tx: SqlQueryable, conversationId: string, runId: RunId, limit: number): Promise<number> {
+  if (limit <= 0) return 1;
+  const result = await tx.query(`SELECT position FROM viper_engine.messages WHERE conversation_id = $1
+    AND role = 'user' AND position <= coalesce(
+      (SELECT min(position) FROM viper_engine.messages WHERE conversation_id = $1 AND run_id = $2),
+      (SELECT max(position) FROM viper_engine.messages WHERE conversation_id = $1), 0)
+    ORDER BY position DESC LIMIT 1 OFFSET $3`, [conversationId, runId, limit - 1]);
+  return result.rows.length === 0 ? 1 : integer(asRow(result.rows[0]), 'position');
+}
+
+/** Saved runs retain their original window even if the host changes its configuration. */
+export async function checkpointHistoryStart(tx: SqlQueryable, conversationId: string, runId: RunId,
+  limit: number, state: import('../../../contracts/messages/json.js').JsonObject | undefined): Promise<number> {
+  if (state === undefined) return historyStart(tx, conversationId, runId, limit);
+  const first = state['historyWindowFirst'];
+  if (first === undefined) return historyStart(tx, conversationId, runId, historyBubbleLimit());
+  if (first === null) return 1;
+  if (typeof first !== 'string') throw new Error('Invalid saved history window');
+  const result = await tx.query('SELECT position FROM viper_engine.messages WHERE conversation_id = $1 AND id = $2', [conversationId, first]);
+  if (result.rows.length === 0) throw new Error('Saved history window is unavailable');
+  return integer(asRow(result.rows[0]), 'position');
+}
+
+function executionState(row: unknown) {
+  if (row === undefined) return undefined;
+  const saved = asRow(row);
+  return { revision: integer(saved, 'revision'), state: parseJsonObject(saved['state']) };
+}
+
 /**
  * Resume snapshot in one REPEATABLE READ transaction: run state, full conversation history,
  * the run's tool-call ledger and approvals, and the event cursor all reflect the same instant.
  * A run is resumed from this, never from a client-supplied history.
  */
 export class PostgresCheckpointReader implements CheckpointReader {
-  constructor(private readonly pool: SqlPool) {}
+  constructor(private readonly pool: SqlPool, private readonly historyLimit?: number) {}
 
   async load(scope: TrustedScope, runId: RunId, options: { readonly maxMessages?: number } = {}): Promise<StateResult<RunCheckpoint>> {
     const max = options.maxMessages ?? DEFAULT_MAX_MESSAGES;
@@ -56,26 +86,26 @@ export class PostgresCheckpointReader implements CheckpointReader {
       if (checkOwnership(run.owner, scope) !== undefined) return stateConflict<RunCheckpoint>(NOT_FOUND);
       const conversation = await tx.query('SELECT revision, next_message_position FROM viper_engine.conversations WHERE id = $1', [run.conversationId]);
       const counts = asRow(conversation.rows[0]);
-      const bubbleLimit = historyBubbleLimit();
+      const bubbleLimit = this.historyLimit ?? historyBubbleLimit();
       const effectiveMax = bubbleLimit > 0 ? 100000 : max;
       if (integer(counts, 'next_message_position') > effectiveMax) throw new RangeError(`History exceeds ${max} messages; compact before resuming`);
       // One SQL connection: sequential queries retain the snapshot without pg's deprecated query queue.
-      const messages = await tx.query(`SELECT ${MESSAGE_COLUMNS} FROM viper_engine.messages WHERE conversation_id = $1 ORDER BY position`, [run.conversationId]);
+      const execution = await tx.query('SELECT revision, state FROM viper_engine.runtime_checkpoints WHERE run_id = $1', [runId]);
+      const saved = executionState(execution.rows[0]);
+      const cutoff = await checkpointHistoryStart(tx, run.conversationId, runId, bubbleLimit, saved?.state);
+      const messages = await tx.query(`SELECT ${MESSAGE_COLUMNS} FROM viper_engine.messages WHERE conversation_id = $1 AND position >= $2 ORDER BY position`, [run.conversationId, cutoff]);
       const calls = await tx.query(`SELECT ${TOOL_CALL_COLUMNS} FROM viper_engine.tool_calls WHERE run_id = $1 ORDER BY created_at, id LIMIT $2`, [runId, max + 1]);
       const approvals = await tx.query(`SELECT ${APPROVAL_COLUMNS} FROM viper_engine.approvals WHERE run_id = $1 ORDER BY created_at, id LIMIT $2`, [runId, max + 1]);
       if (calls.rows.length > max || approvals.rows.length > max) throw new RangeError('Checkpoint ledger exceeds bounded record limit');
-      const execution = await tx.query('SELECT revision, state FROM viper_engine.runtime_checkpoints WHERE run_id = $1', [runId]);
-      const saved = execution.rows[0] === undefined ? undefined : asRow(execution.rows[0]);
       const stored = messages.rows.map(storedMessage);
-      const effectiveStored = historyWindow(stored, runId, bubbleLimit);
       return stateOk(Object.freeze({
         run, usage: await runUsage(tx, runId), conversationRevision: integer(counts, 'revision'),
-        history: Object.freeze(effectiveStored.map(row => row.message)),
+        history: Object.freeze(stored.map(row => row.message)),
         runMessageIds: Object.freeze(stored.filter(row => row.runId === runId).map(row => row.message.id)),
         toolCalls: Object.freeze(calls.rows.map(toolCallRecord)),
         approvals: Object.freeze(approvals.rows.map(approvalRecord)),
         lastEventSequence: integer(asRow(runRow.rows[0]), 'last_event_sequence'),
-        ...(saved === undefined ? {} : { execution: Object.freeze({ revision: integer(saved, 'revision'), state: parseJsonObject(saved['state']) }) }),
+        ...(saved === undefined ? {} : { execution: Object.freeze(saved) }),
       }));
     });
   }

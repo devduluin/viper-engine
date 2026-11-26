@@ -30,6 +30,8 @@ export interface ClientToolsConfig {
 }
 
 export interface ViperEngineOptions {
+  /** Maximum preceding user turns in a worker checkpoint; 0 includes all history. */
+  readonly maxHistoryUserTurns?: number;
   readonly userMemory?: boolean;
   /** Sub-agents (PLAN-SUBAGENTS): host-defined profiles and limits; absent = off. */
   readonly subAgents?: Omit<import('../application/durable/agents.js').SubAgentOptions, 'database'>;

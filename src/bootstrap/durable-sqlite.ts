@@ -9,9 +9,9 @@ import type { DurableDriverDependencies } from '../application/durable/types.js'
 
 /** SQLite worker composition for S0 tests. Schema and connection lifecycle belong to the caller. */
 export function createSqliteDurableRunDriver(pool: SqlitePool,
-  deps: Omit<DurableDriverDependencies, 'leases' | 'runs' | 'checkpoints' | 'journal' | 'steeringInputs'>): DurableRunDriver {
+  deps: Omit<DurableDriverDependencies, 'leases' | 'runs' | 'checkpoints' | 'journal' | 'steeringInputs'>, historyLimit?: number): DurableRunDriver {
   const clock = () => deps.clock.now();
   return new DurableRunDriver({ ...deps, leases: new SqliteRunLeaseStore(pool, clock), runs: new SqliteRunStore(pool, clock),
-    checkpoints: new SqliteCheckpointReader(pool, clock), journal: new SqliteRunJournal(pool, clock),
+    checkpoints: new SqliteCheckpointReader(pool, clock, historyLimit), journal: new SqliteRunJournal(pool, clock, historyLimit),
     steeringInputs: new SqliteRunSteering(pool) });
 }

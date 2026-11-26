@@ -86,7 +86,7 @@ export class DurableRunDriver {
       now: () => this.deps.clock.now(), cancelled: guard.cancelled }, delivery);
     const plan = wiring.plan;
     if (loaded.value.execution === undefined && loaded.value.toolCalls.length > 0) throw new Error('Execution requires a managed checkpoint');
-    const state = loaded.value.execution === undefined ? initialState(plan, this.deps.clock.now()) : decodeState(loaded.value.execution.state);
+    const state = deliveryState(loaded.value, plan, this.deps.clock.now());
     const runDeps = await this.bindRunModel(state, loaded.value.execution !== undefined, guard.cancelled, claim.runId);
     const context = contextPlan(state, withModelContext(plan, this.deps, state, loaded.value.execution === undefined),
       loaded.value, guard.cancelled);
@@ -118,6 +118,14 @@ export class DurableRunDriver {
     state.model = binding.model;
     return { ...this.deps, provider: binding.provider, model: binding.gateway };
   }
+}
+
+function deliveryState(checkpoint: import('../../contracts/state/checkpoints.js').RunCheckpoint,
+  plan: Parameters<typeof initialState>[0], now: number) {
+  if (checkpoint.execution !== undefined) return decodeState(checkpoint.execution.state);
+  const state = initialState(plan, now);
+  state.historyWindowFirst = checkpoint.history[0]?.id ?? null;
+  return state;
 }
 
 function loopDependencies(deps: DurableDriverDependencies, isolated: boolean) {

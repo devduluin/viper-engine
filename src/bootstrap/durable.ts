@@ -10,8 +10,9 @@ import { createSqliteDurableRunDriver } from './durable-sqlite.js';
 import { isSqlitePool } from './database-dialect.js';
 
 /** Host owns the pool lifecycle and supplies provider-neutral model/MCP/policy/configuration. */
-export function createDurableRunDriver(pool: SqlPool, deps: Omit<DurableDriverDependencies, 'leases' | 'runs' | 'checkpoints' | 'journal' | 'steeringInputs'>): DurableRunDriver {
-  if (isSqlitePool(pool)) return createSqliteDurableRunDriver(pool, deps);
+export function createDurableRunDriver(pool: SqlPool, deps: Omit<DurableDriverDependencies, 'leases' | 'runs' | 'checkpoints' | 'journal' | 'steeringInputs'>, historyLimit?: number): DurableRunDriver {
+  if (historyLimit !== undefined && (!Number.isSafeInteger(historyLimit) || historyLimit < 0 || historyLimit > 100_000)) throw new RangeError('Invalid history limit');
+  if (isSqlitePool(pool)) return createSqliteDurableRunDriver(pool, deps, historyLimit);
   return new DurableRunDriver({ ...deps, leases: new PostgresRunLeaseStore(pool), runs: new PostgresRunStore(pool),
-    checkpoints: new PostgresCheckpointReader(pool), journal: new PostgresRunJournal(pool), steeringInputs: new PostgresRunSteering(pool) });
+    checkpoints: new PostgresCheckpointReader(pool, historyLimit), journal: new PostgresRunJournal(pool, historyLimit), steeringInputs: new PostgresRunSteering(pool) });
 }

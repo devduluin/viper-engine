@@ -52,7 +52,7 @@ export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
     ...subAgentOptions(pool, options, clock), ...optional({ contextForModel: options.contextForModel }),
     ...(options.clientTools === undefined ? {} : { clientTools: createClientToolPort(pool, options.clientTools) }),
     ...(options.onDeliveryFailure === undefined ? {} : { onDeliveryFailure: options.onDeliveryFailure }),
-  });
+  }, options.maxHistoryUserTurns);
   const onResult = options.clientTools?.onResult;
   const stopObserving = onResult === undefined ? () => undefined : processClientTools.observe(onResult);
   return engineLifecycle(driver, async () => { stopObserving(); await connections.closeAll(); });

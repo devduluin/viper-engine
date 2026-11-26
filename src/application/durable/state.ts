@@ -16,6 +16,8 @@ import { parseToolDiscoveryState } from '../../contracts/discovery/state.js';
 import type { ToolDiscoveryState } from '../../contracts/discovery/state.js';
 
 export interface DurableState extends DurableContextState {
+  /** Stable first message of the model history for this run. Null marks an initially empty history. */
+  historyWindowFirst?: string | null;
   toolDiscovery?: ToolDiscoveryState;
   version: 1;
   phase: 'model' | 'calls' | 'correction' | 'input' | 'final';
@@ -67,6 +69,7 @@ export function decodeState(value: JsonObject): DurableState {
       ...(report['failureCode'] === undefined ? {} : { failureCode: failureCode(report['failureCode'], status) }) };
   });
   return { version: 1, phase: member(value['phase'], PHASES), model: text(value['model']),
+    ...(value['historyWindowFirst'] === undefined ? {} : { historyWindowFirst: value['historyWindowFirst'] === null ? null : text(value['historyWindowFirst']) }),
     ...(value['provider'] === undefined ? {} : { provider: text(value['provider']) }),
     maxModelCalls: positive(value['maxModelCalls']), maxOutputTokens: positive(value['maxOutputTokens']),
     limits: resolveRunLimits(parseJsonObject(value['limits'])), deadlineAt: number(value['deadlineAt']),

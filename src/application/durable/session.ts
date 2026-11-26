@@ -78,6 +78,7 @@ export class DurableSession {
     this.checkpoint = checkpoint;
     const state = decodeState(checkpoint.execution.state);
     delete this.state.stepId; delete this.state.modelCallId; delete this.state.contextCheckpoint; delete this.state.contextBudget;
+    delete this.state.historyWindowFirst;
     delete this.state.toolDiscovery;
     Object.assign(this.state, state);
     if (this.context === undefined) return;

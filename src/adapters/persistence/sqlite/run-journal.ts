@@ -20,7 +20,7 @@ class JournalConflict extends Error {
 }
 
 export class SqliteRunJournal implements RunJournal {
-  constructor(private readonly pool: SqlPool, private readonly clock: () => number = Date.now) {}
+  constructor(private readonly pool: SqlPool, private readonly clock: () => number = Date.now, private readonly historyLimit?: number) {}
 
   async commit(scope: TrustedScope, runId: RunId, input: Parameters<RunJournal['commit']>[2]): Promise<StateResult<RunCheckpoint>> {
     const state = JSON.stringify(parseJsonObject(input.state));
@@ -46,7 +46,7 @@ export class SqliteRunJournal implements RunJournal {
         await tx.query(`INSERT INTO viper_engine.runtime_checkpoints (run_id, actor_id, app_id, tenant_key, revision, state)
           VALUES (?, ?, ?, ?, 1, ?) ON CONFLICT (run_id) DO UPDATE SET
           revision = runtime_checkpoints.revision + 1, state = excluded.state`, [runId, ...ownerColumns(scope), state]);
-        const checkpoint = await new SqliteCheckpointReader(pool, this.clock).load(scope, runId);
+        const checkpoint = await new SqliteCheckpointReader(pool, this.clock, this.historyLimit).load(scope, runId);
         if (!checkpoint.ok) throw new JournalConflict(checkpoint.error);
         return checkpoint;
       });

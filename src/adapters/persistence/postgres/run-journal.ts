@@ -19,7 +19,7 @@ class CommitConflict extends Error {
 }
 
 export class PostgresRunJournal implements RunJournal {
-  constructor(private readonly pool: SqlPool) {}
+  constructor(private readonly pool: SqlPool, private readonly historyLimit?: number) {}
 
   async commit(scope: TrustedScope, runId: RunId, input: Parameters<RunJournal['commit']>[2]): Promise<StateResult<RunCheckpoint>> {
     const state = parseJsonObject(input.state);
@@ -43,7 +43,7 @@ export class PostgresRunJournal implements RunJournal {
         await tx.query(`INSERT INTO viper_engine.runtime_checkpoints (run_id, actor_id, app_id, tenant_key, revision, state)
           VALUES ($1, $2, $3, $4, 1, $5) ON CONFLICT (run_id) DO UPDATE SET revision = runtime_checkpoints.revision + 1, state = EXCLUDED.state`,
         [runId, ...ownerColumns(scope), state]);
-        return new PostgresCheckpointReader(pool).load(scope, runId);
+        return new PostgresCheckpointReader(pool, this.historyLimit).load(scope, runId);
       });
     } catch (error) {
       if (error instanceof CommitConflict) return stateConflict(error.conflict);
