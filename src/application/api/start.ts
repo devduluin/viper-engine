@@ -31,15 +31,22 @@ export async function startRun(scope: TrustedScope, call: ApiCall, options: ApiO
     const input = await authorizedUserMessage(scope, call.body, options);
     const at = options.clock.now(); const runId = options.ids.next('run');
     const effort = runEffort(call.body); const clientTools = runClientTools(call.body);
+    const payload = { ...(queuedModel ? { queuedModel } : {}), ...runDelegation(call.body) };
     const run = requireState(await stores.runs.create(scope, { id: runId, conversationId: id, at, ...(effort ? { effort } : {}),
       ...(clientTools.length > 0 ? { clientTools } : {}),
-      events: [{ eventId: options.ids.next('run_event'), type: 'run.queued', occurredAt: at, payload: queuedModel ? { queuedModel } : {} }] }));
+      events: [{ eventId: options.ids.next('run_event'), type: 'run.queued', occurredAt: at, payload }] }));
     requireState(await stores.messages.append(scope, id, { expectedRevision: conversation.revision, at, runId,
       messages: [input] }));
     await stores.control.saveInstructions(scope, runId, instructions);
     requireState(await stores.idempotency.complete(scope, { ...request, claimId: begun.claimId, resourceRef: runId }));
     return accepted(run);
   });
+}
+
+function runDelegation(body: JsonObject): JsonObject {
+  const options = parseJsonObject(body['options'] ?? {});
+  const delegation = options['delegation'];
+  return delegation === 'off' || delegation === 'auto' ? { delegation } : {};
 }
 
 /** `options.effort` (schema-validated): the user's speed/depth choice for this run. */

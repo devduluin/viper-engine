@@ -12,7 +12,7 @@ export interface DurableDriverDependencies extends RunLoopDependencies {
   readonly steeringInputs?: RunSteeringReader;
   /** Trusted server composition refreshes authorized tools and instructions for this owner. */
   readonly configure: (scope: TrustedScope, checkpoint: RunCheckpoint) => Promise<Omit<RunLoopInput,
-    'scope' | 'conversationId' | 'runId' | 'history' | 'resume' | 'signal'>>;
+    'scope' | 'conversationId' | 'runId' | 'history' | 'resume' | 'signal'> & { readonly isolatedText?: boolean }>;
   readonly provider: string;
   readonly resolveRunModel?: ((pinned?: { readonly provider: string; readonly model: string }, runId?: RunClaim['runId']) => {
     readonly provider: string; readonly model: string; readonly gateway: RunLoopDependencies['model'];

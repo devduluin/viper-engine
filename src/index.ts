@@ -45,6 +45,7 @@ export type { EngineModel, ConfiguredModel } from './bootstrap/configured-model.
 export { EngineSetupError } from './bootstrap/mcp-tools.js';
 export type { ConnectionBinding } from './bootstrap/mcp-tools.js';
 export { createEngineHttpServer, persistedRunInstructions } from './bootstrap/http.js';
+export { engineTransactionStores } from './bootstrap/api-database.js';
 export type { EngineHttpOptions } from './bootstrap/http.js';
 export { ApiFailure } from './contracts/api/failure.js';
 export type { ApiHandler, ApiCall, ApiOperation, ApiCursorPort } from './contracts/api/control.js';

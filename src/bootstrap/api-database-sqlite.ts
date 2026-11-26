@@ -12,7 +12,7 @@ import { SqlAgentRunStore } from '../adapters/persistence/postgres/agent-store.j
 import { SQLITE_AGENTS } from '../adapters/persistence/sqlite/agent-store.js';
 import type { ApiDatabase, ApiStores } from '../contracts/api/control.js';
 
-function stores(tx: SqlQueryable, clock: () => number): ApiStores {
+export function sqliteTransactionStores(tx: SqlQueryable, clock: () => number): ApiStores {
   const pool = transactionPool(tx);
   return { conversations: new SqliteConversationStore(pool), runs: new SqliteRunStore(pool, clock),
     approvals: new SqliteApprovalStore(pool, clock), messages: new SqliteMessageStore(pool, clock),
@@ -22,6 +22,6 @@ function stores(tx: SqlQueryable, clock: () => number): ApiStores {
 }
 
 export function sqliteApiDatabase(pool: SqlitePool, clock: () => number = Date.now): ApiDatabase {
-  return { transaction: work => pool.transaction(tx => work(stores(tx, clock))),
-    snapshot: work => pool.snapshot(tx => work(stores(tx, clock))) };
+  return { transaction: work => pool.transaction(tx => work(sqliteTransactionStores(tx, clock))),
+    snapshot: work => pool.snapshot(tx => work(sqliteTransactionStores(tx, clock))) };
 }

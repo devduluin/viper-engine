@@ -20,6 +20,8 @@ export interface RunLineage {
   readonly status: RunStatus;
   /** Sub-agent profile of a child run; absent for a root run. */
   readonly profile?: string;
+  /** The root run explicitly disables delegation. Absent on older runs. */
+  readonly delegationDisabled?: true;
 }
 
 export interface AgentChildInput {

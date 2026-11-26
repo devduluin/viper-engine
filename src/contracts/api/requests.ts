@@ -10,7 +10,7 @@ export const REQUEST_SCHEMAS = {
     prompts: array(ref('PromptSelection'), 16),
   }, []),
   StartRun: object({ input: ref('UserInput'), context: ref('ContextSelection'),
-    options: object({ effort: { enum: ['low', 'medium', 'high'] },
+    options: object({ effort: { enum: ['low', 'medium', 'high'] }, delegation: { enum: ['off', 'auto'] },
       clientTools: { type: 'array', maxItems: 8, uniqueItems: true, items: { type: 'string', pattern: '^[a-z][a-z0-9_]{0,31}$' } },
     }, []) }, ['input']),
   ClientToolResult: object({ toolCallId: id, outcome: { enum: ['success', 'error'] }, data: { type: 'object' },

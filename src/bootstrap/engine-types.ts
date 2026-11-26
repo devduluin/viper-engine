@@ -36,6 +36,8 @@ export interface ViperEngineOptions {
   readonly budgetProfiles?: import('../contracts/models/budget-profiles.js').BudgetProfiles;
   readonly defaultBudgetMode?: import('../contracts/models/budget-profiles.js').BudgetMode;
   readonly model: EngineModel;
+  /** A host-owned task may use isolated text execution with a bound prompt and no tool ports. */
+  readonly isolatedTask?: (scope: TrustedScope, checkpoint: RunCheckpoint) => Promise<readonly Message[] | undefined>;
   readonly resolveRunModel?: (pinned?: { readonly provider: string; readonly model: string },
     runId?: import('../contracts/identity/ids.js').RunId) => EngineModel | Promise<EngineModel>;
   readonly credentials: McpCredentialPort;

@@ -80,8 +80,10 @@ export class DurableRunDriver {
     const scope = scopeFromAuthenticatedIdentity(claim.owner);
     const loaded = await this.deps.checkpoints.load(scope, claim.runId);
     if (!loaded.ok) throw new JournalError(loaded.error.code);
-    const wiring = await subAgentWiring(this.deps.subAgents, { scope, runId: claim.runId, ids: this.deps.ids,
-      now: () => this.deps.clock.now(), cancelled: guard.cancelled }, await deliveryPlan(this.deps, scope, loaded.value, guard));
+    const delivery = await deliveryPlan(this.deps, scope, loaded.value, guard);
+    const isolated = 'isolatedText' in delivery && delivery.isolatedText === true;
+    const wiring = await subAgentWiring(isolated ? undefined : this.deps.subAgents, { scope, runId: claim.runId, ids: this.deps.ids,
+      now: () => this.deps.clock.now(), cancelled: guard.cancelled }, delivery);
     const plan = wiring.plan;
     if (loaded.value.execution === undefined && loaded.value.toolCalls.length > 0) throw new Error('Execution requires a managed checkpoint');
     const state = loaded.value.execution === undefined ? initialState(plan, this.deps.clock.now()) : decodeState(loaded.value.execution.state);
@@ -95,7 +97,7 @@ export class DurableRunDriver {
       model: state.model, maxModelCalls: state.maxModelCalls, maxOutputTokens: state.maxOutputTokens, limits: state.limits, deadlineAt: state.deadlineAt,
       history: { scope, conversationId: claim.conversationId, messages: session.checkpoint.history },
       signal: guard.controller.signal, resume: { budget: state.budget, modelCalls: state.modelCalls, reports: state.reports, ...resumeContext(state) },
-    }, { ...runDeps, policy: { decide: (tool, call) => policy(session, tool, call),
+    }, { ...loopDependencies(runDeps, isolated), policy: { decide: (tool, call) => policy(session, tool, call),
       rejection: (tool, call) => policyRejection(session, tool, call) },
       beforeToolInvoke: (tool, call) => { guard.assert(); return this.deps.beforeToolInvoke?.(tool, call); },
       ...(this.deps.steeringInputs === undefined ? {} : { steering: { take: () => takeSteering(session) } }),
@@ -115,4 +117,10 @@ export class DurableRunDriver {
     state.model = binding.model;
     return { ...this.deps, provider: binding.provider, model: binding.gateway };
   }
+}
+
+function loopDependencies(deps: DurableDriverDependencies, isolated: boolean) {
+  if (!isolated) return deps;
+  const { clientTools: _client, userMemory: _memory, contextEvidence: _evidence, agents: _agents, ...textOnly } = deps;
+  return textOnly;
 }

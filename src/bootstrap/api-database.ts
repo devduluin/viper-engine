@@ -1,5 +1,5 @@
 import type { ApiDatabase, ApiStores } from '../contracts/api/control.js';
-import type { SqlPool } from '../adapters/persistence/postgres/sql-client.js';
+import type { SqlPool, SqlQueryable } from '../adapters/persistence/postgres/sql-client.js';
 import { withSnapshot, withTransaction } from '../adapters/persistence/postgres/sql-client.js';
 import { transactionPool } from '../adapters/persistence/postgres/journal-commands.js';
 import { PostgresApiControl } from '../adapters/persistence/postgres/api-control.js';
@@ -10,7 +10,7 @@ import { PostgresCheckpointReader } from '../adapters/persistence/postgres/check
 import { PostgresIdempotencyStore } from '../adapters/persistence/postgres/idempotency-store.js';
 import { PostgresMcpConnectionStore } from '../adapters/persistence/postgres/mcp-connection-store.js';
 import { SqlAgentRunStore } from '../adapters/persistence/postgres/agent-store.js';
-import { sqliteApiDatabase } from './api-database-sqlite.js';
+import { sqliteApiDatabase, sqliteTransactionStores } from './api-database-sqlite.js';
 import { isSqlitePool } from './database-dialect.js';
 
 function stores(pool: SqlPool): ApiStores {
@@ -24,4 +24,11 @@ export function apiDatabase(pool: SqlPool, clock: () => number = Date.now): ApiD
   if (isSqlitePool(pool)) return sqliteApiDatabase(pool, clock);
   return { transaction: work => withTransaction(pool, tx => work(stores(transactionPool(tx)))),
     snapshot: work => withSnapshot(pool, tx => work(stores(transactionPool(tx)))) };
+}
+
+/** Use engine stores on a host-owned transaction so enqueue and host metadata commit together. */
+export function engineTransactionStores(tx: SqlQueryable, dialect: 'sqlite' | 'postgres') {
+  const { conversations, runs, messages, control } = dialect === 'sqlite'
+    ? sqliteTransactionStores(tx, Date.now) : stores(transactionPool(tx));
+  return { conversations, runs, messages, control };
 }

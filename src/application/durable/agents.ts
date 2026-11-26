@@ -118,6 +118,6 @@ export async function subAgentWiring<T extends { readonly tools: readonly Runtim
   const run = await runLineage(options, context.scope, context.runId);
   if (run === undefined) return { plan };
   const shaped = run.depth > 0 ? applyAgentProfile(plan, resolved.profiles.find(profile => profile.name === run.profile), context.ids) : plan;
-  if (run.depth >= (options.maxDepth ?? 1)) return { plan: shaped };
+  if (run.delegationDisabled === true || run.depth >= (options.maxDepth ?? 1)) return { plan: shaped };
   return { plan: shaped, agents: createAgentPort({ options: resolved, scope: context.scope, run, ids: context.ids, now: context.now }) };
 }

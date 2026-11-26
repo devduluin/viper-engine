@@ -25,13 +25,16 @@ export class SqlAgentRunStore implements AgentRunStore {
   constructor(private readonly db: SqlQueryable, private readonly d: AgentDialect = POSTGRES_AGENTS) {}
 
   async lineage(scope: TrustedScope, runId: RunId): Promise<RunLineage | undefined> {
-    const row = (await this.db.query(`SELECT id, conversation_id, coalesce(root_run_id, id) AS root, depth, status, agent_profile
-      FROM viper_engine.runs WHERE id = ${this.d.param(1)} AND ${OWNER(this.d, 2)}`, [runId, ...ownerColumns(scope)])).rows[0];
+    const row = (await this.db.query(`SELECT id, conversation_id, coalesce(root_run_id, id) AS root, depth, status, agent_profile,
+      CASE WHEN EXISTS (SELECT 1 FROM viper_engine.run_events q WHERE q.run_id=coalesce(r.root_run_id,r.id)
+        AND q.sequence=1 AND q.type='run.queued' AND q.payload ->> 'delegation'='off') THEN 1 ELSE 0 END AS delegation_disabled
+      FROM viper_engine.runs r WHERE id = ${this.d.param(1)} AND ${OWNER(this.d, 2)}`, [runId, ...ownerColumns(scope)])).rows[0];
     if (row === undefined) return undefined;
     const r = asRow(row);
     return Object.freeze({ runId: parseId('run', r['id']), conversationId: parseId('conversation', r['conversation_id']),
       rootRunId: parseId('run', r['root']), depth: Number(r['depth']), status: status(r['status']),
-      ...(typeof r['agent_profile'] === 'string' ? { profile: r['agent_profile'] } : {}) });
+      ...(typeof r['agent_profile'] === 'string' ? { profile: r['agent_profile'] } : {}),
+      ...(r['delegation_disabled'] === 1 ? { delegationDisabled: true as const } : {}) });
   }
 
   async findSpawn(scope: TrustedScope, parentRunId: RunId, spawnKey: string) {

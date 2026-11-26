@@ -29,12 +29,20 @@ export function createViperEngine(pool: SqlPool, options: ViperEngineOptions) {
   const driver = createDurableRunDriver(pool, {
     model: settings.model.gateway, provider: settings.model.provider, mcp, validator: new JsonSchemaToolValidator(), policy: options.policy, clock, ids,
     resolveRunModel: options.resolveRunModel,
-    configure: async (scope, checkpoint) => ({ model: settings.model.model,
+    configure: async (scope, checkpoint) => {
+      const isolated = await options.isolatedTask?.(scope, checkpoint);
+      if (isolated !== undefined) return { model: settings.model.model, tools: [], instructions: isolated,
+        isolatedText: true, maxModelCalls: Math.min(settings.maxModelCalls, 4),
+        maxOutputTokens: Math.min(settings.maxOutputTokens, 4096),
+        limits: { ...settings.limits, maxTotalTokens: Math.min(settings.limits.maxTotalTokens, 24000),
+          maxDurationMs: Math.min(settings.limits.maxDurationMs, 60000) }, context: settings.context };
+      return { model: settings.model.model,
       maxModelCalls: settings.maxModelCalls, maxOutputTokens: settings.maxOutputTokens,
       tools: await discoverRuntimeTools(scope, await options.connections(scope, checkpoint), directory, mcp, settings),
       ...(options.instructions === undefined ? {} : { instructions: typeof options.instructions === 'function'
         ? await options.instructions(scope, checkpoint) : options.instructions }),
-      limits: settings.limits, context: settings.context, toolDiscovery: settings.toolDiscovery, ...await modeSettings(checkpoint.run.id) }),
+      limits: settings.limits, context: settings.context, toolDiscovery: settings.toolDiscovery, ...await modeSettings(checkpoint.run.id) };
+    },
     ...(options.leaseMs === undefined ? {} : { leaseMs: options.leaseMs }),
     ...(options.heartbeatMs === undefined ? {} : { heartbeatMs: options.heartbeatMs }),
     ...(options.approvalTtlMs === undefined ? {} : { approvalTtlMs: options.approvalTtlMs }),
