@@ -14,6 +14,7 @@ import { assertContextCheckpoint } from './checkpoint.js';
 import { assertMessageHistory } from '../../contracts/messages/history.js';
 import { withDiscoveryExchanges } from './transient.js';
 import { measuredBytes, projectMedia } from './media.js';
+import { compactIntraTurn } from './intra-turn.js';
 
 interface Selection { readonly request: ModelRequest; readonly covered: number; readonly digest: string; readonly excerpt: string }
 const bytes = measuredBytes;
@@ -40,9 +41,19 @@ function select(input: ContextInput, full: ModelRequest, preserve: MessageId, bu
   const turns = historyTurns(input.history.messages, preserve);
   const protectedIndex = turns.findIndex(turn => turn.protected);
   const maximum = Math.min(protectedIndex, Math.max(0, turns.length - budget.recentTurns));
-  if (maximum < 1) throw new BudgetExceeded('context_input_limit');
+  const protectedStart = turns[protectedIndex]?.start ?? input.history.messages.length;
+  const protectedIds = new Set(input.history.messages.slice(protectedStart).map(message => message.id));
+  if (maximum < 1) {
+    const compacted = compactIntraTurn(full, protectedIds, budget, fits);
+    if (compacted !== undefined) return { request: compacted, covered: 0, digest: prefixDigest(input, []), excerpt: '' };
+    throw new BudgetExceeded('context_input_limit');
+  }
   let best = candidate(input, full, turns[maximum]!.start, budget);
-  if (!fits(best.request, budget)) throw new BudgetExceeded('context_input_limit');
+  if (!fits(best.request, budget)) {
+    const compacted = compactIntraTurn(best.request, protectedIds, budget, fits);
+    if (compacted !== undefined) return { ...best, request: compacted };
+    throw new BudgetExceeded('context_input_limit');
+  }
   let low = 1; let high = maximum - 1;
   while (low <= high) {
     const middle = Math.floor((low + high) / 2); const next = candidate(input, full, turns[middle]!.start, budget);
