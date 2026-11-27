@@ -4,7 +4,7 @@ import { ApiFailure } from '../../contracts/api/failure.js';
 import { parseJsonObject } from '../../contracts/messages/json.js';
 import type { JsonObject } from '../../contracts/messages/json.js';
 
-export function apiValidation() {
+export function apiValidation(maxInputBytes = 33_554_432) {
   const ajv = new Ajv2020({ strict: true, coerceTypes: false, useDefaults: false, removeAdditional: false, logger: false });
   ajv.addSchema(API_SCHEMA_DOCUMENT);
   let lastErrors: readonly { instancePath: string; keyword: string }[] = [];
@@ -21,7 +21,7 @@ export function apiValidation() {
       try { body = parseJsonObject(value); } catch { throw new ApiFailure('INVALID_REQUEST'); }
       if (!validate(name, body)) throw new ApiFailure('INVALID_REQUEST');
       const input = body['input'];
-      if (input !== undefined && Buffer.byteLength(JSON.stringify(input)) > 262144) throw new ApiFailure('PAYLOAD_TOO_LARGE');
+      if (input !== undefined && Buffer.byteLength(JSON.stringify(input)) > maxInputBytes) throw new ApiFailure('PAYLOAD_TOO_LARGE');
       return body;
     },
     response(name: string, value: unknown): JsonObject {

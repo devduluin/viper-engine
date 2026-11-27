@@ -37,7 +37,7 @@ export function createEngineHttpServer(pool: SqlPool, options: EngineHttpOptions
   options = Object.freeze({ ...options });
   const clock = options.clock ?? { now: () => Date.now() };
   const ids = options.ids ?? { next: <K extends string>(kind: K) => parseId(kind, `${kind}-${randomUUID()}`) };
-  const requestBytes = bounded(options.requestBytes ?? 262144, 1048576);
+  const requestBytes = bounded(options.requestBytes ?? 33_554_432, 134_217_728);
   const eventBytes = bounded(options.eventBytes ?? 262144, 1048576);
   const idempotencyRetentionSeconds = bounded(options.idempotencyRetentionSeconds ?? 86400, 31536000);
   const eventRetentionSeconds = bounded(options.eventRetentionSeconds ?? 86400, 31536000);

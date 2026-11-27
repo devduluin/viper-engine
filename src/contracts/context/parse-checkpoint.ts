@@ -14,9 +14,9 @@ function report(value: unknown): ContextReport {
 }
 export function parseContextCheckpoint(value: unknown): ContextCheckpoint {
   const row = parseJsonObject(value);
-  if (row['version'] !== 1 || typeof row['sourceDigest'] !== 'string' || !/^[a-f0-9]{64}$/.test(row['sourceDigest'])) throw new Error('Invalid context checkpoint');
+  if ((row['version'] !== 1 && row['version'] !== 2) || typeof row['sourceDigest'] !== 'string' || !/^[a-f0-9]{64}$/.test(row['sourceDigest'])) throw new Error('Invalid context checkpoint');
   if (typeof row['excerpt'] !== 'string' || new TextEncoder().encode(row['excerpt']).byteLength > 65536) throw new Error('Invalid context excerpt');
-  return Object.freeze({ version: 1, conversationId: parseId('conversation', row['conversationId']), runId: parseId('run', row['runId']),
+  return Object.freeze({ version: row['version'], conversationId: parseId('conversation', row['conversationId']), runId: parseId('run', row['runId']),
     preserveFromMessageId: parseId('message', row['preserveFromMessageId']), coveredMessages: integer(row['coveredMessages']),
     sourceDigest: row['sourceDigest'], excerpt: row['excerpt'], report: Object.freeze(report(row['report'])) });
 }

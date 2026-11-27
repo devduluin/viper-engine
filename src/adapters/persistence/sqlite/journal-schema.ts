@@ -44,7 +44,7 @@ CREATE TABLE viper_engine.run_steering_inputs (
   actor_id TEXT NOT NULL, app_id TEXT NOT NULL, tenant_key TEXT NOT NULL, input_id TEXT NOT NULL,
   message TEXT NOT NULL CHECK (json_valid(message) AND json_type(message) = 'object'
     AND json_extract(message,'$.role') IS 'user' AND json_extract(message,'$.id') IS message_id
-    AND length(CAST(message AS BLOB)) <= 262144),
+    AND length(CAST(message AS BLOB)) <= 33554432),
   created_at_ms INTEGER NOT NULL, settled_at_ms INTEGER, outcome TEXT CHECK (outcome IN ('consumed','discarded')),
   CHECK ((settled_at_ms IS NULL) = (outcome IS NULL)),
   UNIQUE (run_id, input_id),

@@ -49,7 +49,7 @@ export const RESPONSE_SCHEMAS = {
     features: object({ tools: { type: 'boolean' }, resources: { type: 'boolean' }, prompts: { type: 'boolean' },
       durableRuns: { type: 'boolean' }, eventReplay: { type: 'boolean' },
     }),
-    limits: object({ requestBytes: { type: 'integer', minimum: 1, maximum: 1_048_576 },
+    limits: object({ requestBytes: { type: 'integer', minimum: 1, maximum: 134_217_728 },
       eventBytes: { type: 'integer', minimum: 1, maximum: 1_048_576 },
       idempotencyRetentionSeconds: revision, eventRetentionSeconds: revision,
     }),

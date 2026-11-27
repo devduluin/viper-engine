@@ -32,7 +32,7 @@ export interface HttpOptions {
 export function createHttpServer(handler: ApiHandler, options: HttpOptions) {
   const app = Fastify({ logger: false, bodyLimit: options.requestBytes, requestIdHeader: false,
     genReqId: () => randomUUID(), trustProxy: false, exposeHeadRoutes: false, routerOptions: { maxParamLength: 4096 } });
-  const scopes = new WeakMap<FastifyRequest, TrustedScope>(); const validator = apiValidation();
+  const scopes = new WeakMap<FastifyRequest, TrustedScope>(); const validator = apiValidation(options.requestBytes);
   const streams = options.replay === undefined ? undefined : new StreamSessions(options.replay.options);
   app.addHook('preClose', async () => { streams?.close(); });
   app.addHook('onRequest', async (request, reply) => {

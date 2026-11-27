@@ -5,7 +5,7 @@ CREATE INDEX viper_engine.runs_conversation_recent ON runs (conversation_id, cre
 CREATE TABLE viper_engine.run_instructions (
   run_id TEXT PRIMARY KEY NOT NULL, actor_id TEXT NOT NULL, app_id TEXT NOT NULL, tenant_key TEXT NOT NULL,
   messages TEXT NOT NULL CHECK (json_valid(messages) AND json_type(messages) = 'array'
-    AND length(CAST(messages AS BLOB)) <= 262144),
+    AND length(CAST(messages AS BLOB)) <= 33554432),
   FOREIGN KEY (run_id, actor_id, app_id, tenant_key) REFERENCES runs(id, actor_id, app_id, tenant_key)
 ) STRICT;
 CREATE TABLE viper_engine.input_receipts (

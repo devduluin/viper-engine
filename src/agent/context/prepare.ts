@@ -28,7 +28,7 @@ function anchor(input: ContextInput, previous?: ContextCheckpoint, start?: Messa
 }
 function candidate(input: ContextInput, full: ModelRequest, covered: number, budget: ContextBudget): Selection {
   const prefix = input.history.messages.slice(0, covered);
-  const summary = summarizedPrefix(input, prefix, budget.maxSummaryBytes);
+  const summary = summarizedPrefix(input, prefix, budget.maxSummaryBytes, 2);
   const instructions = (input.instructions?.length ?? 0) + (input.evidence?.length ?? 0);
   const messages: readonly Message[] = withDiscoveryExchanges([...full.messages.slice(0, instructions), summary.message,
     ...input.history.messages.slice(covered)], input.discoveryExchanges);
@@ -58,7 +58,7 @@ export function prepareContext(input: ContextInput, capabilities: ModelCapabilit
   const preserve = anchor(input, previous, start); const selected = select(input, full.request, preserve, budget);
   const request = Object.freeze({ ...selected.request, messages: projectMedia(selected.request.messages, capabilities.contentTypes) });
   const estimate = estimateContextText(request);
-  const checkpoint: ContextCheckpoint = Object.freeze({ version: 1, conversationId: input.conversationId, runId: input.runId,
+  const checkpoint: ContextCheckpoint = Object.freeze({ version: 2, conversationId: input.conversationId, runId: input.runId,
     preserveFromMessageId: preserve, coveredMessages: selected.covered, sourceDigest: selected.digest, excerpt: selected.excerpt,
     report: Object.freeze({ inputMessages: full.request.messages.length, selectedMessages: request.messages.length, omittedMessages: selected.covered,
       beforeTokens: full.estimate.tokens, afterTokens: estimate.tokens, inputBytes: bytes(request), approximate: true,

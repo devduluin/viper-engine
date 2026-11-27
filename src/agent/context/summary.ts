@@ -21,12 +21,23 @@ function evidence(message: Message): string {
   const calls = message.role === 'assistant' ? (message.toolCalls ?? []).map(call => call.name).join(',') : '';
   return `${message.role} id=${message.id}${outcome}${calls === '' ? '' : ` tools=${calls}`}: ${content}`;
 }
-export function prefixExcerpt(prefix: readonly Message[], maximum: number): string {
+export function prefixExcerpt(prefix: readonly Message[], maximum: number, version: 1 | 2 = 1): string {
   if (prefix.length === 0) return '';
   // A bounded sample from both ends; counts/digest identify omissions without inventing facts.
-  const sample = [...prefix.slice(0, 3), ...prefix.slice(Math.max(3, prefix.length - 3))];
+  const sample = version === 1 ? [...prefix.slice(0, 3), ...prefix.slice(Math.max(3, prefix.length - 3))] : adaptiveSample(prefix);
   const allowance = Math.floor(maximum / sample.length);
   return clip(sample.map(message => clip(evidence(message), Math.max(0, allowance - 1))).join('\n'), maximum);
+}
+/** Preserve the first user request, recent user turns and recent outcomes; output remains incomplete, untrusted data. */
+function adaptiveSample(prefix: readonly Message[]): readonly Message[] {
+  const selected = new Set<number>();
+  const firstUser = prefix.findIndex(message => message.role === 'user');
+  if (firstUser >= 0) selected.add(firstUser);
+  for (let i = prefix.length - 1, users = 0; i >= 0 && users < 3; i--) {
+    if (prefix[i]!.role === 'user') { selected.add(i); users++; }
+  }
+  for (let i = Math.max(0, prefix.length - 3); i < prefix.length; i++) selected.add(i);
+  return [...selected].sort((a, b) => a - b).map(index => prefix[index]!);
 }
 export function summaryMessage(digest: string, count: number, excerpt: string, existing: readonly Message[]): Message {
   const id = `context-${digest}`;
@@ -36,10 +47,10 @@ export function summaryMessage(digest: string, count: number, excerpt: string, e
     omittedMessages: count, sourceDigest: digest, excerpt }) }] });
 }
 
-export function summarizedPrefix(input: SummarySource, prefix: readonly Message[], maximum: number) {
+export function summarizedPrefix(input: SummarySource, prefix: readonly Message[], maximum: number, version: 1 | 2 = 1) {
   const digest = prefixDigest(input, prefix); let low = 0; let high = maximum; let excerpt = '';
   while (low <= high) {
-    const middle = Math.floor((low + high) / 2); const candidate = prefixExcerpt(prefix, middle);
+    const middle = Math.floor((low + high) / 2); const candidate = prefixExcerpt(prefix, middle, version);
     const message = summaryMessage(digest, prefix.length, candidate, input.history.messages);
     if (new TextEncoder().encode(JSON.stringify(message)).byteLength <= maximum) { excerpt = candidate; low = middle + 1; }
     else high = middle - 1;

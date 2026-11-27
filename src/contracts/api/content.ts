@@ -2,7 +2,7 @@ import { array, id, literal, object, ref, text, uri } from './schema.js';
 import type { Schema } from './schema.js';
 
 const mediaType: Schema = { type: 'string', minLength: 1, maxLength: 128, pattern: '^[^\\s/]+/[^\\s/]+$' };
-const base64: Schema = { type: 'string', minLength: 1, maxLength: 262_144,
+const base64: Schema = { type: 'string', minLength: 1, maxLength: 33_554_432,
   pattern: '^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$' };
 const source = { oneOf: [
   object({ kind: literal('inline'), mediaType, encoding: literal('base64'), data: base64 }),
@@ -11,7 +11,7 @@ const source = { oneOf: [
 
 /** This is wire shape validation; JSON depth/bytes, media access and schema policy are separate gates. */
 export const CONTENT_SCHEMAS = {
-  TextContent: object({ type: literal('text'), text: { type: 'string', maxLength: 65_536 } }),
+  TextContent: object({ type: literal('text'), text: { type: 'string', maxLength: 2_097_152 } }),
   JsonContent: object({ type: literal('json'), data: {} }),
   ImageContent: object({ type: literal('image'), source }),
   AudioContent: object({ type: literal('audio'), source }),
