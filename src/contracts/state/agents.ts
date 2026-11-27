@@ -65,8 +65,9 @@ export interface AgentProfile {
   readonly instructions: string;
   readonly tools?: readonly string[];
   /**
-   * The profile changes files. Writers are serialized: at most one live writer per task tree, because path claims are
-   * coordination, not isolation (PLAN-SUBAGENTS §10). Read-only profiles run in parallel freely.
+   * The profile changes files. Shared-tree writers are serialized unless `isolated: true` (each worker uses its own git worktree).
    */
   readonly writes?: boolean;
+  /** Isolated git-worktree worker: permitted to run concurrently with other isolated workers. */
+  readonly isolated?: boolean;
 }

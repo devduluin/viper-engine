@@ -50,11 +50,21 @@ export function transientRetryWait(context: StepContext, failure: ModelFailure):
   return wait;
 }
 
+function rateLimitDetail(message: string): string {
+  const reset = message.match(/resets?\s+in\s+(?:\d+\s*[dhms]\s*)+/i)?.[0]
+    ?? message.match(/retry[- ]after[:\s]+\d+\s*s?/i)?.[0]
+    ?? message.match(/usage limit reached/i)?.[0];
+  return reset ? ` (${reset.trim()})` : '';
+}
+
 /** A model that stayed unreachable ends the run with an explanation and a way to continue. */
 export function unavailableNotice(context: StepContext, failure: ModelFailure): Message | undefined {
   if (!TRANSIENT_CODES.includes(failure.code) || !answered(context.state.history)) return undefined;
-  const text = 'Layanan model AI tidak dapat dihubungi setelah beberapa kali mencoba (koneksi terputus atau server sedang sibuk). '
-    + 'Pekerjaan dijeda dan hasil yang sudah diperoleh tetap tersimpan. Ketik **lanjut** untuk mencoba lagi.';
+  const text = failure.code === 'rate_limited'
+    ? `Kuota atau batas pemakaian token model AI sudah habis (HTTP 429)${rateLimitDetail(failure.message)}. `
+      + 'Tunggu hingga kuota reset atau ganti ke model/provider lain, lalu ketik **lanjut** untuk melanjutkan.'
+    : 'Layanan model AI tidak dapat dihubungi setelah beberapa kali mencoba (koneksi terputus atau server sedang sibuk). '
+      + 'Pekerjaan dijeda dan hasil yang sudah diperoleh tetap tersimpan. Ketik **lanjut** untuk mencoba lagi.';
   return parseMessage({ id: context.deps.ids.next('message'), role: 'assistant', content: [{ type: 'text', text }] });
 }
 
